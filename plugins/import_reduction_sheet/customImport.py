@@ -8,8 +8,8 @@ Created on Mon Aug 23 11:37:56 2021
 from sparrow.import_helpers import BaseImporter
 
 class TRaILpartial(BaseImporter):
-    def __init__(self, db, data_dir, **kwargs):
-        super().__init__(db)
+    def __init__(self, app, data_dir, **kwargs):
+        super().__init__(app)
         self.build_sample()
     
     def build_sample(self):
