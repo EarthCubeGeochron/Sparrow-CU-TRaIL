@@ -78,8 +78,8 @@ def create_analysis(type, vals, **kwargs):
     }
 
 class TRaILImporter(BaseImporter):
-    def __init__(self, db, data_dir, **kwargs):
-        super().__init__(db)
+    def __init__(self, app, data_dir, **kwargs):
+        super().__init__(app)
         file_list = glob.glob(str(data_dir)+'/*.xlsx')
         self.image_folder = data_dir / "Photographs and Measurement Data"
 
