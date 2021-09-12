@@ -2,6 +2,7 @@ import sparrow
 from sparrow.import_helpers import BaseImporter
 from os import environ
 from pathlib import Path
+from rich import print
 
 
 class ImageImporter(BaseImporter):
