@@ -4,14 +4,24 @@ from os import environ
 from pathlib import Path
 from rich import print
 
+# from .trim_image import create_thumbnail
+
 
 class ImageImporter(BaseImporter):
-    def run(self):
+    file_type = "Grain image"
+
+    def run(self, redo=False):
         data_dir = environ.get("SPARROW_DATA_DIR", None)
         file_list = Path(str(data_dir)).glob("**/*.tif")
         # Get rid of copied files
         filtered_list = (f for f in file_list if not f.stem.endswith("_copy"))
-        self.iterfiles(filtered_list, fix_errors=True)
+        self.iterfiles(filtered_list, fix_errors=True, redo=redo)
+
+    def save_thumbnail(self, fn):
+        """
+        Save a thumbnail of the image
+        """
+        pass
 
     def import_datafile(self, fn, rec, **kwargs):
         """
@@ -19,9 +29,8 @@ class ImageImporter(BaseImporter):
         """
         sample_name = fn.stem
         # The last part of the filename seems like an image index
-        if name[-1] in "abcdef":
+        if sample_name[-1] in "abcdef":
             sample_name = sample_name[:-1]
-        print(name)
         db = sparrow.get_database()
         Sample = db.model.sample
 
@@ -31,17 +40,22 @@ class ImageImporter(BaseImporter):
             .filter(Sample.name.ilike(f"{sample_name}%"))
             .one_or_none()
         )
+
         if sample is None:
             sample = Sample(name=sample_name)
+            db.session.add(sample)
 
-        raise SparrowImportError("Refusing to import")
+        # Provide this sample to be linked to the data file
+        yield sample
+
+        # self.save_thumbnail(fn)
 
 
 @sparrow.task()
-def import_grain_images():
+def import_grain_images(redo: bool = False):
     """
     Import grain images, link them to samples, and create thumbnails.
     """
     app = sparrow.get_app()
     importer = ImageImporter(app)
-    importer.run()
+    importer.run(redo=redo)
