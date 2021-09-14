@@ -23,10 +23,8 @@ class ImageImporter(BaseImporter):
 
         # Deal with thumbnails
         self.thumbnail_dir = self.data_dir / ".grain-thumbnails"
-        if recreate_thumbnails:
-            self.thumbnail_dir.rmdir()
         self.thumbnail_dir.mkdir(exist_ok=True)
-        self.create_thumbnails()
+        self.create_thumbnails(overwrite=recreate_thumbnails)
 
     def create_thumbnails(self, overwrite=False):
         """

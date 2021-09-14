@@ -11,6 +11,8 @@ def create_thumbnail(filename, outfile):
     import cv2
 
     image = cv2.imread(filename)  # TODO change import for Sparrow
+    if image is None:
+        return
     image = cv2.resize(image, (0, 0), fx=0.4, fy=0.4)
 
     # Some images have scalebars near the edges, so we need to crop these out
@@ -72,16 +74,23 @@ def create_thumbnail(filename, outfile):
         ]
 
     # Add 20% cushion
-    w = grain[1] - grain[0]
-    l = grain[1] - grain[0]
-    grain[0] = int(grain[0] - 0.2 * w)
-    grain[1] = int(grain[1] + 0.2 * w)
-    grain[2] = int(grain[2] - 0.2 * l)
-    grain[3] = int(grain[3] + 0.2 * l)
+    dx = grain[1] - grain[0]
+    dy = grain[3] - grain[2]
+    # Square dimensions with 20% cushion on each side
+    # Square images look nicer
+    max_dim = max([dx, dy]) * 1.4
 
-    # cv2.rectangle(image, (grain[0], grain[2]), (grain[1], grain[3]), (36,255,12), 2)
+    cx = (grain[0] + grain[1]) // 2
+    cy = (grain[2] + grain[3]) // 2
 
-    # trim to grain bounding box
+    half_width = max_dim // 2
+
+    grain[0] = int(cx - half_width)
+    grain[1] = int(cx + half_width)
+    grain[2] = int(cy - half_width)
+    grain[3] = int(cy + half_width)
+
+    # trim image to grain bounding box
     image = image[grain[2] : grain[3], grain[0] : grain[1]]
     # save out as jpeg... Can lower quality to compress for less data if needed (change 100 to ~50)
     # TODO instead of writing to active directory, save to DB
