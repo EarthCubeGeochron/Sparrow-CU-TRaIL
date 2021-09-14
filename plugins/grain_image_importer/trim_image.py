@@ -5,13 +5,18 @@ Created on Tue Aug 17 13:27:39 2021
 @author: Peter
 """
 
-import cv2
-
 
 def create_thumbnail(filename, outfile):
     """Create a thumbnail of a grain image that is cropped to the boundaries of the grain."""
+    import cv2
+
     image = cv2.imread(filename)  # TODO change import for Sparrow
     image = cv2.resize(image, (0, 0), fx=0.4, fy=0.4)
+
+    # Some images have scalebars near the edges, so we need to crop these out
+    (height, width, nbands) = image.shape
+    margin = height // 10
+    image = image[margin : height - margin, margin : width - margin]
 
     # Convert to grayscale and threshold
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)

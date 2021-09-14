@@ -4,24 +4,43 @@ from os import environ
 from pathlib import Path
 from rich import print
 
+from .trim_image import create_thumbnail
+
 # from .trim_image import create_thumbnail
+
+from sparrow.settings import DATA_DIR, CACHE_DIR
 
 
 class ImageImporter(BaseImporter):
     file_type = "Grain image"
+    data_dir = Path(DATA_DIR)
 
-    def run(self, redo=False):
-        data_dir = environ.get("SPARROW_DATA_DIR", None)
-        file_list = Path(str(data_dir)).glob("**/*.tif")
+    def run(self, redo=False, recreate_thumbnails=False):
+        file_list = self.data_dir.glob("**/*.tif")
         # Get rid of copied files
         filtered_list = (f for f in file_list if not f.stem.endswith("_copy"))
         self.iterfiles(filtered_list, fix_errors=True, redo=redo)
 
-    def save_thumbnail(self, fn):
+        # Deal with thumbnails
+        self.thumbnail_dir = self.data_dir / ".grain-thumbnails"
+        if recreate_thumbnails:
+            self.thumbnail_dir.rmdir()
+        self.thumbnail_dir.mkdir(exist_ok=True)
+        self.create_thumbnails()
+
+    def create_thumbnails(self, overwrite=False):
         """
-        Save a thumbnail of the image
+        Create thumbnails for all images
         """
-        pass
+        db = sparrow.get_database()
+        q = db.session.query(db.model.data_file).filter_by(type_id="Grain image")
+        for data_file in q:
+            infile = self.data_dir / data_file.file_path
+            outfile = self.thumbnail_dir / (data_file.file_hash + ".jpg")
+            print(f"Creating thumbnail for [cyan]{data_file.basename}[/cyan]")
+            if outfile.exists() and not overwrite:
+                continue
+            create_thumbnail(str(infile), str(outfile))
 
     def import_datafile(self, fn, rec, **kwargs):
         """
@@ -48,14 +67,12 @@ class ImageImporter(BaseImporter):
         # Provide this sample to be linked to the data file
         yield sample
 
-        # self.save_thumbnail(fn)
-
 
 @sparrow.task()
-def import_grain_images(redo: bool = False):
+def import_grain_images(redo: bool = False, recreate_thumbnails: bool = False):
     """
     Import grain images, link them to samples, and create thumbnails.
     """
     app = sparrow.get_app()
     importer = ImageImporter(app)
-    importer.run(redo=redo)
+    importer.run(redo=redo, recreate_thumbnails=recreate_thumbnails)
