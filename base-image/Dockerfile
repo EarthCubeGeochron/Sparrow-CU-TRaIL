@@ -1,4 +1,4 @@
-FROM sparrowdata/backend:latest
+FROM sparrowdata/backend
 
 # We need the OpenCV computer-vision library to do image manipulation
 RUN pip install opencv-python
