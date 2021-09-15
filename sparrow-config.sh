@@ -10,6 +10,9 @@ export SPARROW_VERSION=">=2.0.0.beta13"
 export COMPOSE_PROJECT_NAME="${SPARROW_LAB_NAME}"
 export SPARROW_DATA_DIR="$SPARROW_CONFIG_DIR/TRaIL-Data"
 
+# Frontend content overrides
+export SPARROW_SITE_CONTENT="$SPARROW_CONFIG_DIR/site-content"
+
 # Plugins
 export SPARROW_PLUGIN_DIR="$SPARROW_CONFIG_DIR/plugins"
 
@@ -17,8 +20,7 @@ export SPARROW_PLUGIN_DIR="$SPARROW_CONFIG_DIR/plugins"
 overrides="${SPARROW_CONFIG_DIR}/sparrow-secrets.sh"
 [ -f "$overrides" ] && source "$overrides"
 
-# We need to build our own base image for OpenCV support
-# Note, you must build the backend image by running `make` in this repository
-# before running `sparrow up`. We are working on making this type
-# of substitution simpler.
+# We need to build our own base image for OpenCV support.
+# The backend image is built in the Sparrow-Prestart script.
+# when `sparrow up` is called.
 export SPARROW_BACKEND_IMAGE="sparrow_trail_backend:latest"
