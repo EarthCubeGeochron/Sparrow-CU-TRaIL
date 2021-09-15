@@ -5,6 +5,7 @@ from pathlib import Path
 from rich import print
 
 from .trim_image import create_thumbnail
+from .thumbnail_api import get_thumbnail
 
 # from .trim_image import create_thumbnail
 
@@ -64,6 +65,14 @@ class ImageImporter(BaseImporter):
 
         # Provide this sample to be linked to the data file
         yield sample
+
+    def on_api_initialized_v2(self, api):
+        api.add_route(
+            "/data_file/{uuid}/thumbnail",
+            get_thumbnail,
+            name="thumbnail_api",
+            help="Get the thumbnail for a grain",
+        )
 
 
 @sparrow.task()
