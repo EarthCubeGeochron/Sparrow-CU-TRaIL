@@ -1,2 +1,2 @@
 from .import_reduction_sheet import DataReductionImportPlugin
-from .grain_image_importer import import_grain_images
+from .grain_images import import_grain_images, ThumbnailAPIPlugin
