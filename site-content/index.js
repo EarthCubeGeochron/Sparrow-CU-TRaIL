@@ -10,6 +10,8 @@ import {
 } from "./grain-thumbnail";
 
 export default {
+  siteTitle: "CU TRaIL",
+  shortSiteTitle: "TRaIL",
   landingText: h(Markdown, { src: aboutText }),
   sampleHeaderExt: PageGrainThumbnail,
   dataFileHeaderExt: PageGrainThumbnail,
