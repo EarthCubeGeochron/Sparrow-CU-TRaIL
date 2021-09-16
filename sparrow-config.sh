@@ -2,7 +2,7 @@
 
 export SPARROW_BACKUP_DIR="$SPARROW_CONFIG_DIR/backups"
 export SPARROW_LAB_NAME="TRaIL"
-export SPARROW_VERSION=">=2.0.0.beta13"
+export SPARROW_VERSION=">=2.0.0.beta14"
 
 #export SPARROW_SITE_CONTENT="$PROJECT_DIR/site-content"
 
