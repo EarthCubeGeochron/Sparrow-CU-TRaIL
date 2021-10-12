@@ -308,7 +308,7 @@ class TRaILImporter(BaseImporter):
         grain_note = cleaned_data[27:]
         shape_data += grain_note
 
-        material = shape_data.pop(-4)
+        material = shape_data.pop(5)
 
         # We should figure out how to not require meaningless dates
         meaningless_date = "1900-01-01 00:00:00+00"

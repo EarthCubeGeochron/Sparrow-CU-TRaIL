@@ -10,10 +10,7 @@
 - length 2 (mm)
 - width 2 (mm)
 - header: 2X Term
-  parameter: Crystal termination
-  values:
-    Y: double-terminated
-    N: missing terminations
+  skip: true
 - header: Geometry
   parameter: Crystal geometry
   values:
@@ -30,7 +27,11 @@
     m: miscellaneous
 # No idea what this is
 - header: Np
-  skip: true
+  parameter: Crystal termination
+  values:
+    0: No terminations
+    1: Singly terminated
+    2: Doubly terminated
 - Dim Mass (mg)
 - rs (mm)
 - 4He (nmol/g)
