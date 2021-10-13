@@ -3,6 +3,7 @@ from sparrow.import_helpers import get_data_directory
 from sparrow import get_app
 from .importer import TRaILImporter
 from .customImport import TRaILpartial
+from .pickingImport import TRaILpicking
 from IPython import embed
 from pathlib import Path
 
@@ -19,7 +20,7 @@ logger = getLogger(__name__)
 def import_data(redo=False, stop_on_error=False, verbose=False, show_data=False):
     """Import data from TRaIL's data reduction format"""
     app = get_app()
-    proceed = input('import Full or Partial?')
+    proceed = input('import Full, Partial, or Picking?')
     data_dir = Path("/data")
     if proceed == 'Full':
         #data_dir = get_data_directory()
@@ -27,3 +28,5 @@ def import_data(redo=False, stop_on_error=False, verbose=False, show_data=False)
         TRaILImporter(app, data_dir, redo=redo)
     if proceed == 'Partial':
         TRaILpartial(app, data_dir, redo=redo)
+    if proceed == 'Picking':
+        TRaILpicking(app, data_dir, redo=redo)

@@ -80,7 +80,7 @@ def create_analysis(type, vals, **kwargs):
 class TRaILImporter(BaseImporter):
     def __init__(self, app, data_dir, **kwargs):
         super().__init__(app)
-        file_list = glob.glob(str(data_dir)+'/*.xlsx')
+        file_list = glob.glob(str(data_dir)+'/CompleteData/*.xlsx')
         self.image_folder = data_dir / "Photographs and Measurement Data"
 
         self.verbose = kwargs.pop("verbose", False)

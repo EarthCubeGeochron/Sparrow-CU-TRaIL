@@ -13,9 +13,17 @@ class TRaILpartial(BaseImporter):
         self.build_sample()
     
     def build_sample(self):
+        project = {"name": 'test_project'}
+        parent_sample = {
+            "project": [project],
+            "name": 'test_arent',
+            "material": "rock", 
+        }
         sample = {
+            'member_of': parent_sample,
             'name':'Test_sample'
         }
+        print(sample)
         self.basic_import(sample)
         
     def basic_import(self, sample):
