@@ -18,13 +18,6 @@ def split_unit(name):
     (param, unit) = g
     return param, unit
 
-
-def get_first(ls, n):
-    """Get first n items of a list"""
-    items = ls[0:n]
-    ls = ls[n:]
-    return items
-
 # Identify which dicts in the list "vals" passed to create_analysis
 # are data and which are attributes. Based on whether 'Value'-keyed
 # item in each dict is a float
@@ -90,6 +83,8 @@ class TRaILImporter(BaseImporter):
         spec = relative_path(__file__, "column-spec.yaml")
         with open(spec) as f:
             self.column_spec = load(f)
+        # print(self.column_spec)
+        # return
         
         # Calls Sparrow base code for each file in passed list and sends to import_datafile
         self.iterfiles(file_list, **kwargs)

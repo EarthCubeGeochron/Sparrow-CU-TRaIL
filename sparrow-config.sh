@@ -24,3 +24,9 @@ overrides="${SPARROW_CONFIG_DIR}/sparrow-secrets.sh"
 # The backend image is built in the Sparrow-Prestart script.
 # when `sparrow up` is called.
 export SPARROW_BACKEND_IMAGE="sparrow_trail_backend:latest"
+
+# Had to change port nnumber because windows update on
+# 10/15/21 apparently reserved port 54321. Details on finding
+# reserved ports here:
+# https://stackoverflow.com/questions/15619921/an-attempt-was-made-to-access-a-socket-in-a-way-forbidden-by-its-access-permissi
+export SPARROW_DB_PORT="5432"
