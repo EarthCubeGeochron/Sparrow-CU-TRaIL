@@ -11,13 +11,8 @@ import pandas as pd
 from rich import print
 from math import sqrt
 from sparrow.import_helpers import BaseImporter
-
-Ft_constants = {
-    'Apatite': {'density': 3.20, '238U': 18.81, '235U': 21.8, '232Th': 22.25, '147Sm': 5.93},
-    'Zircon': {'density': 4.65, '238U': 15.55, '235U': 18.05, '232Th': 18.43, '147Sm': 4.76},
-    'Titanite': {'density': 3.53, '238U': 17.46, '235U': 20.25, '232Th': 20.68, '147Sm': 5.47},
-    'Miscellaneous': {'density': 4.25, '238U': 15.30, '235U': 17.76, '232Th': 18.14, '147Sm': 4.77}
-    }
+from sparrow.util import relative_path
+from yaml import load
 
 def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material):
     Ft_dat = {}
@@ -66,15 +61,11 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material):
 class TRaILpicking(BaseImporter):
     def __init__(self, app, data_dir, **kwargs):
         super().__init__(app)
-        file_list = glob.glob(str(data_dir)+'/PickingData/*.xlsx')
+        # file_list = glob.glob(str(data_dir)+'/PickingData/*.xlsx')
+        file_list = glob.glob(str(data_dir)+'/PickingData/Picking_data_example.xlsx')
         self.iterfiles(file_list, **kwargs)
 
     def import_datafile(self, fn, rec, **kwargs):
-        # direc = r'C:\Users\pemar\Documents\FlowersResearch\FRES\Data\Picking-Packing_info\\'
-        # file = 'He_Packing_7-12-2021.xlsx'
-        
-        # file_list = glob.glob(str(data_dir)+'/*.xlsx')
-        
         data = pd.read_excel(fn,
                              skiprows = range(2,6),
                              header = 1,
@@ -84,9 +75,10 @@ class TRaILpicking(BaseImporter):
                     inplace=True)
         
         data = data[data['Analyst'].notnull()]
-        terminations_key = {2: 'Doubly terminated', 1: 'Single termination', 0: 'No terminations'}
-        geometry_key = {1: 'Ellipsoid', 2: 'Cylindrical', 3: 'Orthorhombic', 4: 'Hexagonal'}
-        mineral_key = {'a': 'Apatite', 'z': 'Zircon', 't': 'Titanite', 'm': 'Miscellaneous'}
+        
+        spec = relative_path(__file__, "picking_specs.yaml")
+        with open(spec) as f:
+            self.picking_specs = load(f)
         
         for d in range(len(data)):
             project = data.iloc[d]['Analyst']
@@ -96,14 +88,16 @@ class TRaILpicking(BaseImporter):
             width1 = data.iloc[d]['W1']
             length2 = data.iloc[d]['L2']
             width2 = data.iloc[d]['W2']
-            terminations = terminations_key[int(data.iloc[d]['Np (0,1, or 2)'])]
+            terminations = self.picking_specs['terminations_key'][int(data.iloc[d]['Np (0,1, or 2)'])]
             date = str(data.iloc[d]['Date Packed'])
-            geometry = geometry_key[int(data.iloc[d]['Geometry (1,2,3, or 4, see chart)'])]
+            geometry = self.picking_specs['geometry_key'][int(data.iloc[d]['Geometry (1,2,3, or 4, see chart)'])]
             note = data.iloc[d]['Additional descriptive notes']
-            material = mineral_key[data.iloc[d]['Mineral (a, z, t, or m)']]
+            if type(note) != str:
+                note = ''
+            material = self.picking_specs['mineral_key'][data.iloc[d]['Mineral (a, z, t, or m)']]
             Fts = get_Ft(length1, width1, length2, width2, 
-                           int(data.iloc[d]['Np (0,1, or 2)']), geometry, Ft_constants, material)
-            dimensional_mass = Ft_constants[material]['density']*Fts['V']/1e6
+                           int(data.iloc[d]['Np (0,1, or 2)']), geometry, self.picking_specs['Ft_constants'], material)
+            dimensional_mass = self.picking_specs['Ft_constants'][material]['density']*Fts['V']/1e6
             sample_schema = {
                 'member_of': {'project': [{'name': project}],
                               'name': sample,
@@ -154,31 +148,3 @@ class TRaILpicking(BaseImporter):
                     }]}
             print(sample_schema)
             self.db.load_data("sample", sample_schema)
-
-
-
-
-
-# length1=156.5
-# width1= 147.7
-# length2=151.5
-# width2=115.9
-# Np=2
-# geometry = 'Hexagonal'
-# material = 'Apatite'
-# Fts = get_Ft(length1, width1, length2, width2,
-#                 Np, geometry, Ft_constants)
-# Ft235 = get_Ft(length1, width1, length2, width2, Ft_constants[material]['235U'],
-#                Np, geometry)
-# Ft232 = get_Ft(length1, width1, length2, width2, Ft_constants[material]['232Th'],
-#                Np, geometry)
-# Ft147 = get_Ft(length1, width1, length2, width2, Ft_constants[material]['147Sm'],
-#                Np, geometry)
-
-# U = 4.24217712E-13
-# Th = 1.3915948830E-13
-
-# Th_U = Th/(U+U/137.818)
-# a238 = 1/(1.04+0.245*Th_U)
-
-# Ft_eff = a238*Ft238+(1-a238)*Ft232

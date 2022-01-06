@@ -1,0 +1,39 @@
+Ft_constants:
+  Apatite:
+    147Sm: 5.93
+    232Th: 22.25
+    235U: 21.8
+    238U: 18.81
+    density: 3.2
+  Miscellaneous:
+    147Sm: 4.77
+    232Th: 18.14
+    235U: 17.76
+    238U: 15.3
+    density: 4.25
+  Titanite:
+    147Sm: 5.47
+    232Th: 20.68
+    235U: 20.25
+    238U: 17.46
+    density: 3.53
+  Zircon:
+    147Sm: 4.76
+    232Th: 18.43
+    235U: 18.05
+    238U: 15.55
+    density: 4.65
+geometry_key:
+  1: Ellipsoid
+  2: Cylindrical
+  3: Orthorhombic
+  4: Hexagonal
+mineral_key:
+  a: Apatite
+  m: Miscellaneous
+  t: Titanite
+  z: Zircon
+terminations_key:
+  0: No terminations
+  1: Single termination
+  2: Doubly terminated

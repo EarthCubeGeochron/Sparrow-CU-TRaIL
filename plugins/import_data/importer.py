@@ -83,8 +83,6 @@ class TRaILImporter(BaseImporter):
         spec = relative_path(__file__, "column-spec.yaml")
         with open(spec) as f:
             self.column_spec = load(f)
-        # print(self.column_spec)
-        # return
         
         # Calls Sparrow base code for each file in passed list and sends to import_datafile
         self.iterfiles(file_list, **kwargs)
@@ -93,21 +91,26 @@ class TRaILImporter(BaseImporter):
         """
         Import an original data file
         """
-        # TODO identify which version of the data reduction sheet is in each passed file
-        # TODO make column spec file for each version of the data reduction sheet
-        # May be easier to open the column spec file here
-        df = read_excel(fn, sheet_name="Complete Summary Table")
+        # Open data file; use file name to ID which version is passed
+        if 'summary' in fn:
+            df = read_excel(fn)
+        else:
+            df = read_excel(fn, sheet_name="Complete Summary Table")
         assert len(self.column_spec) == len(df.columns)
 
         yield from self.import_projects(df)
 
     def split_grain_information(self, df):
+        # Really the only way to ID aliquots from larger samples is to use
+        # the last few characters separated by a _ or -; if the sample name does not
+        # conform to this standard there is no reliable way to do so. This will simply create
+        # 
         # We banish underscores from sample names entirely to split.
         # Only dashes. This simplifies our life tremendously.
         df[["sample_name", "-", "grain"]] = df["Full Sample Name"].str.replace("_","-").str.rpartition("-")
         # Go back to previous separators
         df["sample_name"] = df.apply(lambda row: row["Full Sample Name"][0:len(row["sample_name"])], axis=1)
-        df.drop(columns=["-"], inplace=True) # don't need it
+        df.drop(columns=["-"], inplace=True) # Created a separate column full of "-", which is useless
 
         # Find the number of grains per sample
         n_grains = df.pivot_table(index=['sample_name'], aggfunc='size')
@@ -255,7 +258,8 @@ class TRaILImporter(BaseImporter):
             if error is not None:
                 spec["error"] = error
             yield spec
-
+    
+    # Never used in current version
     def link_image_files(self, row, session):
         if row["grain"] is None:
             return
@@ -285,6 +289,7 @@ class TRaILImporter(BaseImporter):
 
         # Get a semi-cleaned set of values for each row
         cleaned_data = list(self.itervalues(row))
+        print(cleaned_data)
         
         [researcher, sample] = cleaned_data[0:2]
         
@@ -358,7 +363,7 @@ class TRaILImporter(BaseImporter):
             ]
         }
                 
-        print(sample)
+        # print(sample)
         res = self.db.load_data("sample", sample)
         
         # I think this line should be working with images eventually.

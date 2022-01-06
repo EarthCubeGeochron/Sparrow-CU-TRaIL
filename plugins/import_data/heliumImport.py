@@ -162,7 +162,7 @@ class TRaILhelium(BaseImporter):
             #TODO figure out how to handle creating a new sample if necessary
             print('No sample with the name '+sample_name+' exists!')
             opt = input('Would you like to [1] create a new sample, [2] find an existing sample to add helium data to, or [3] skip these He data?: ')
-            # opt = '1'
+            # opt = '3'
             while not opt in ['1', '2', '3']:
                 opt = input('Please enter a number 1-3 to choose whether to [1] create a new sample, [2] find an existing sample to add helium data to, or [3] skip these He data: ')
             if opt == '1':
