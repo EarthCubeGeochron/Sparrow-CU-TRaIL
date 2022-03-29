@@ -110,7 +110,7 @@ class TRaILpicking(BaseImporter):
                     'instrument': {'name': 'Leica microscope'},
                     'date': date,
                     'analysis': [{
-                        'analysis_type': 'Grain Shape',
+                        'analysis_type': 'Grain geometry',
                         'datum': [
                             {'value': length1,
                              'error': None,

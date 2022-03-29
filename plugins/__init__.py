@@ -1,6 +1,7 @@
 from .import_data import DataReductionImportPlugin
 from .grain_images import import_grain_images, ThumbnailAPIPlugin
-from .import_data.importer import TRaILImporter
+from .import_data.ArchiveImporter import TRaILImporter
+# from .import_data.importer import TRaILImporter
 from .import_data.customImport import TRaILpartial
 from .import_data.pickingImport import TRaILpicking
 from .import_data.heliumImport import TRaILhelium

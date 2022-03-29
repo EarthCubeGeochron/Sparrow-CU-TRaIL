@@ -1,94 +1,164 @@
 # This column specification helps translate the controlled format of
 # TRaIL's data reduction sheet into standardized values for the Sparrow
 # data system.
-- header: Owner
-  key: researcher
-- header: Full Sample Name
-  key: aliquot_name
-- length 1 (mm)
-- width 1 (mm)
-- length 2 (mm)
-- width 2 (mm)
-- header: 2X Term
-  skip: true
-- header: Geometry
-  parameter: Crystal geometry
-  values:
-    1: Ellipsoid
-    2: Cylinder
-    3: Orthorhombic
-    4: Hexagonal
-- header: Mineral
-  key: material
-  values:
-    z: zircon
-    a: apatite
-    t: titanite
-    m: miscellaneous
-# No idea what this is
-- header: Np
-  parameter: Crystal termination
-  values:
-    0: No terminations
-    1: Singly terminated
-    2: Doubly terminated
-- Dim Mass (mg)
-- rs (mm)
-- 4He (nmol/g)
-- ±
-- U (ppm)
-- ±
-- Th (ppm)
-- ±
-- Sm (ppm)
-- ±
-- header: eU
-  unit: ppm
-- 4He (ncc)
-- ±
-- Re (%)
-- U (ng)
-- ±
-- Th (ng)
-- ±
-- Sm (ng)
-- ±
-- header: Th/U
-  unit: ratio
-- Raw Date (Ma)
-- Raw Date It (Ma)
-- header: ±
-  error_for:
-    - 31
-    - 32
-- header: Ft
-  parameter: alpha-ejection factor
-  unit: dimensionless
-- header: Corrected Date (Ma)
-  is_calculated: true
-  is_interpreted: true
-- header: Corrected Date (It) (Ma)
-  is_calculated: true
-  is_interpreted: true
-# Analytical uncertainty is currently applied to
-# both corrected date values... maybe not the best idea?
-- header: Analytic Unc. (Ma)2s
-  unit: Ma
-  error_metric: "2s"
-  error_for:
-    - 35
-    - 36
-- skip: true
-# All percentage errors can be straightforwardly calculated from other columns.
-# Maybe we should re-import as separate (computed) data points, but for now
-# we skip these last few columns.
-- header: He ± (%)
-  skip: true
-- header: U ± (%)
-  skip: true
-- header: Th ± (%)
-  skip: true
-- header: Date ± %
-  skip: true
-- header: Notes
-  parameter: note
+# labeling data
+- Owner:
+    names:
+        - Owner
+    missing: Not recorded
+- Full Sample Name:
+    names:
+        - Full Sample Name
+        - Full Sample Name.1
+# picking data
+- Length 1:
+    names:
+        - length 1 (mm)
+    unit: ~um
+- Width 1:
+    names:
+        - width 1 (mm)
+    unit: ~um
+- Length 2:
+    names:
+        - length 2 (mm)
+    unit: ~um
+- Width 2:
+    names:
+        - width 2 (mm)
+    unit: ~um
+- Crystal Geometry:
+    names:
+        - Geometry
+    missing: Not Reported
+    values:
+        1: Ellipsoid
+        2: Cylinder
+        3: Orthorhombic
+        4: Hexagonal
+- Crystal termination:
+    names:
+        - Np
+        - 2X Term
+    values:
+        0: No terminations
+        1: Singly terminated
+        2: Doubly terminated
+        Y: Doubly terminated
+        y: Doubly terminated
+        N: Termination(s) missing
+        n: Termination(s) missing
+        'yes': Doubly terminated
+- Mineral:
+    names:
+        - material
+        - Mineral
+    values:
+        z: zircon
+        a: apatite
+        t: titanite
+        m: miscellaneous
+    missing: Not recorded
+- Dimensional Mass:
+    names:
+        - Dim Mass (mg)
+    missing: Not Calculated
+    unit: ~ug
+- Equivalent Spherical Radius:
+    names:
+        - rs (mm)
+        - ESR_Ft (mm)
+    missing: Not Calculated
+    unit: ~um
+- Notes:
+    names:
+        - Notes
+    missing: None recorded
+# Helium data
+- 4He (nmol/g):
+    names:
+        - 4He (nmol/g)
+        - 4He (nmol/g).1
+- 4He (ncc):
+    names:
+        - 4He (ncc)
+- Reextract (%):
+    names:
+        - Re (%)
+        - Initial Extract (%)
+    missing: Not Calculated
+# ICPMS data
+- U (ppm):
+    names:
+        - U (ppm)
+        - U (ppm).1
+- Th (ppm):
+    names:
+        - Th (ppm)
+        - Th (ppm).1
+- Sm (ppm):
+    names:
+        - Sm (ppm)
+        - Sm (ppm).1
+    missing: Not Measured
+- eU:
+    names:
+        - eU
+        - eU.1
+    unit: ppm
+- U (ng):
+    names:
+        - U (ng)
+- Th (ng):
+    names:
+        - Th (ng)
+- Sm (ng):
+    names:
+        - Sm (ng)
+        - 147Sm (ng)
+    missing: Not Measured
+- Th/U:
+    names:
+        - Th/U
+    missing: Not Calculated
+    unit: ratio
+# Date calculation data
+- Linear Raw Date:
+    names:
+        - Raw Date lin (Ma)
+        - Raw Date (Ma)
+    unit: Ma
+- Iterated Raw Date:
+    names:
+        - Raw Date It (Ma)
+    missing: Not Calculated
+- Combined Alpha Ejection Factor:
+    names:
+        - Ft
+        - Mean Ft
+- Linear Corrected Date:
+    names:
+        - Corrected Date (Ma)
+        - Corrected Date lin (Ma)
+    missing: Not Calculated
+    is_calculated: true
+    is_interpreted: true
+- Iterated Corrected Date:
+    names:
+        - Corrected Date IT (Ma)
+        - Corrected Date (It) (Ma).1
+        - Corrected Date (It) (Ma)
+    missing: Not Calculated
+    is_calculated: true
+    is_interpreted: true
+- It ±:
+    names:
+        - Full Unc. (Ma)
+        - Full Unc
+        - Analytic Unc. (Ma)2s
+        - Analytic Unc. (Ma)
+    unit: Ma
+    error_metric: "2s"
+    error_for:
+        - Linear Corrected Date (Ma)
+        - Iterated Corrected Date (Ma)
