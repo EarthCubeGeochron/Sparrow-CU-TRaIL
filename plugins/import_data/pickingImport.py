@@ -64,6 +64,17 @@ class TRaILpicking(BaseImporter):
         # file_list = glob.glob(str(data_dir)+'/PickingData/*.xlsx')
         file_list = glob.glob(str(data_dir)+'/PickingData/Picking_data_example.xlsx')
         self.iterfiles(file_list, **kwargs)
+        
+    def make_labID(self, row):
+        date = str(row['Date Packed'].year)[-2:]
+        all_IDs = [el for tup in self.db.session.query(self.db.model.sample.lab_id).all() for el in tup if el is not None]
+        same_year = [i for i in all_IDs if date+'-' in i]
+        print(len(same_year))
+        max_num = max([int(i.split('-')[1]) for i in same_year])
+        print(max_num)
+        id_num = max_num+1
+        lab_id = date+'-'+f'{id_num:05d}'
+        return lab_id
 
     def import_datafile(self, fn, rec, **kwargs):
         data = pd.read_excel(fn,
@@ -71,7 +82,11 @@ class TRaILpicking(BaseImporter):
                              header = 1,
                              sheet_name = 'master')
         
-        data.rename(columns={'Aliquot             (label a01, a02, z01, z02, etc.)':'Aliquot'},
+        data.rename(columns={'Aliquot             (label a01, a02, z01, z02, etc.)':'Aliquot',
+                             'Surface Roughness (GEM chart)': 'Roughness',
+                             'Idealness of xtal form (GEM chart)': 'Xtal form',
+                             'Mineral Inclusions? (should be avoided for apatite, see notes for zircons)': 'Mineral Inclusions',
+                             'Fluid Inclusions? (should be avoided for all grains)': 'Fluid Inclusions'},
                     inplace=True)
         
         data = data[data['Analyst'].notnull()]
@@ -81,6 +96,9 @@ class TRaILpicking(BaseImporter):
             self.picking_specs = load(f)
         
         for d in range(len(data)):
+            lab_id = self.make_labID(data.iloc[d])
+            print(lab_id)
+            
             project = data.iloc[d]['Analyst']
             sample = data.iloc[d]['Sample.1']
             grain = data.iloc[d]['Aliquot']
@@ -104,6 +122,7 @@ class TRaILpicking(BaseImporter):
                               'material': 'rock'},
                 'name': sample+'_'+grain,
                 'material': material,
+                "lab_id": lab_id,
                 'session': [
                     {
                     'technique': {'id': 'Picking Information'},
@@ -146,5 +165,5 @@ class TRaILpicking(BaseImporter):
                             ]
                         }]
                     }]}
-            print(sample_schema)
+            
             self.db.load_data("sample", sample_schema)

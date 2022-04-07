@@ -1,6 +1,6 @@
 from click import command, option
 from sparrow import get_app
-from .importer import TRaILImporter
+from .ArchiveImporter import TRaILImporter
 from .customImport import TRaILpartial
 from .pickingImport import TRaILpicking
 from .heliumImport import TRaILhelium

@@ -34,10 +34,10 @@ def get_blanks(CBs):
     return blanks
 
 # Function to get a sample's RE(s) 4/3 ratio(s)
-def get_REs(sample_name, data):
+def get_REs(sample_id, data):
     REs = []
     for d in data:
-        if sample_name in d and ' RE' in d:
+        if sample_id in d and ' RE' in d:
             REs.append(get_4_3(data[d]['data']))
     return REs
 
@@ -97,7 +97,7 @@ class TRaILhelium(BaseImporter):
                 sample = sample[:-2]
                 if len(sample)>0:
                     sample_info = {}
-                    sample_name = sample[0][1]
+                    sample_id = sample[0][1]
                     sample_info['analysis number'] = int(sample[0][0][2:])
                     sample_info['datetime'] = sample[0][2]
                     sample = pd.DataFrame(sample[1:], columns=sample[0])
@@ -105,7 +105,7 @@ class TRaILhelium(BaseImporter):
                     sample = sample.astype(float)
                     sample.columns = cols
                     sample_info['data'] = sample
-                    data[sample_name] = sample_info
+                    data[sample_id] = sample_info
                     sample = []
         
         Qs = []
@@ -128,12 +128,12 @@ class TRaILhelium(BaseImporter):
         # (i.e., not a Q, cold blank, or reextract)
         for d in data:
             if ' RE' not in d:
-                sample_name = d.split(' ')[0]
+                sample_id = d.split(' ')[0]
                 blank_num = blank_nums[blank_nums<data[d]['analysis number']].max()
                 
                 ncc_blank = get_ncc(blanks[blank_num], Q['Q_4_3'], Q['shots'], Q21, QDF)
                 
-                REs = get_REs(sample_name, data)
+                REs = get_REs(sample_id, data)
                 ncc_REs = [get_ncc(re, Q['Q_4_3'], Q['shots'], Q21, QDF) for re in REs]
                        
                 He_4_3 = get_4_3(data[d]['data'])
@@ -146,7 +146,7 @@ class TRaILhelium(BaseImporter):
                     if RE > ncc_blank:
                         RE_added = True
                         total_ncc = total_ncc + RE - ncc_blank
-                print(sample_name, total_ncc, 'ncc')
+                print(sample_id, total_ncc, 'ncc')
                 if RE_added:
                     total_RE = sum(ncc_REs).n
                     print('Reextract %:', abs(1-(total_RE/total_ncc.n)*100)) 
@@ -154,19 +154,22 @@ class TRaILhelium(BaseImporter):
                     print('Reextract %: 100')
                     total_RE = 0
                 nccs.append(total_ncc)
-                self.import_he(sample_name, total_ncc, total_RE, data[d]['datetime'])
+                self.import_he(sample_id, total_ncc, total_RE, data[d]['datetime'])
     
-    def import_he(self, sample_name, total_ncc, total_RE, date):
-        sample_obj = self.db.session.query(self.db.model.sample).filter_by(name=sample_name).all()
+    def import_he(self, sample_id, total_ncc, total_RE, date):
+        # sample_obj = self.db.session.query(self.db.model.sample).filter_by(name=sample_name).all()
+        sample_obj = self.db.session.query(self.db.model.sample).filter_by(lab_id=sample_id).all()
         if len(sample_obj) == 0:
             #TODO figure out how to handle creating a new sample if necessary
-            print('No sample with the name '+sample_name+' exists!')
+            print('No sample with the name or ID '+sample_id+' exists')
             opt = input('Would you like to [1] create a new sample, [2] find an existing sample to add helium data to, or [3] skip these He data?: ')
             # opt = '3'
             while not opt in ['1', '2', '3']:
                 opt = input('Please enter a number 1-3 to choose whether to [1] create a new sample, [2] find an existing sample to add helium data to, or [3] skip these He data: ')
             if opt == '1':
                 print('')
+                # TODO recover the sample name indpendently or find a way to add it
+                sample_name = sample_id
                 self.create_sample(sample_name, total_ncc, total_RE, date)
             # Need to figure out way of allowing user to choose sample
             if opt == '2':
@@ -182,10 +185,10 @@ class TRaILhelium(BaseImporter):
             # print(target_json)
             print('')
             self.add_he(sample_obj, total_ncc, total_RE, date)
-        elif len(sample_obj) > 1:
-            #TODO figure out how to allow user to choose between samples from list
-            print('Multiple samples with that name.\nPlease choose which should be used.')
-            return
+        # elif len(sample_obj) > 1:
+        #     #TODO figure out how to allow user to choose between samples from list
+        #     print('Multiple samples with that name.\nPlease choose which should be used.')
+        #     return
     
     # If creating a sample with no picking information, assume nothing
     # about the owner, aliquot number, etc.
@@ -196,6 +199,8 @@ class TRaILhelium(BaseImporter):
             reextract = 100
         else:
             reextract = abs(1-(total_RE/total_ncc.n)*100)
+        
+        # TODO make sample ID here somewhere
         
         session_dict = {
             'technique': {'id': 'Helium measurement'},
