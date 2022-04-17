@@ -32,6 +32,7 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material):
             h = l1
             V = np.pi*r**2*h
             Ft = 1-((r+h)*R)/(2*r*h)+(0.2122*R**2)/(r*h)+(0.0153*R**3)/r**3
+            Rs = (3*r*h)/(2*(r+h))
         elif shape == 'Orthorhombic':
             a = min([w1,w2])
             b = max([w1,w2])
@@ -56,7 +57,17 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material):
                    (H-Np*(W*(sqrt(3)/2)+L)/4))*R**2/V)
         Ft_dat[iso] = Ft
     Ft_dat['V'] = V
+    Ft_dat['Rs'] = Rs
     return Ft_dat
+
+def make_datum(datum, parameter, unit):
+    return {'value': datum,
+            'error': None,
+            'type': {'parameter': parameter, 'unit': unit}}
+
+def make_attribute(value, parameter):
+    return {'parameter': parameter,
+            'value': str(value)}
 
 class TRaILpicking(BaseImporter):
     def __init__(self, app, data_dir, **kwargs):
@@ -69,9 +80,10 @@ class TRaILpicking(BaseImporter):
         date = str(row['Date Packed'].year)[-2:]
         all_IDs = [el for tup in self.db.session.query(self.db.model.sample.lab_id).all() for el in tup if el is not None]
         same_year = [i for i in all_IDs if date+'-' in i]
-        print(len(same_year))
-        max_num = max([int(i.split('-')[1]) for i in same_year])
-        print(max_num)
+        if len(same_year) > 0:
+            max_num = max([int(i.split('-')[1]) for i in same_year])
+        else:
+            max_num = 0
         id_num = max_num+1
         lab_id = date+'-'+f'{id_num:05d}'
         return lab_id
@@ -81,41 +93,102 @@ class TRaILpicking(BaseImporter):
                              skiprows = range(2,6),
                              header = 1,
                              sheet_name = 'master')
-        
-        data.rename(columns={'Aliquot             (label a01, a02, z01, z02, etc.)':'Aliquot',
-                             'Surface Roughness (GEM chart)': 'Roughness',
-                             'Idealness of xtal form (GEM chart)': 'Xtal form',
-                             'Mineral Inclusions? (should be avoided for apatite, see notes for zircons)': 'Mineral Inclusions',
-                             'Fluid Inclusions? (should be avoided for all grains)': 'Fluid Inclusions'},
-                    inplace=True)
-        
-        data = data[data['Analyst'].notnull()]
-        
+
+        # Load the picking specs. This file dictates virtually everything about this import
         spec = relative_path(__file__, "picking_specs.yaml")
         with open(spec) as f:
             self.picking_specs = load(f)
         
+        # Find actual data by figuring out where the analyst rows are full
+        data = data[data[self.picking_specs['Metadata']['Researcher']].notnull()]
+        
         for d in range(len(data)):
+            # Generate a lab ID for each grain
             lab_id = self.make_labID(data.iloc[d])
-            print(lab_id)
             
-            project = data.iloc[d]['Analyst']
-            sample = data.iloc[d]['Sample.1']
-            grain = data.iloc[d]['Aliquot']
-            length1 = data.iloc[d]['L1']
-            width1 = data.iloc[d]['W1']
-            length2 = data.iloc[d]['L2']
-            width2 = data.iloc[d]['W2']
-            terminations = self.picking_specs['terminations_key'][int(data.iloc[d]['Np (0,1, or 2)'])]
+            # Generate metadata required for every grain
+            project = data.iloc[d][self.picking_specs['Metadata']['Researcher']]
+            sample = data.iloc[d][self.picking_specs['Metadata']['Sample']]
+            grain = data.iloc[d][self.picking_specs['Metadata']['Grain']]
+            print(sample+'_'+grain)
             date = str(data.iloc[d]['Date Packed'])
-            geometry = self.picking_specs['geometry_key'][int(data.iloc[d]['Geometry (1,2,3, or 4, see chart)'])]
-            note = data.iloc[d]['Additional descriptive notes']
-            if type(note) != str:
-                note = ''
-            material = self.picking_specs['mineral_key'][data.iloc[d]['Mineral (a, z, t, or m)']]
-            Fts = get_Ft(length1, width1, length2, width2, 
-                           int(data.iloc[d]['Np (0,1, or 2)']), geometry, self.picking_specs['Ft_constants'], material)
-            dimensional_mass = self.picking_specs['Ft_constants'][material]['density']*Fts['V']/1e6
+            material = self.picking_specs['mineral_key'][data.iloc[d][self.picking_specs['Metadata']['Mineral']]]
+            
+            # Create necessary data for Fts if not a shard. This info MUST be recorded for whole grains
+            shard = data.iloc[d][self.picking_specs['Metadata']['Fragment']]
+            if shard != 'Y' and shard != 'y':
+                length1 = data.iloc[d][self.picking_specs['Metadata']['Dimensions']['Length 1']]
+                width1 = data.iloc[d][self.picking_specs['Metadata']['Dimensions']['Width 1']]
+                length2 = data.iloc[d][self.picking_specs['Metadata']['Dimensions']['Length 2']]
+                width2 = data.iloc[d][self.picking_specs['Metadata']['Dimensions']['Width 2']]
+                terminations = data.iloc[d][self.picking_specs['Metadata']['Terminations']]
+                geometry = data.iloc[d][self.picking_specs['Metadata']['Geometry']]
+                
+                # Generate Ft and dimensional mass
+                Fts = get_Ft(length1, width1, length2, width2,
+                             int(terminations), self.picking_specs['geometry_key'][geometry],
+                             self.picking_specs['Ft_constants'], material)
+                dimensional_mass = self.picking_specs['Ft_constants'][material]['density']*Fts['V']/1e6
+
+                # create datum and attributes for shape analysis
+                shape_data = []
+                for s in self.picking_specs['Shape']['data']:
+                    col = next(iter(s))
+                    value = data.iloc[d][col]
+                    shape_data.append([value, s[col]['name'], s[col]['unit']])
+                shape_attributes = []
+                for s in self.picking_specs['Shape']['attributes']:
+                    col = next(iter(s))
+                    value = str(data.iloc[d][col])
+                    shape_attributes.append([value, s[col]])
+                # make analysis dictionary
+                shape_dict = {
+                    'analysis_type': 'Grain Shape',
+                    'datum': [make_datum(*d) for d in shape_data],
+                    'attribute': [make_attribute(*a) for a in shape_attributes]
+                    }
+            # If a shard, simply add that as a note and don't calculate Ft values
+            else:
+                Fts = {'238U': 1, '235U': 1, '232Th': 1, '147Sm': 1}
+                shape_dict = {
+                    'analysis_type': 'Grain Shape',
+                    'attribute': [make_attribute('Crystal shard', 'Shape notes')]
+                    }
+            
+            # create datum and attributes for characteristics analysis
+            if shard != 'Y' and shard != 'y':
+                # If not a shard, all data here are calculated above, so declare explicitly
+                chars_data =[
+                    [dimensional_mass, 'Dimensional mass', 'μg'],
+                    [Fts['Rs'], 'Equivalent Spherical Radius', 'μg']
+                    ]
+            # Characteristics will always be recorded, even for shards
+            chars_attributes = []
+            for s in self.picking_specs['Characteristics']['attributes']:
+                col = next(iter(s))
+                value = str(data.iloc[d][col])
+                chars_attributes.append([value, s[col]])
+            # make analysis dictionary, exclude missing data if shards
+            if shard != 'Y' and shard != 'y':
+                chars_dict = {
+                    'analysis_type': 'Grain Characteristics',
+                    'datum': [make_datum(*d) for d in chars_data],
+                    'attribute': [make_attribute(*a) for a in chars_attributes]
+                    }
+            else:
+                chars_dict = {
+                    'analysis_type': 'Grain Characteristics',
+                    'attribute': [make_attribute(*a) for a in chars_attributes]
+                    }
+            
+            # Compile data for new Ft session
+            Ft_data = [
+                [Fts['238U'], '238U Ft', ''],
+                [Fts['235U'], '235U Ft', ''],
+                [Fts['232Th'], '232Th Ft', ''],
+                [Fts['147Sm'], '147Sm Ft', '']
+                ]
+            
             sample_schema = {
                 'member_of': {'project': [{'name': project}],
                               'name': sample,
@@ -128,42 +201,19 @@ class TRaILpicking(BaseImporter):
                     'technique': {'id': 'Picking Information'},
                     'instrument': {'name': 'Leica microscope'},
                     'date': date,
-                    'analysis': [{
-                        'analysis_type': 'Grain geometry',
-                        'datum': [
-                            {'value': length1,
-                             'error': None,
-                             'type': {'parameter': 'Length 1', 'unit': 'μm'}},
-                            {'value': width1,
-                              'error': None,
-                              'type': {'parameter': 'Width 1', 'unit': 'μm'}},
-                            {'value': length2,
-                              'error': None,
-                              'type': {'parameter': 'Length 2', 'unit': 'μm'}},
-                            {'value': width2,
-                              'error': None,
-                              'type': {'parameter': 'Width 2', 'unit': 'μm'}},
-                            {'value': Fts['238U'],
-                              'error': None, 'type': {'parameter': '238U Ft', 'unit': ''}},
-                            {'value': Fts['235U'],
-                              'error': None, 'type': {'parameter': '235U Ft', 'unit': ''}},
-                            {'value': Fts['232Th'],
-                              'error': None, 'type': {'parameter': '232Th Ft', 'unit': ''}},
-                            {'value': Fts['147Sm'],
-                              'error': None, 'type': {'parameter': '147Sm Ft', 'unit': ''}},
-                            {'value': dimensional_mass,
-                              'error': None,
-                              'type': {'parameter': 'Dimensional mass', 'unit': 'μg'}}
-                            ],
-                        'attribute': [
-                            {'parameter': 'Geometry',
-                             'value': geometry},
-                            {'parameter': 'Crystal terminations',
-                             'value': terminations},
-                            {'parameter': 'Notes',
-                             'value': note}
-                            ]
+                    'analysis': [
+                        shape_dict,
+                        chars_dict
+                        ]
+                    },
+                    {
+                    'technique': {'id': "(U-Th)/He date calculation"},
+                    'date': "1900-01-01 00:00:00+00", # always pass an "unknown date value for calculation
+                    'analysis': [
+                        {
+                        'analysis_type': 'Alpha Ejection Correction',
+                        'datum': [make_datum(*d) for d in Ft_data]
                         }]
                     }]}
-            
+                        
             self.db.load_data("sample", sample_schema)

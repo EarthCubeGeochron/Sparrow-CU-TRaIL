@@ -1,3 +1,51 @@
+# First we define metadata necessary to perform data reduction for a given grain
+Metadata:
+  Sample: Sample.1 # the .1 is because this is actually the second column called "Sample"
+  Grain: Aliquot             (label a01, a02, z01, z02, etc.)
+  Researcher: Analyst
+  Fragment: Shard (Y or N)?
+  Mineral: 'Mineral (a, z, t, or m)'
+  Terminations: Np (0,1, or 2)
+  Geometry: Geometry (1,2,3, or 4, see chart)
+  Date: Date Packed
+  Dimensions: # Need to explicitly define 
+    Length 1: L1
+    Width 1: W1
+    Length 2: L2
+    Width 2: W2
+# Next, define the columns in the picking sheet. These are split into two categories: Shape and Characteristics
+# In each category, we record data (hard numbers), and attributes (descriptors).
+# For attributes, first give the column name and then the label to put in sparrow, e.g., "- Surface Color or Staining: Surface color/staining"
+# For data, we need to record the column name first and the give the name to put in sparrow as well as the unit, following the convention below
+# Since data are more complicated and don't appear and different on the front end, we only use data when units are necessary
+# Also note, the results will appear in the front end in the same order they're listed here
+Shape:
+  data:
+    - L1:
+        name: Length 1
+        unit: \u03bcm
+    - W1:
+        name: Width 1
+        unit: \u03bcm
+    - L2:
+        name: Length 2
+        unit: \u03bcm
+    - W2:
+        name: Width 2
+        unit: \u03bcm
+  attributes:
+    - Geometry (1,2,3, or 4, see chart): Geometry
+    - Np (0,1, or 2): Crystal terminations
+Characteristics:
+  attributes:
+    - Color (apatite) or Clarity (zircon): Color
+    - Surface Color or Staining: Surface color/staining
+    - Surface Roughness (GEM chart): Roughness (1-3)
+    - Idealness of xtal form (GEM chart): Idealness of Crystal (A-C)
+    - Mineral Inclusions? (should be avoided for apatite, see notes for zircons): Mineral inclusions
+    - Fluid Inclusions? (should be avoided for all grains): Fluid inclusions
+    - Additional descriptive notes: Notes
+# List a bunch of constants we need to do data reduction and Ft calculations
 Ft_constants:
   Apatite:
     147Sm: 5.93
@@ -23,6 +71,7 @@ Ft_constants:
     235U: 18.05
     238U: 15.55
     density: 4.65
+# Finally, we provide the keys for things like geometry and mineral so what gets put into sparrow is more clear
 geometry_key:
   1: Ellipsoid
   2: Cylindrical
@@ -37,6 +86,3 @@ terminations_key:
   0: No terminations
   1: Single termination
   2: Doubly terminated
-Columns:
-  datum:
-    
