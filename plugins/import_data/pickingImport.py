@@ -180,6 +180,7 @@ class TRaILpicking(BaseImporter):
                     'analysis_type': 'Grain Characteristics',
                     'attribute': [make_attribute(*a) for a in chars_attributes]
                     }
+                print(chars_dict)
             
             # Compile data for new Ft session
             Ft_data = [
