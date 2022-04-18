@@ -5,6 +5,7 @@ from .import_data.ArchiveImporter import TRaILImporter
 from .import_data.pickingImport import TRaILpicking
 from .import_data.heliumImport import TRaILhelium
 from .import_data.icpmsImport import TRaILicpms
+from .export_data.sampleID_export import LabID_exporter
 
 from sparrow import get_app
 from click import secho
@@ -38,3 +39,9 @@ def import_full_data():
     app = get_app()
     data_dir = Path("/data")
     TRaILImporter(app, data_dir)
+    
+@task(name='export-ID')
+def export_ID():
+    app = get_app()
+    data_dir = Path("/data")
+    LabID_exporter(app, data_dir)
