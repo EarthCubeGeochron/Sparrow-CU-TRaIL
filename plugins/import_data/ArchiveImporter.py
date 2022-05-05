@@ -88,7 +88,8 @@ class TRaILImporter(BaseImporter):
         file_list = []
         for ext in exts:
             file_list.extend(glob.glob(str(data_dir)+'/CompleteData/**/*.'+ext, recursive=True))
-                    
+        file_list = [f for f in file_list if '03_12_2021' in f or '01_07_2014' in f]
+        
         self.image_folder = data_dir / "Photographs and Measurement Data"
 
         self.verbose = kwargs.pop("verbose", False)
@@ -180,8 +181,10 @@ class TRaILImporter(BaseImporter):
             # TODO change this to None value when allowed by Sparrow
             date = "1900-01-01 00:00:00+00"
             print('date error:', filename)
-
-        yield from self.import_projects(data, date)
+        
+        data = self.split_grain_information(data)
+        for ix, row in data.iterrows():
+            yield self.import_row(row, date)
 
     def split_grain_information(self, df):
         # Really the only way to ID aliquots from larger samples is to use
@@ -202,27 +205,6 @@ class TRaILImporter(BaseImporter):
         df.loc[singles, "grain"] = np.nan
 
         return df
-
-    def import_projects(self, data, date):
-        for name, gp in data.groupby("Owner"):
-            if name == 'Not recorded':
-                gp = self.split_grain_information(gp)
-                project = None
-                for ix, row in gp.iterrows():
-                    yield self.import_row(project, row, date)
-            else:
-                # split_grain_information adds columns for sample name and aliquot number
-                # to the main dataframe
-                gp = self.split_grain_information(gp)
-                # nsamples = len(gp)
-                project_name = f"{name}"# – {nsamples} samples"
-    
-                project = {"name": project_name}
-    
-                for ix, row in gp.iterrows():
-                    # This line calls import_row, which triggers the building of the
-                    # sample schema that ultimately is imported to the database
-                    yield self.import_row(project, row, date)
             
     # Needs to take row as series and return list of dictionaries for each entry
     def itervalues(self, row):
@@ -311,18 +293,11 @@ class TRaILImporter(BaseImporter):
 
     # Main method to build the sample schema. The majority of the work
     # is done by the itervalues method and create_analysis function
-    def import_row(self, project, row, date):
-        if project:
-            parent_sample = {
-                "project": [project],
-                "name": row["sample_name"],
-                "material": "rock", 
-            }
-        else:
-            parent_sample = {
-                "name": row["sample_name"],
-                "material": "rock", 
-            }
+    def import_row(self, row, date):
+        parent_sample = {
+            "name": row["sample_name"],
+            "material": "rock",
+        }
 
         if row["grain"] is None:
             self.db.load_data("sample", parent_sample)
@@ -425,6 +400,12 @@ class TRaILImporter(BaseImporter):
                 }
             ]
         }
+        
+        # Add owner and analyst to schema if present
+        # TODO make this more advanced by reference to researcher values csv/yaml
+        if researcher != 'Not recorded':
+            sample['laboratory'] = researcher['value']
+            sample['researcher'] = {'name': researcher['value']}
         
         res = self.db.load_data("sample", sample)
         
