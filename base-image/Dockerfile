@@ -14,10 +14,14 @@ RUN apt-get update && apt-get install -y libgl1
 # We need the OpenCV computer-vision library to do image manipulation
 RUN pip3 install --no-index --find-links /package-cache opencv-python-headless
 RUN rm -rf /package-cache
-RUN pip3 install uncertainties
 
-# Test that the library is installed
+# Install additional packages needed for TRaIL-Sparrow
+RUN pip3 install uncertainties
+RUN pip3 install hecalc
+
+# Test that the libraries are installed
 RUN python3 -c "import cv2"
+RUN python3 -c "import hecalc"
 
 # Inherit command from upstream dockerfile
 CMD ["/bin/run"]
