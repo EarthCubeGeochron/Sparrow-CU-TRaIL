@@ -180,7 +180,6 @@ class TRaILpicking(BaseImporter):
                     'analysis_type': 'Grain Characteristics',
                     'attribute': [make_attribute(*a) for a in chars_attributes]
                     }
-                print(chars_dict)
             
             # Compile data for new Ft session
             Ft_data = [
@@ -211,7 +210,7 @@ class TRaILpicking(BaseImporter):
                     },
                     {
                     'technique': {'id': "(U-Th)/He date calculation"},
-                    'date': "1900-01-01 00:00:00+00", # always pass an "unknown date value for calculation
+                    'date': "1900-01-01 00:00:00+00", # always pass an "unknown date" value for calculation
                     'analysis': [
                         {
                         'analysis_type': 'Alpha Ejection Correction',
