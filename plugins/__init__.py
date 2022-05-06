@@ -28,7 +28,7 @@ def import_helium():
     data_dir = Path("/data")
     TRaILhelium(app, data_dir)
                 
-@task(name='import-ICPMS')
+@task(name='import-icpms')
 def import_icpms():
     app = get_app()
     data_dir = Path("/data")

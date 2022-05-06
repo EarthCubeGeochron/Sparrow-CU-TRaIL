@@ -332,11 +332,11 @@ class TRaILImporter(BaseImporter):
                     "instrument": {"name": "ASI Alphachron → Pfeiffer Balzers QMS"},
                     "date": meaningless_date,
                     "analysis": [
-                        create_analysis("Noble gas measurements", noble_gas_data)
+                        create_analysis("Helium measurement", noble_gas_data)
                     ]
                 },
                 {
-                    "technique": "Trace element measurement",
+                    "technique": {'id': "Trace element measurement"},
                     "instrument": {"name": "Agilent 7900 Quadrupole ICP-MS"},
                     "date": meaningless_date,
                     "analysis": [
