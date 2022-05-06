@@ -14,6 +14,7 @@ from sparrow.import_helpers import BaseImporter
 from sparrow.util import relative_path
 from yaml import load
 
+# Replicates Ketcham et al., 2011 for Ft calculation
 def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material):
     Ft_dat = {}
     for iso in ['238U', '235U','232Th', '147Sm']:
@@ -60,11 +61,13 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material):
     Ft_dat['Rs'] = Rs
     return Ft_dat
 
+# Function to make datum
 def make_datum(datum, parameter, unit):
     return {'value': datum,
             'error': None,
             'type': {'parameter': parameter, 'unit': unit}}
 
+# Function to make attributes
 def make_attribute(value, parameter):
     return {'parameter': parameter,
             'value': str(value)}
@@ -75,16 +78,22 @@ class TRaILpicking(BaseImporter):
         # file_list = glob.glob(str(data_dir)+'/PickingData/*.xlsx')
         file_list = glob.glob(str(data_dir)+'/PickingData/Picking_data_example.xlsx')
         self.iterfiles(file_list, **kwargs)
-        
+    
+    
+    # Method to generate a lab ID for a new sample based on the date of the analysis
     def make_labID(self, row):
         date = str(row['Date Packed'].year)[-2:]
+        # Query database for all lab IDs
         all_IDs = [el for tup in self.db.session.query(self.db.model.sample.lab_id).all() for el in tup if el is not None]
+        # Isolate lab IDs from the same year
         same_year = [i for i in all_IDs if date+'-' in i]
+        # Get the highest numbered analysis for the year and add 1
         if len(same_year) > 0:
             max_num = max([int(i.split('-')[1]) for i in same_year])
         else:
             max_num = 0
         id_num = max_num+1
+        # Combine year and analysis number to get lab_id
         lab_id = date+'-'+f'{id_num:05d}'
         return lab_id
 
@@ -181,7 +190,7 @@ class TRaILpicking(BaseImporter):
                     'attribute': [make_attribute(*a) for a in chars_attributes]
                     }
             
-            # Compile data for new Ft session
+            # Compile Ft data for date calculation session
             Ft_data = [
                 [Fts['238U'], '238U Ft', ''],
                 [Fts['235U'], '235U Ft', ''],
@@ -190,6 +199,7 @@ class TRaILpicking(BaseImporter):
                 ]
             
             # TODO add more complicated researcher-laboratory schema from yaml/csv
+            # Create a new sample in the database using the picking sheet metadata
             sample_schema = {
                 'member_of': {'name': sample,
                               'material': 'rock'},
