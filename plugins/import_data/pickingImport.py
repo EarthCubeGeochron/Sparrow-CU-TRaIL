@@ -107,7 +107,7 @@ class TRaILpicking(BaseImporter):
             lab_id = self.make_labID(data.iloc[d])
             
             # Generate metadata required for every grain
-            project = data.iloc[d][self.picking_specs['Metadata']['Researcher']]
+            researcher = data.iloc[d][self.picking_specs['Metadata']['Researcher']]
             sample = data.iloc[d][self.picking_specs['Metadata']['Sample']]
             grain = data.iloc[d][self.picking_specs['Metadata']['Grain']]
             print(sample+'_'+grain)
@@ -190,10 +190,12 @@ class TRaILpicking(BaseImporter):
                 [Fts['147Sm'], '147Sm Ft', '']
                 ]
             
+            # TODO add more complicated researcher-laboratory schema from yaml/csv
             sample_schema = {
-                'member_of': {'project': [{'name': project}],
-                              'name': sample,
+                'member_of': {'name': sample,
                               'material': 'rock'},
+                'researcher': {'name': researcher},
+                'laboratory': researcher,
                 'name': sample+'_'+grain,
                 'material': material,
                 "lab_id": lab_id,
