@@ -182,29 +182,9 @@ class TRaILImporter(BaseImporter):
             date = "1900-01-01 00:00:00+00"
             print('date error:', filename)
         
-        data = self.split_grain_information(data)
+        # data = self.split_grain_information(data)
         for ix, row in data.iterrows():
             yield self.import_row(row, date)
-
-    def split_grain_information(self, df):
-        # Really the only way to ID aliquots from larger samples is to use
-        # the last few characters separated by a _ or -; if the sample name does not
-        # conform to this standard there is no reliable way to do so. This will simply create
-        # extraneous samples if there is no "aliquot" information
-        # We banish underscores from sample names entirely to split.
-        # Only dashes. This simplifies our life tremendously.
-        df[["sample_name", "-", "grain"]] = df["Full Sample Name"].str.replace("_","-").str.rpartition("-")
-        # Go back to previous separators
-        df["sample_name"] = df.apply(lambda row: row["Full Sample Name"][0:len(row["sample_name"])], axis=1)
-        df.drop(columns=["-"], inplace=True) # Created a separate column full of "-", which is useless
-
-        # Find the number of grains per sample
-        n_grains = df.pivot_table(index=['sample_name'], aggfunc='size')
-        singles = df.sample_name.isin(n_grains[n_grains == 1].index)
-        df.loc[singles, "sample_name"] = df.loc[singles,"Full Sample Name"]
-        df.loc[singles, "grain"] = np.nan
-
-        return df
             
     # Needs to take row as series and return list of dictionaries for each entry
     def itervalues(self, row):
@@ -266,21 +246,6 @@ class TRaILImporter(BaseImporter):
             row_list.append(col_dict)
         return row_list
     
-    # Never used in current version
-    def link_image_files(self, row, session):
-        if row["grain"] is None:
-            return
-        sample = row["Full Sample Name"]
-        grain_images = list(self.image_folder.glob(sample+'*.tif'))
-
-        for f in grain_images:
-            rec, added = self._create_data_file_record(f)
-            model = {
-                "data_file": rec.uuid,
-                "session": session.id
-            }
-            self.db.load_data("data_file_link", model)
-    
     def make_labID(self, date):
         init_digits = date[2:4]
         max_num = 1
@@ -294,18 +259,9 @@ class TRaILImporter(BaseImporter):
     # Main method to build the sample schema. The majority of the work
     # is done by the itervalues method and create_analysis function
     def import_row(self, row, date):
-        parent_sample = {
-            "name": row["sample_name"],
-            "material": "rock",
-        }
-
-        if row["grain"] is None:
-            self.db.load_data("sample", parent_sample)
-            return
-
         # Get a semi-cleaned set of values for each row
         # row.drop(['sample_name', 'grain'], inplace=True)
-        cleaned_data = self.itervalues(row.drop(['sample_name', 'grain']))
+        cleaned_data = self.itervalues(row)
         
         # Can't import anything that has an error in a required data column
         # For the archived data, just reject these from the database
@@ -352,7 +308,6 @@ class TRaILImporter(BaseImporter):
 
         # Build sample schema using row of imported data
         sample = {
-            "member_of": parent_sample,
             "name": row["Full Sample Name"],
             "material": str(material["value"]),
             "lab_id": lab_id,
@@ -408,10 +363,6 @@ class TRaILImporter(BaseImporter):
             sample['researcher'] = {'name': researcher['value']}
         
         res = self.db.load_data("sample", sample)
-        
-        # I think this line should be working with images eventually.
-        # Not sure it's doing anything for now
-        self.link_image_files(row, res.session_collection[0])
 
         print("")
         return res
