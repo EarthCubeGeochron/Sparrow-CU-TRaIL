@@ -12,8 +12,8 @@ Blank used:
   - Blk used
   - Blk +/-
   - ncc
-Percent reextract:
-  - '%RE'
+Percent initial extract:
+  - '%IE'
   - NULL
   - '%'
 Number of reextracts:
