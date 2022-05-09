@@ -24,7 +24,7 @@ class TRaILicpms(BaseImporter):
         for ix, row in data.iterrows():
             print('Importing:', row['Sample'].split(' ')[1])
             # Get sample ID and do checks to ensure that it's in the database
-            sample_id = row['Sample'].split(' ')[0])
+            sample_id = row['Sample'].split(' ')[0]
             try:
                 # get the same sample ID from the database
                 sample_obj = self.db.session.query(self.db.model.sample).filter_by(lab_id=sample_id).all()[0]
