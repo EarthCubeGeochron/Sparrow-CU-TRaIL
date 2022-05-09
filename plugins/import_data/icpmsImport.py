@@ -22,17 +22,17 @@ class TRaILicpms(BaseImporter):
         
         # Iterate through rows
         for ix, row in data.iterrows():
-            print('Importing:', row['Sample name'])
+            print('Importing:', row['Sample'].split(' ')[1])
             # Get sample ID and do checks to ensure that it's in the database
-            sample_id = row['Lab ID']
+            sample_id = row['Sample'].split(' ')[0])
             try:
                 # get the same sample ID from the database
                 sample_obj = self.db.session.query(self.db.model.sample).filter_by(lab_id=sample_id).all()[0]
                 # Check that the sample name in the database matches the sample name in the data file
-                if sample_obj.name != row['Sample name']:
-                    print('Mimatched name:\n', sample_obj.name, 'in database, but\n', row['Sample name'],
+                if sample_obj.name != row['Sample'].split(' ')[1]:
+                    print('Mimatched name:\n', sample_obj.name, 'in database, but\n', row['Sample'].split(' ')[1],
                            'in importing sheet. Double-check that sample ID is correct')
-            # If no lab ID is found, altert the user and skip uploading
+            # If no lab ID is found, alert the user and skip uploading
             except IndexError:
                 print('Sample ID for', row['Sample name'], 'not found. Double-check that the IDs match.\n')
                 return
