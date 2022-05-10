@@ -86,6 +86,7 @@ class TRaILhelium(BaseImporter):
         sample_schema = {
             'lab_id': lab_id,
             'name': sample_name,
+            'material': row['Mineral'],
             'session': [session_dict]
             }
         # Print an empty line to keep the command line clean
