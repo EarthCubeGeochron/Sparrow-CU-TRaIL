@@ -86,3 +86,15 @@ terminations_key:
   0: No terminations
   1: Single termination
   2: Doubly terminated
+Ft_err_key:
+  A: 0
+  B: 0
+  C: 0
+Dim_mass_key:
+  A: 0
+  B: 0
+  C: 0
+Rs_err_key:
+  A: 0
+  B: 0
+  C: 0

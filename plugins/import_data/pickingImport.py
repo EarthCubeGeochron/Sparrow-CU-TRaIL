@@ -62,9 +62,9 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material):
     return Ft_dat
 
 # Function to make datum
-def make_datum(datum, parameter, unit):
+def make_datum(datum, error, parameter, unit):
     return {'value': datum,
-            'error': None,
+            'error': error,
             'type': {'parameter': parameter, 'unit': unit}}
 
 # Function to make attributes
@@ -144,7 +144,8 @@ class TRaILpicking(BaseImporter):
                 for s in self.picking_specs['Shape']['data']:
                     col = next(iter(s))
                     value = data.iloc[d][col]
-                    shape_data.append([value, s[col]['name'], s[col]['unit']])
+                    error = None
+                    shape_data.append([value, error, s[col]['name'], s[col]['unit']])
                 shape_attributes = []
                 for s in self.picking_specs['Shape']['attributes']:
                     col = next(iter(s))
@@ -165,12 +166,6 @@ class TRaILpicking(BaseImporter):
                     }
             
             # create datum and attributes for characteristics analysis
-            if shard != 'Y' and shard != 'y':
-                # If not a shard, all data here are calculated above, so declare explicitly
-                chars_data =[
-                    [dimensional_mass, 'Dimensional mass', 'μg'],
-                    [Fts['Rs'], 'Equivalent Spherical Radius', 'μg']
-                    ]
             # Characteristics will always be recorded, even for shards
             chars_attributes = []
             for s in self.picking_specs['Characteristics']['attributes']:
@@ -178,7 +173,22 @@ class TRaILpicking(BaseImporter):
                 value = str(data.iloc[d][col])
                 chars_attributes.append([value, s[col]])
             # make analysis dictionary, exclude missing data if shards
+            print(chars_attributes)
             if shard != 'Y' and shard != 'y':
+                # First, get uncertainty for each derived parameter
+                for l in chars_attributes:
+                    for i in l:
+                        if 'Idealness' in i:
+                            xtalform = l[0]
+                            dim_mass_err = self.picking_specs['Dim_mass_key'][xtalform]
+                            Rs_err = self.picking_specs['Rs_err_key'][xtalform]
+                            Ft_err = self.picking_specs['Ft_err_key'][xtalform]
+                # Create grain characteristic data explicitly
+                chars_data =[
+                    [dimensional_mass, dimensional_mass*dim_mass_err, 'Dimensional mass', 'μg'],
+                    [Fts['Rs'], Fts['Rs']*Rs_err, 'Equivalent Spherical Radius', 'μm']
+                    ]
+                # Cast data and attributes for analysis to dictionary
                 chars_dict = {
                     'analysis_type': 'Grain Characteristics',
                     'datum': [make_datum(*d) for d in chars_data],
@@ -192,10 +202,10 @@ class TRaILpicking(BaseImporter):
             
             # Compile Ft data for date calculation session
             Ft_data = [
-                [Fts['238U'], '238U Ft', ''],
-                [Fts['235U'], '235U Ft', ''],
-                [Fts['232Th'], '232Th Ft', ''],
-                [Fts['147Sm'], '147Sm Ft', '']
+                [Fts['238U'], Fts['238U']*Ft_err, '238U Ft', ''],
+                [Fts['235U'], Fts['235U']*Ft_err,'235U Ft', ''],
+                [Fts['232Th'], Fts['232Th']*Ft_err,'232Th Ft', ''],
+                [Fts['147Sm'], Fts['147Sm']*Ft_err,'147Sm Ft', '']
                 ]
             
             # TODO add more complicated researcher-laboratory schema from yaml/csv
@@ -227,5 +237,5 @@ class TRaILpicking(BaseImporter):
                         'datum': [make_datum(*d) for d in Ft_data]
                         }]
                     }]}
-                        
+            
             self.db.load_data("sample", sample_schema)
