@@ -159,7 +159,7 @@ class TRaILpicking(BaseImporter):
                     }
             # If a shard, simply add that as a note and don't calculate Ft values
             else:
-                Fts = {'238U': 1, '235U': 1, '232Th': 1, '147Sm': 1}
+                Fts = False#{'238U': 1, '235U': 1, '232Th': 1, '147Sm': 1}
                 shape_dict = {
                     'analysis_type': 'Grain Shape',
                     'attribute': [make_attribute('Crystal shard', 'Shape notes')]
@@ -173,7 +173,6 @@ class TRaILpicking(BaseImporter):
                 value = str(data.iloc[d][col])
                 chars_attributes.append([value, s[col]])
             # make analysis dictionary, exclude missing data if shards
-            print(chars_attributes)
             if shard != 'Y' and shard != 'y':
                 # First, get uncertainty for each derived parameter
                 for l in chars_attributes:
@@ -200,14 +199,6 @@ class TRaILpicking(BaseImporter):
                     'attribute': [make_attribute(*a) for a in chars_attributes]
                     }
             
-            # Compile Ft data for date calculation session
-            Ft_data = [
-                [Fts['238U'], Fts['238U']*Ft_err, '238U Ft', ''],
-                [Fts['235U'], Fts['235U']*Ft_err,'235U Ft', ''],
-                [Fts['232Th'], Fts['232Th']*Ft_err,'232Th Ft', ''],
-                [Fts['147Sm'], Fts['147Sm']*Ft_err,'147Sm Ft', '']
-                ]
-            
             # TODO add more complicated researcher-laboratory schema from yaml/csv
             # Create a new sample in the database using the picking sheet metadata
             sample_schema = {
@@ -227,8 +218,19 @@ class TRaILpicking(BaseImporter):
                         shape_dict,
                         chars_dict
                         ]
-                    },
-                    {
+                    }]
+                    }
+            
+            # Only incude Fts if not a shard
+            if Fts:
+                # Compile Ft data for date calculation session
+                Ft_data = [
+                    [Fts['238U'], Fts['238U']*Ft_err, '238U Ft', ''],
+                    [Fts['235U'], Fts['235U']*Ft_err,'235U Ft', ''],
+                    [Fts['232Th'], Fts['232Th']*Ft_err,'232Th Ft', ''],
+                    [Fts['147Sm'], Fts['147Sm']*Ft_err,'147Sm Ft', '']
+                    ]
+                sample_schema['session'].append({
                     'technique': {'id': "(U-Th)/He date calculation"},
                     'date': "1900-01-01 00:00:00+00", # always pass an "unknown date" value for calculation
                     'analysis': [
@@ -236,6 +238,6 @@ class TRaILpicking(BaseImporter):
                         'analysis_type': 'Alpha Ejection Correction',
                         'datum': [make_datum(*d) for d in Ft_data]
                         }]
-                    }]}
+                        })
             
             self.db.load_data("sample", sample_schema)
