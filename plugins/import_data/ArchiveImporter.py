@@ -4,7 +4,7 @@ from sparrow.import_helpers import BaseImporter
 from sparrow.util import relative_path
 from sparrow.import_helpers.util import ensure_sequence
 from yaml import load, FullLoader
-from pandas import read_excel, isna
+from pandas import read_excel, isna, read_csv
 from re import compile
 from IPython import embed
 from dateutil.parser import parse
@@ -99,7 +99,9 @@ class TRaILImporter(BaseImporter):
         spec = relative_path(__file__, "column-spec.yaml")
         with open(spec) as f:
             self.column_spec = load(f)
-                
+        owner_key_file = relative_path(__file__, "archive_owner_keys.csv")
+        self.owner_keys = read_csv(owner_key_file, usecols = ['id', 'Archive data "Owner"', 'Lab/Owner', 'Analyst', 'Date'])
+        
         self.lab_IDs = [el for tup in self.db.session.query(self.db.model.sample.lab_id).all() for el in tup if el is not None]
                 
         # Calls Sparrow base code for each file in passed list and sends to import_datafile
@@ -177,9 +179,11 @@ class TRaILImporter(BaseImporter):
         try:
             date = parse(filename[digit_idx[0]:digit_idx[-1]+1].replace('_', ' '))
             date = date.strftime('%Y-%m-%d %H:%M:%S')
+            self.dateerr = False
         except:
             # TODO change this to None value when allowed by Sparrow
             date = "1900-01-01 00:00:00+00"
+            self.dateerr = True
             print('date error:', filename)
         
         # data = self.split_grain_information(data)
@@ -197,16 +201,20 @@ class TRaILImporter(BaseImporter):
             if '±' in name:
                 # Always append error to linear uncorrected date
                 if row_list[-1]['parameter'] == 'Iterated Raw Date':
-                    row_list[-2]['error'] = val
+                    row_list[-2]['error'] = val*2
                     row_list[-2]['error_unit'] = None
-                    row_list[-1]['error'] = val
+                    row_list[-1]['error'] = val*2
                     row_list[-1]['error_unit'] = None
                 # For corrected dates, apply to both iterated and linear depending on presence of data
                 elif 'It' in name:
                     for i in [-2, -1]:
                         if 'Not' not in str(row_list[i]['value']):
-                            row_list[i]['error'] = val
-                            row_list[i]['error_unit'] = None
+                            if '2s' in name:
+                                row_list[i]['error'] = val
+                                row_list[i]['error_unit'] = None
+                            else:
+                                row_list[i]['error'] = val*2
+                                row_list[i]['error_unit'] = None
                         else:
                             row_list[i]['error'] = None
                             row_list[i]['error_unit'] = None
@@ -216,8 +224,8 @@ class TRaILImporter(BaseImporter):
                     row_list[-2]['error_unit'] = None
                     continue
                 else:
-                    # Default is to add error if none of the above conditions are met
-                    row_list[-1]['error'] = val
+                    # Default is to add 2-sigma error if none of the above conditions are met
+                    row_list[-1]['error'] = val*2
                     row_list[-1]['error_unit'] = None
                 continue
             
@@ -234,7 +242,7 @@ class TRaILImporter(BaseImporter):
                 try:
                     col_dict['unit'] = split_unit(name)[1]
                 except AttributeError:
-                    col_dict['unit'] = 'Dimensionless'
+                    col_dict['unit'] = ''
             if 'values' in col_spec_dict:
                 col_dict['values'] = col_spec_dict['values']
                 try:
@@ -279,27 +287,47 @@ class TRaILImporter(BaseImporter):
         [researcher, sample] = cleaned_data[0:2]
         
         # Split the data into groups (with known index) to load
-        picking_info = cleaned_data[2:12]
-        shape_data = picking_info[:6]
-        grain_data = picking_info[6:]
-        noble_gas_data = cleaned_data[12:15]
-        icp_ms_data = cleaned_data[15:23]
-        if icp_ms_data[2]['value'] == 0 and grain_data[0]['value'] == 'zircon':
-            icp_ms_data[2]['value'] = 'N.M.'
-            icp_ms_data[2]['error'] = None
-            icp_ms_data[6]['value'] = 'N.M.'
-            icp_ms_data[6]['error'] = None
-        if icp_ms_data[1]['value'] == 0 and grain_data[0]['value'] == 'zircon':
-            icp_ms_data[1]['value'] = 'N.M.'
-            icp_ms_data[1]['error'] = None
-            icp_ms_data[5]['value'] = 'N.M.'
-            icp_ms_data[5]['error'] = None
-        date_data = cleaned_data[23:]
-        ft_data = [date_data[2]]
-        raw_date = date_data[:2]
-        corr_date = date_data[3:]
-
-        material = grain_data.pop(0)
+        # picking_info = cleaned_data[2:12]
+        # shape_data = picking_info[:6]
+        # grain_data = picking_info[6:]
+        # noble_gas_data = cleaned_data[12:15]
+        # icp_ms_data = cleaned_data[15:23]
+        # if icp_ms_data[2]['value'] == 0 and grain_data[0]['value'] == 'zircon':
+        #     icp_ms_data[2]['value'] = 'N.M.'
+        #     icp_ms_data[2]['error'] = None
+        #     icp_ms_data[6]['value'] = 'N.M.'
+        #     icp_ms_data[6]['error'] = None
+        # if icp_ms_data[1]['value'] == 0 and grain_data[0]['value'] == 'zircon':
+        #     icp_ms_data[1]['value'] = 'N.M.'
+        #     icp_ms_data[1]['error'] = None
+        #     icp_ms_data[5]['value'] = 'N.M.'
+        #     icp_ms_data[5]['error'] = None
+        # date_data = cleaned_data[23:]
+        # ft_data = [date_data[2]]
+        # raw_date = date_data[:2]
+        # corr_date = date_data[3:]
+        
+        material = cleaned_data[8]
+        
+        # Convert missing Th and Sm values to "N.M."
+        if cleaned_data[16]['value'] == 0 and material['value'] == 'zircon':
+            cleaned_data[16]['value'] = 'N.M.'
+            cleaned_data[16]['error'] = None
+            cleaned_data[20]['value'] = 'N.M.'
+            cleaned_data[20]['error'] = None
+        if cleaned_data[17]['value'] == 0 and material['value'] == 'zircon':
+            cleaned_data[17]['value'] = 'N.M.'
+            cleaned_data[17]['error'] = None
+            cleaned_data[21]['value'] = 'N.M.'
+            cleaned_data[21]['error'] = None
+        
+        shape_data = cleaned_data[2:8]
+        grain_data = [cleaned_data[11]]
+        helium_data = cleaned_data[13:15]
+        icpms_data = cleaned_data[19:22]
+        ft_data = [cleaned_data[25]]
+        other_data = [cleaned_data[10]]+[cleaned_data[9]]+[cleaned_data[12]]+cleaned_data[15:19]+[cleaned_data[22]]
+        date_data = cleaned_data[23:25]+cleaned_data[26:28]
 
         # We should figure out how to not require meaningless dates
         meaningless_date = "1900-01-01 00:00:00+00"
@@ -311,6 +339,7 @@ class TRaILImporter(BaseImporter):
             "name": row["Full Sample Name"],
             "material": str(material["value"]),
             "lab_id": lab_id,
+            "from_archive": 'true',
             # Here we pass a list of dicts instead of a single dict
             # because each (U-Th)/He analysis consists of three
             # individual sessions
@@ -323,45 +352,54 @@ class TRaILImporter(BaseImporter):
                     # as a single box on the front end. create_analysis function is 
                     # critical to the bulk of information ultimately included in Sparrow
                     "analysis": [
-                        create_analysis("Grain shape", shape_data),
+                        create_analysis("Grain dimensions & shape", shape_data),
                         create_analysis("Grain characteristics", grain_data)
                     ]
                 },
                 {
-                    "technique": {"id": "Noble gas mass spectrometry"},
+                    "technique": {"id": "Helium measurement"},
                     "instrument": {"name": "ASI Alphachron → Pfeiffer Balzers QMS"},
                     "date": meaningless_date,
                     "analysis": [
-                        create_analysis("Helium measurement", noble_gas_data)
+                        create_analysis("Helium measurement", helium_data)
                     ]
                 },
                 {
-                    "technique": {'id': "Trace element measurement"},
+                    "technique": {'id': "ICP-MS measurement"},
                     "instrument": {"name": "Agilent 7900 Quadrupole ICP-MS"},
                     "date": meaningless_date,
                     "analysis": [
-                        create_analysis("Element data", icp_ms_data)
+                        create_analysis("Element data", icpms_data)
                     ]
                 },
                 {
-                    # Ideally we'd provide a date but we don't really have one
-                    "technique": {"id": "(U-Th)/He date calculation"},
+                    "technique": {"id": "Dates and other derived data"},
                     "date": date,
                     "analysis": [
-                        create_analysis("Alpha Ejection Correction", ft_data),
-                        create_analysis("Raw date", raw_date),
-                        create_analysis("Corrected date", corr_date)
+                        create_analysis("Alpha ejection correction values", ft_data),
+                        create_analysis("Rs, mass, concentrations", other_data),
+                        create_analysis("Date", date_data)
                     ],
                 }
             ]
         }
         
         # Add owner and analyst to schema if present
-        # TODO make this more advanced by reference to researcher values csv/yaml
         if researcher != 'Not recorded':
-            sample['laboratory'] = researcher['value']
-            sample['researcher'] = {'name': researcher['value']}
-        
+            owner_values = self.owner_keys.loc[self.owner_keys['Archive data "Owner"'] == researcher['value']]
+            if isna(owner_values['Date'].iloc[0]):
+                sample['Lab/Owner'] = owner_values['Lab/Owner'].item()
+                sample['Analyst'] = {'name': owner_values['Analyst'].item()}
+            elif not self.dateerr:
+                if int(owner_values['Date'].iloc[0][-4:])>int(date[:4]):
+                    sample['Lab/Owner'] = owner_values['Lab/Owner'].iloc[0]
+                    sample['Analyst'] = {'name': owner_values['Analyst'].iloc[0]}
+                else:
+                    sample['Lab/Owner'] = owner_values['Lab/Owner'].iloc[1]
+                    sample['Analyst'] = {'name': owner_values['Analyst'].iloc[1]}
+        else:
+            sample['Lab/Owner'] = 'Not recorded'
+
         res = self.db.load_data("sample", sample)
 
         print("")
