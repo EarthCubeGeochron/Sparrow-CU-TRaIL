@@ -99,11 +99,13 @@ class TRaILImporter(BaseImporter):
         spec = relative_path(__file__, "column-spec.yaml")
         with open(spec) as f:
             self.column_spec = load(f)
+            
+        # Open file that specifies how to handle the Owner column, when present
         owner_key_file = relative_path(__file__, "archive_owner_keys.csv")
         self.owner_keys = read_csv(owner_key_file, usecols = ['id', 'Archive data "Owner"', 'Lab/Owner', 'Analyst', 'Date'])
-        
+
         self.lab_IDs = [el for tup in self.db.session.query(self.db.model.sample.lab_id).all() for el in tup if el is not None]
-                
+
         # Calls Sparrow base code for each file in passed list and sends to import_datafile
         self.iterfiles(file_list, **kwargs)
 
