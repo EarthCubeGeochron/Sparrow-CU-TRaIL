@@ -145,35 +145,34 @@ class TRaILImporter(BaseImporter):
         df = df.rename(columns=dict(zip(list(df.columns),data_cols_list)))
                 
         # Rename and rearrange columns according to the column_spec file
-        cols = {}
+        self.cols = {}
         for l in range(len(self.column_spec)):
             k = list(self.column_spec[l].keys())[0]
             found = False
             for c in data_cols_list:
                 if c in self.column_spec[l][k]['names']:
-                    cols[c] = k
+                    self.cols[c] = k
                     found = True
                     break
             if not found:
                 df[k] = self.column_spec[l][k]['missing']
-                cols[k] = k
+                self.cols[k] = k
         
         # Attach uncertainty columns to data columns
         df_cols = list(df.columns)
         cols_to_keep = []
-        for c in cols:
+        for c in self.cols:
             cols_to_keep.append(c)
             try:
                 if '±' in df_cols[df_cols.index(c)+1]:
                     cols_to_keep.append(df_cols[df_cols.index(c)+1])
             except IndexError:
                 pass
-
+        
         # Restrict data to what will be imported to avoid pulling in anything extraneous
         data = df[cols_to_keep]
         # Rename columns for consistency in downstream methods
-        data = data.rename(columns=cols)
-        
+        data = data.rename(columns=self.cols)
         # get date from file name
         digit_idx = [i for i, s in enumerate(filename) if s.isdigit()]
         try:
@@ -199,6 +198,11 @@ class TRaILImporter(BaseImporter):
         for name, val in row.iteritems():
             # Apply error by column location
             if '±' in name:
+                try:
+                    # Get original name to track uncertainty amount
+                    key = [k for k, v in self.cols.items() if v == name][0]
+                except:
+                    key = None
                 # Always append error to linear uncorrected date
                 if row_list[-1]['parameter'] == 'Iterated Raw Date':
                     row_list[-2]['error'] = val*2
@@ -209,7 +213,7 @@ class TRaILImporter(BaseImporter):
                 elif 'It' in name:
                     for i in [-2, -1]:
                         if 'Not' not in str(row_list[i]['value']):
-                            if '2s' in name:
+                            if ')2' in key:
                                 row_list[i]['error'] = val
                                 row_list[i]['error_unit'] = None
                             else:
@@ -285,27 +289,6 @@ class TRaILImporter(BaseImporter):
                 pass
         
         [researcher, sample] = cleaned_data[0:2]
-        
-        # Split the data into groups (with known index) to load
-        # picking_info = cleaned_data[2:12]
-        # shape_data = picking_info[:6]
-        # grain_data = picking_info[6:]
-        # noble_gas_data = cleaned_data[12:15]
-        # icp_ms_data = cleaned_data[15:23]
-        # if icp_ms_data[2]['value'] == 0 and grain_data[0]['value'] == 'zircon':
-        #     icp_ms_data[2]['value'] = 'N.M.'
-        #     icp_ms_data[2]['error'] = None
-        #     icp_ms_data[6]['value'] = 'N.M.'
-        #     icp_ms_data[6]['error'] = None
-        # if icp_ms_data[1]['value'] == 0 and grain_data[0]['value'] == 'zircon':
-        #     icp_ms_data[1]['value'] = 'N.M.'
-        #     icp_ms_data[1]['error'] = None
-        #     icp_ms_data[5]['value'] = 'N.M.'
-        #     icp_ms_data[5]['error'] = None
-        # date_data = cleaned_data[23:]
-        # ft_data = [date_data[2]]
-        # raw_date = date_data[:2]
-        # corr_date = date_data[3:]
         
         material = cleaned_data[8]
         
@@ -399,7 +382,7 @@ class TRaILImporter(BaseImporter):
                     sample['Analyst'] = {'name': owner_values['Analyst'].iloc[1]}
         else:
             sample['Lab/Owner'] = 'Not recorded'
-
+        
         res = self.db.load_data("sample", sample)
 
         print("")
