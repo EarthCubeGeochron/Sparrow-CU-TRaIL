@@ -186,7 +186,7 @@ class TRaILImporter(BaseImporter):
             date = "1900-01-01 00:00:00+00"
             self.dateerr = True
             print('date error:', filename)
-        
+
         # data = self.split_grain_information(data)
         for ix, row in data.iterrows():
             yield self.import_row(row, date)
@@ -201,7 +201,7 @@ class TRaILImporter(BaseImporter):
             # Apply error by column location
             if '±' in name:
                 try:
-                    # Get original name to track uncertainty amount
+                    # Get original name to track what uncertainty applies to
                     key = [k for k, v in self.cols.items() if v == name][0]
                 except:
                     key = None
@@ -246,7 +246,9 @@ class TRaILImporter(BaseImporter):
                 col_dict['unit'] = col_spec_dict['unit']
             else:
                 try:
-                    col_dict['unit'] = split_unit(name)[1]
+                    param, unit = split_unit(name)
+                    col_dict['parameter'] = param
+                    col_dict['unit'] = unit
                 except AttributeError:
                     col_dict['unit'] = ''
             if 'values' in col_spec_dict:
@@ -277,6 +279,14 @@ class TRaILImporter(BaseImporter):
         # row.drop(['sample_name', 'grain'], inplace=True)
         cleaned_data = self.itervalues(row)
         
+        # set all Ft uncertainties to 0 by hand
+        cleaned_data[25]['error'] = None
+        
+        for c in cleaned_data:
+            if 'error' in c:
+                if c['error']:
+                    c['parameter'] += ' ('+'\u00B1'+'2'+'\u03C3'+')'
+
         # Can't import anything that has an error in a required data column
         # For the archived data, just reject these from the database
         for d in cleaned_data:
@@ -370,7 +380,7 @@ class TRaILImporter(BaseImporter):
         }
         
         # Add owner and analyst to schema if present
-        if researcher != 'Not recorded':
+        if researcher['value'] != 'Not recorded':
             owner_values = self.owner_keys.loc[self.owner_keys['Archive data "Owner"'] == researcher['value']]
             if isna(owner_values['Date'].iloc[0]):
                 sample['Lab/Owner'] = owner_values['Lab/Owner'].item()

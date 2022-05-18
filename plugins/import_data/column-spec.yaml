@@ -123,7 +123,7 @@
     missing: Not Calculated
     unit: ratio
 # Date calculation data
-- Linear Raw Date:
+- Linear (M&D) Raw Date:
     names:
         - Raw Date lin (Ma)
         - Raw Date (Ma)
@@ -132,15 +132,17 @@
     names:
         - Raw Date It (Ma)
     missing: Not Calculated
+    unit: Ma
 - Combined Alpha Ejection Factor:
     names:
         - Ft
         - Mean Ft
-- Linear Corrected Date:
+- Linear (M&D) Corrected Date:
     names:
         - Corrected Date (Ma)
         - Corrected Date lin (Ma)
     missing: Not Calculated
+    unit: Ma
     is_calculated: true
     is_interpreted: true
 - Iterated Corrected Date:
@@ -149,6 +151,7 @@
         - Corrected Date (It) (Ma).1
         - Corrected Date (It) (Ma)
     missing: Not Calculated
+    unit: Ma
     is_calculated: true
     is_interpreted: true
 - It ±:
