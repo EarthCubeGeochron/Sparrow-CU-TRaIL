@@ -116,10 +116,10 @@ class TRaILpicking(BaseImporter):
             lab_id = self.make_labID(data.iloc[d])
             
             # Generate metadata required for every grain
-            researcher = data.iloc[d][self.picking_specs['Metadata']['Researcher']]
+            researcher = str(data.iloc[d][self.picking_specs['Metadata']['Researcher']])
             sample = data.iloc[d][self.picking_specs['Metadata']['Sample']]
             grain = data.iloc[d][self.picking_specs['Metadata']['Grain']]
-            print(sample+'_'+grain)
+            print('Importing: '+sample+'_'+grain)
             date = str(data.iloc[d]['Date Packed'])
             material = self.picking_specs['mineral_key'][data.iloc[d][self.picking_specs['Metadata']['Mineral']]]
             
@@ -177,23 +177,13 @@ class TRaILpicking(BaseImporter):
                 # First, get uncertainty for each derived parameter
                 for l in chars_attributes:
                     for i in l:
+                        # get derived data uncertainties for later
                         if 'Idealness' in i:
                             xtalform = l[0]
                             dim_mass_err = self.picking_specs['Dim_mass_key'][xtalform]
                             Rs_err = self.picking_specs['Rs_err_key'][xtalform]
                             Ft_err = self.picking_specs['Ft_err_key'][xtalform]
-                # Create grain characteristic data explicitly
-                chars_data =[
-                    [dimensional_mass, dimensional_mass*dim_mass_err, 'Dimensional mass', 'μg'],
-                    [Fts['Rs'], Fts['Rs']*Rs_err, 'Equivalent Spherical Radius', 'μm']
-                    ]
-                # Cast data and attributes for analysis to dictionary
-                chars_dict = {
-                    'analysis_type': 'Grain Characteristics',
-                    'datum': [make_datum(*d) for d in chars_data],
-                    'attribute': [make_attribute(*a) for a in chars_attributes]
-                    }
-            else:
+                # Cast attributes (no data for characteristics) for analysis to dictionary
                 chars_dict = {
                     'analysis_type': 'Grain Characteristics',
                     'attribute': [make_attribute(*a) for a in chars_attributes]
@@ -209,6 +199,7 @@ class TRaILpicking(BaseImporter):
                 'name': sample+'_'+grain,
                 'material': material,
                 "lab_id": lab_id,
+                "from_archive": 'false',
                 'session': [
                     {
                     'technique': {'id': 'Picking Information'},
@@ -221,23 +212,33 @@ class TRaILpicking(BaseImporter):
                     }]
                     }
             
-            # Only incude Fts if not a shard
+            # Only incude derived data if not a shard
             if Fts:
                 # Compile Ft data for date calculation session
                 Ft_data = [
                     [Fts['238U'], Fts['238U']*Ft_err, '238U Ft', ''],
                     [Fts['235U'], Fts['235U']*Ft_err,'235U Ft', ''],
                     [Fts['232Th'], Fts['232Th']*Ft_err,'232Th Ft', ''],
-                    [Fts['147Sm'], Fts['147Sm']*Ft_err,'147Sm Ft', '']
+                    [Fts['147Sm'], Fts['147Sm']*Ft_err,'147Sm Ft', ''],
                     ]
+                Rs_mass = [
+                    [dimensional_mass, dimensional_mass*dim_mass_err, 'Dimensional mass', 'μg'],
+                    [Fts['Rs'], Fts['Rs']*Rs_err, 'Equivalent Spherical Radius', 'μm']
+                    ]
+                
                 sample_schema['session'].append({
-                    'technique': {'id': "(U-Th)/He date calculation"},
+                    'technique': {'id': "Dates and other derived data"},
                     'date': "1900-01-01 00:00:00+00", # always pass an "unknown date" value for calculation
                     'analysis': [
                         {
-                        'analysis_type': 'Alpha Ejection Correction',
+                        'analysis_type': "Alpha ejection correction values",
                         'datum': [make_datum(*d) for d in Ft_data]
+                        },
+                        {
+                        'analysis_type': "Rs, mass, concentrations",
+                        'datum': [make_datum(*d) for d in Rs_mass]
                         }]
                         })
             
+            print('')
             self.db.load_data("sample", sample_schema)

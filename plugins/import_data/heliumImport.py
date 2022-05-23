@@ -86,6 +86,7 @@ class TRaILhelium(BaseImporter):
         sample_schema = {
             'lab_id': lab_id,
             'name': sample_name,
+            'from_archive': 'false',
             'material': row['Mineral'],
             'session': [session_dict]
             }
@@ -113,7 +114,41 @@ class TRaILhelium(BaseImporter):
         session_dict = self.make_session_dict(row)
         # Add the sample to the session dictionary for database update
         session_dict['sample'] = sample_obj
+        # look for derived data session; if present, not a shard, and can add nmol/g He
+        derived_session_obj = self.db.session.query(self.db.model.session).filter_by(sample_id=sample_obj.id, technique="Dates and other derived data").all()
+        if len(derived_session_obj)>0:
+            self.add_nmol_g(derived_session_obj[0], session_dict)
         # Print an empty line to keep the command line clean
         print('')
         # Upload session-- this has the sample info attached, so the sample will be updated as well
         self.db.load_data("session", session_dict)
+    
+    # Get dimensionsal mass for a given sample based on session pulled above
+    def query_shard(self, session_obj):
+        Session = self.db.model.session
+        Analysis = self.db.model.analysis
+        Datum = self.db.model.datum
+        DatumType = self.db.model.datum_type
+        res = (self.db.session.query(Datum)
+               .join(Analysis)
+               .join(Session)
+               .join(DatumType)
+               .filter(Session.id == session_obj.id)
+               .filter(DatumType.parameter == 'Dimensional mass')
+               .first())
+        return res
+    
+    # TODO add method to add ng/mol He to the derived data session if not a shard
+    def add_nmol_g(self, derived_session_obj, session_dict):
+        ncc_he = session_dict['analysis'][0]['datum'][0]['value']
+        ncc_he_s = session_dict['analysis'][0]['datum'][0]['error']
+        nmol_he = ncc_he/22413.6
+        ug_mass = self.query_shard(derived_session_obj)
+        nmol_g = (nmol_he*1e6)/float(ug_mass.value)
+        nmol_g_s = (((float(ug_mass.error)/float(ug_mass.value))**2+
+                    (ncc_he_s/ncc_he)**2)**(1/2))*nmol_g
+        analysis_obj = self.db.session.query(self.db.model.analysis).filter_by(session_id=derived_session_obj.id, analysis_type="Rs, mass, concentrations").first()
+        print(analysis_obj.data)
+        analysis_dict = {'value': nmol_g, 'error': nmol_g_s,
+                          'type': {'parameter': '4He', 'unit': 'nmol/g'}}
+        analysis_obj.data.append(analysis_dict)
