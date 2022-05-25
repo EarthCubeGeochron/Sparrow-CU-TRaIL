@@ -12,13 +12,13 @@ import os
 
 def split_unit(name):
     """Split units (in parentheses) from the rest of the data."""
-    unit_regex = compile(r"^(.+)\s\(([a-zA-Z/\%]+)\)$")
+    unit_regex = compile(r'^(.+)\s\(([a-zA-Z/\%]+)\)$')
     res = unit_regex.match(name)
     g = res.groups()
     (param, unit) = g
     return param, unit
 
-# Identify which dicts in the list "vals" passed to create_analysis
+# Identify which dicts in the list 'vals' passed to create_analysis
 # are data and which are attributes. Based on whether 'Value'-keyed
 # item in each dict is a float
 def split_attributes(vals):
@@ -27,7 +27,7 @@ def split_attributes(vals):
     attributes = []
     for v in vals:
         try:
-            float(v["value"])
+            float(v['value'])
             data.append(v)
         except ValueError:
             attributes.append(v)
@@ -35,21 +35,21 @@ def split_attributes(vals):
 
 
 datum_type_fields = [
-    "parameter",
-    "unit",
-    "error_unit",
-    "error_metric",
-    "is_computed",
-    "is_interpreted",
-    "description",
+    'parameter',
+    'unit',
+    'error_unit',
+    'error_metric',
+    'is_computed',
+    'is_interpreted',
+    'description',
 ]
-attribute_fields = ["parameter", "value"]
+attribute_fields = ['parameter', 'value']
 
-# Make dict with Datum1 schema. Requires value, uncertainty, and "type" which gives
+# Make dict with Datum1 schema. Requires value, uncertainty, and 'type' which gives
 # parameter measured as str, unit as str, and other type fields listed above if included
 def create_datum(val):
-    v = val.pop("value")
-    err = val.pop("error", None)
+    v = val.pop('value')
+    err = val.pop('error', None)
 
     datum_type = {k: v for k, v in val.items() if k in datum_type_fields}
     if 'unit' in datum_type:
@@ -58,7 +58,7 @@ def create_datum(val):
         except AttributeError:
             pass
 
-    return {"value": v, "error": err, "type": datum_type}
+    return {'value': v, 'error': err, 'type': datum_type}
 
 # Make dict with Attribute schema. Parameter measured as str and value as str
 def create_attribute(val):
@@ -87,21 +87,22 @@ class TRaILImporter(BaseImporter):
             file_list.extend(glob.glob(str(data_dir)+'/CompleteData/**/*.'+ext, recursive=True))
         file_list = [f for f in file_list if '03_12_2021' in f or '01_07_2014' in f]
         
-        self.image_folder = data_dir / "Photographs and Measurement Data"
+        self.image_folder = data_dir / 'Photographs and Measurement Data'
 
-        self.verbose = kwargs.pop("verbose", False)
+        self.verbose = kwargs.pop('verbose', False)
         
         # Generate list of expected columns. Some include dict where the
-        # expected column has key "header", along with other relevant info
-        spec = relative_path(__file__, "column-spec.yaml")
+        # expected column has key 'header', along with other relevant info
+        spec = relative_path(__file__, 'column-spec.yaml')
         with open(spec) as f:
             self.column_spec = load(f)
             
         # Open file that specifies how to handle the Owner column, when present
-        owner_key_file = relative_path(__file__, "archive_owner_keys.csv")
+        owner_key_file = relative_path(__file__, 'archive_owner_keys.csv')
         self.owner_keys = read_csv(owner_key_file, usecols = ['id', 'Archive data "Owner"', 'Lab/Owner', 'Analyst', 'Date'])
 
-        self.lab_IDs = [el for tup in self.db.session.query(self.db.model.sample.lab_id).all() for el in tup if el is not None]
+        self.lab_IDs = [el for tup in self.db.session.query(self.db.model.sample.lab_id).all()
+                        for el in tup if el is not None]
 
         # Calls Sparrow base code for each file in passed list and sends to import_datafile
         self.iterfiles(file_list, **kwargs)
@@ -114,11 +115,11 @@ class TRaILImporter(BaseImporter):
         filename = os.path.basename(fn)#.split('\\')[-1]
         # Allow import of varying data reduction sheets
         try:
-            df = read_excel(fn, sheet_name="Complete Summary Table")
+            df = read_excel(fn, sheet_name='Complete Summary Table')
             if 'Unnamed: 0' in df.columns:
-                df = read_excel(fn, sheet_name="Complete Summary Table", skiprows=1)
+                df = read_excel(fn, sheet_name='Complete Summary Table', skiprows=1)
         except ValueError:
-            df = read_excel(fn, sheet_name="Complete Data Sheet", skiprows=2, usecols=range(56))
+            df = read_excel(fn, sheet_name='Complete Data Sheet', skiprows=2, usecols=range(56))
         
         # Assume all rows with >80% NaNs are empty and delete
         df.drop(df.index[df.isnull().sum(axis=1)/len(df.columns)>0.8], inplace=True)
@@ -180,7 +181,7 @@ class TRaILImporter(BaseImporter):
             self.dateerr = False
         except:
             # TODO change this to None value when allowed by Sparrow
-            date = "1900-01-01 00:00:00+00"
+            date = '1900-01-01 00:00:00+00'
             self.dateerr = True
             print('date error:', filename)
 
@@ -301,7 +302,7 @@ class TRaILImporter(BaseImporter):
         
         material = cleaned_data[8]
         
-        # Convert missing Th and Sm values to "N.M."
+        # Convert missing Th and Sm values to 'N.M.'
         if cleaned_data[16]['value'] == 0 and material['value'] == 'zircon':
             cleaned_data[16]['value'] = 'N.M.'
             cleaned_data[16]['error'] = None
@@ -322,55 +323,55 @@ class TRaILImporter(BaseImporter):
         date_data = cleaned_data[23:25]+cleaned_data[26:28]
 
         # We should figure out how to not require meaningless dates
-        meaningless_date = "1900-01-01 00:00:00+00"
+        meaningless_date = '1900-01-01 00:00:00+00'
         
         lab_id = self.make_labID(date)
 
         # Build sample schema using row of imported data
         sample = {
-            "name": row["Full Sample Name"],
-            "material": str(material["value"]),
-            "lab_id": lab_id,
-            "from_archive": 'true',
+            'name': row['Full Sample Name'],
+            'material': str(material['value']),
+            'lab_id': lab_id,
+            'from_archive': 'true',
             # Here we pass a list of dicts instead of a single dict
             # because each (U-Th)/He analysis consists of three
             # individual sessions
-            "session": [
+            'session': [
                 {
-                    "technique": {"id": "Picking information"},
-                    "instrument": {"name": "Leica microscope"},
-                    "date": meaningless_date, 
+                    'technique': {'id': 'Picking information'},
+                    'instrument': {'name': 'Leica microscope'},
+                    'date': meaningless_date, 
                     # analysis is passed a list of dicts, where each dict is displayed
                     # as a single box on the front end. create_analysis function is 
                     # critical to the bulk of information ultimately included in Sparrow
-                    "analysis": [
-                        create_analysis("Grain dimensions & shape", shape_data),
-                        create_analysis("Grain characteristics", grain_data)
+                    'analysis': [
+                        create_analysis('Grain dimensions & shape', shape_data),
+                        create_analysis('Grain characteristics', grain_data)
                     ]
                 },
                 {
-                    "technique": {"id": "Helium measurement"},
-                    "instrument": {"name": "ASI Alphachron → Pfeiffer Balzers QMS"},
-                    "date": meaningless_date,
-                    "analysis": [
-                        create_analysis("Helium measurement", helium_data)
+                    'technique': {'id': 'Helium measurement'},
+                    'instrument': {'name': 'Alphachron'},
+                    'date': meaningless_date,
+                    'analysis': [
+                        create_analysis('Helium measurement', helium_data)
                     ]
                 },
                 {
-                    "technique": {'id': "ICP-MS measurement"},
-                    "instrument": {"name": "Agilent 7900 Quadrupole ICP-MS"},
-                    "date": meaningless_date,
-                    "analysis": [
-                        create_analysis("Element data", icpms_data)
+                    'technique': {'id': 'ICP-MS measurement'},
+                    'instrument': {'name': 'Agilent 7900 Quadrupole ICP-MS'},
+                    'date': meaningless_date,
+                    'analysis': [
+                        create_analysis('Sample data (blank corrected)', icpms_data)
                     ]
                 },
                 {
-                    "technique": {"id": "Dates and other derived data"},
-                    "date": date,
-                    "analysis": [
-                        create_analysis("Alpha ejection correction values", ft_data),
-                        create_analysis("Rs, mass, concentrations", other_data),
-                        create_analysis("Date", date_data)
+                    'technique': {'id': 'Dates and other derived data'},
+                    'date': date,
+                    'analysis': [
+                        create_analysis('Alpha ejection correction values', ft_data),
+                        create_analysis('Rs, mass, concentrations', other_data),
+                        create_analysis('Date', date_data)
                     ],
                 }
             ]
@@ -392,7 +393,7 @@ class TRaILImporter(BaseImporter):
         else:
             sample['Lab/Owner'] = 'Not recorded'
         
-        res = self.db.load_data("sample", sample)
+        res = self.db.load_data('sample', sample)
 
-        print("")
+        print('')
         return res

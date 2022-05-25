@@ -28,7 +28,8 @@ class TRaILhelium(BaseImporter):
     def make_labID(self, row):
         date = str(row['Date'].year)[-2:]
         # Query database for all lab IDs
-        all_IDs = [el for tup in self.db.session.query(self.db.model.sample.lab_id).all() for el in tup if el is not None]
+        all_IDs = [el for tup in self.db.session.query(self.db.model.sample.lab_id).all()
+                   for el in tup if el is not None]
         # Isolate lab IDs from the same year
         same_year = [i for i in all_IDs if date+'-' in i]
         # Get the highest numbered analysis for the year and add 1
@@ -45,7 +46,7 @@ class TRaILhelium(BaseImporter):
         data = pd.read_excel(fn)
         
         # Load the column specs; structure is {parameter: [value col, error col, unit str]}
-        spec = relative_path(__file__, "helium-specs.yaml")
+        spec = relative_path(__file__, 'helium-specs.yaml')
         with open(spec) as f:
             self.picking_specs = load(f)
         
@@ -93,7 +94,7 @@ class TRaILhelium(BaseImporter):
         # Print an empty line to keep the command line clean
         print('')
         # Load the data
-        self.db.load_data("sample", sample_schema)
+        self.db.load_data('sample', sample_schema)
     
     # For samples with picking info, add he data to existing sample
     def add_he(self, row):
@@ -101,27 +102,37 @@ class TRaILhelium(BaseImporter):
         sample_id = row['Sample'].split(' ')[0]
         try:
             # get the same sample ID from the database
-            sample_obj = self.db.session.query(self.db.model.sample).filter_by(lab_id=sample_id).all()[0]
+            sample_obj = (self.db.session
+                          .query(self.db.model.sample)
+                          .filter_by(lab_id=sample_id)
+                          .all())[0]
             # Check that the sample name in the database matches the sample name in the data file
             if sample_obj.name != row['Sample'].split(' ')[1]:
-                print('Mimatched name:\n', sample_obj.name, 'in database, but\n', row['Sample'].split(' ')[1],
+                print('Mimatched name:\n',
+                      sample_obj.name, 'in database, but\n',
+                      row['Sample'].split(' ')[1],
                        'in importing sheet. Double-check that sample ID is correct')
         # If no lab ID is found, altert the user and skip uploading
         except IndexError:
-            print('Sample ID for', row['Sample'].split(' ')[1], 'not found. Double-check that the IDs match.\n')
+            print('Sample ID for', row['Sample'].split(' ')[1],
+                  'not found. Double-check that the IDs match.\n')
             return
         # Make session dictionary
         session_dict = self.make_session_dict(row)
         # Add the sample to the session dictionary for database update
         session_dict['sample'] = sample_obj
         # look for derived data session; if present, not a shard, and can add nmol/g He
-        derived_session_obj = self.db.session.query(self.db.model.session).filter_by(sample_id=sample_obj.id, technique="Dates and other derived data").all()
+        derived_session_obj = (self.db.session
+                               .query(self.db.model.session)
+                               .filter_by(sample_id=sample_obj.id,
+                                          technique='Dates and other derived data')
+                               .all())
         if len(derived_session_obj)>0:
             self.add_nmol_g(derived_session_obj[0], session_dict)
         # Print an empty line to keep the command line clean
         print('')
         # Upload session-- this has the sample info attached, so the sample will be updated as well
-        self.db.load_data("session", session_dict)
+        self.db.load_data('session', session_dict)
     
     # Get dimensionsal mass for a given sample based on session pulled above
     def query_shard(self, session_obj):
@@ -147,8 +158,13 @@ class TRaILhelium(BaseImporter):
         nmol_g = (nmol_he*1e6)/float(ug_mass.value)
         nmol_g_s = (((float(ug_mass.error)/float(ug_mass.value))**2+
                     (ncc_he_s/ncc_he)**2)**(1/2))*nmol_g
-        analysis_obj = self.db.session.query(self.db.model.analysis).filter_by(session_id=derived_session_obj.id, analysis_type="Rs, mass, concentrations").first()
-        print(analysis_obj.data)
-        analysis_dict = {'value': nmol_g, 'error': nmol_g_s,
-                          'type': {'parameter': '4He', 'unit': 'nmol/g'}}
-        analysis_obj.data.append(analysis_dict)
+        
+        analysis_obj = (self.db.session
+                        .query(self.db.model.analysis)
+                        .filter_by(session_id=derived_session_obj.id,
+                                   analysis_type='Rs, mass, concentrations')
+                        .first())
+        datum_dict = {'value': nmol_g, 'error': nmol_g_s,
+                      'type': {'parameter': '4He', 'unit': 'nmol/g'},
+                      'analysis': analysis_obj}
+        self.db.load_data('datum', datum_dict)

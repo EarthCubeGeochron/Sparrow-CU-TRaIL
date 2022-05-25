@@ -23,14 +23,24 @@ class LabID_exporter(BaseImporter):
         sample_ids = []
         picking_dates = []
         for name in samples['Name']:
-            lab_id = self.db.session.query(self.db.model.sample.lab_id).filter_by(name=name).all()
-            sample_id = self.db.session.query(self.db.model.sample.id).filter_by(name=name).all()
+            lab_id = (self.db.session
+                      .query(self.db.model.sample.lab_id)
+                      .filter_by(name=name)
+                      .all())
+            sample_id = (self.db.session
+                         .query(self.db.model.sample.id)
+                         .filter_by(name=name)
+                         .all())
             lab_ids.append(lab_id)
             sample_ids.append(sample_id)
         for n, l in enumerate(sample_ids):
             picking_dates.append([])
             for i in l:
-                picking_date = self.db.session.query(self.db.model.session.date).filter_by(sample_id=i[0], technique='Picking Information').all()
+                picking_date = (self.db.session
+                                .query(self.db.model.session.date)
+                                .filter_by(sample_id=i[0],
+                                           technique='Picking Information')
+                                .all())
                 picking_dates[n].append(picking_date[0][0])
         for n, l in enumerate(picking_dates):
             picking_dates[n] = ', '.join([i.strftime('%Y-%m-%d') for i in l])

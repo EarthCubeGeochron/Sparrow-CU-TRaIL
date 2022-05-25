@@ -7,7 +7,7 @@ import re
 
 # Make datum using info in yaml file
 def make_datum(row, isotope):
-    unit = re.search(r"\((\w+)\)", isotope).group(1)
+    unit = re.search(r'\((\w+)\)', isotope).group(1)
     return {'value': row[isotope],
             'error': row.iloc[row.index.get_loc(isotope)+1],
             'type': {'parameter': isotope.split(' (')[0], 'unit': unit}}
@@ -26,8 +26,10 @@ class TRaILicpms(BaseImporter):
         file_list = [f for f in file_list if '$' not in f]
         
         # Get Dimensional mass ID
-        self.dim_mass_id = self.db.session.query(self.db.model.datum_type).filter_by(parameter='Dimensional mass').all()[0].id
-        
+        self.dim_mass_id = (self.db.session
+                            .query(self.db.model.datum_type)
+                            .filter_by(parameter='Dimensional mass')
+                            .all())[0].id
         self.iterfiles(file_list, **kwargs)
         
     def import_datafile(self, fn, rec, **kwargs):
@@ -40,14 +42,20 @@ class TRaILicpms(BaseImporter):
             sample_id = row['Sample'].split(' ')[0]
             try:
                 # get the same sample ID from the database
-                sample_obj = self.db.session.query(self.db.model.sample).filter_by(lab_id=sample_id).all()[0]
+                sample_obj = (self.db.session
+                              .query(self.db.model.sample)
+                              .filter_by(lab_id=sample_id)
+                              .all())[0]
                 # Check that the sample name in the database matches the sample name in the data file
                 if sample_obj.name != row['Sample'].split(' ')[1]:
-                    print('Mimatched name:\n', sample_obj.name, 'in database, but\n', row['Sample'].split(' ')[1],
-                           'in importing sheet. Double-check that sample ID is correct')
+                    print('Mimatched name:\n',
+                          sample_obj.name, 'in database, but\n',
+                          row['Sample'].split(' ')[1],
+                          'in importing sheet. Double-check that sample ID is correct')
             # If no lab ID is found, alert the user and skip uploading
             except IndexError:
-                print('Sample ID for', row['Sample name'], 'not found. Double-check that the IDs match.\n')
+                print('Sample ID for', row['Sample name'],
+                      'not found. Double-check that the IDs match.\n')
                 return
             # Genearate correct date format
             date = row['Date'].to_pydatetime().isoformat()
@@ -60,29 +68,44 @@ class TRaILicpms(BaseImporter):
             
             # Make session dictionary
             session_dict = {
-                "technique": {'id': "Trace element measurement"},
-                "instrument": {"name": "Agilent 7900 Quadrupole ICP-MS"},
-                "date": date,
+                'technique': {'id': 'ICP-MS measurement'},
+                'instrument': {'name': 'Agilent 7900 Quadrupole ICP-MS'},
+                'date': date,
                 'analysis': [{
-                    'analysis_type': 'Element data',
+                    'analysis_type': 'Sample data (blank corrected)',
                     # Here we call the make datum and make_attribute functions
                     'datum': raw_data
                     },
                     {
-                    'analysis_type': 'Blanks',
+                    'analysis_type': 'Blank data',
                     # Here we call the make datum and make_attribute functions
                     'datum': blank_data
                     }]
                 }
             session_dict['sample'] = sample_obj
-            self.db.load_data("session", session_dict)
+            self.db.load_data('session', session_dict)
             
             # look for whether a dimensional mass is recorded in Sparrow to permit ppm conversion
             try:
-                sample_int_id = self.db.session.query(self.db.model.sample).filter_by(lab_id=sample_id).all()[0].id
-                derived = self.db.session.query(self.db.model.session).filter_by(sample_id=sample_int_id, technique='Dates and other derived data').all()
-                analysis = self.db.session.query(self.db.model.analysis).filter_by(session_id = derived[0].id, analysis_type='Rs, mass, concentrations').all()
-                dim_mass = self.db.session.query(self.db.model.datum).filter_by(type = self.dim_mass_id, analysis=analysis[0].id).all()[0]
+                sample_int_id = (self.db.session
+                                 .query(self.db.model.sample)
+                                 .filter_by(lab_id=sample_id)
+                                 .all())[0].id
+                derived = (self.db.session
+                           .query(self.db.model.session)
+                           .filter_by(sample_id=sample_int_id,
+                                      technique='Dates and other derived data')
+                           .all())
+                analysis = (self.db.session
+                            .query(self.db.model.analysis)
+                            .filter_by(session_id = derived[0].id,
+                                       analysis_type='Rs, mass, concentrations')
+                            .all())
+                dim_mass = (self.db.session
+                            .query(self.db.model.datum)
+                            .filter_by(type = self.dim_mass_id,
+                                       analysis=analysis[0].id)
+                            .all())[0]
                 self.add_ppm(raw_data, dim_mass)
             except IndexError:
                 print('')
@@ -128,4 +151,4 @@ class TRaILicpms(BaseImporter):
         # # Print an empty line to keep the command line clean
         # print('')
         # # Upload session-- this has the sample info attached, so the sample will be updated as well
-        # self.db.load_data("session", session_dict)
+        # self.db.load_data('session', session_dict)

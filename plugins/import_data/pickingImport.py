@@ -63,8 +63,7 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material):
 
 # Function to make datum
 def make_datum(datum, error, parameter, unit):
-    return {'value': datum,
-            'error': error,
+    return {'value': datum, 'error': error,
             'type': {'parameter': parameter, 'unit': unit}}
 
 # Function to make attributes
@@ -84,7 +83,8 @@ class TRaILpicking(BaseImporter):
     def make_labID(self, row):
         date = str(row['Date Packed'].year)[-2:]
         # Query database for all lab IDs
-        all_IDs = [el for tup in self.db.session.query(self.db.model.sample.lab_id).all() for el in tup if el is not None]
+        all_IDs = [el for tup in self.db.session.query(self.db.model.sample.lab_id).all()
+                   for el in tup if el is not None]
         # Isolate lab IDs from the same year
         same_year = [i for i in all_IDs if date+'-' in i]
         # Get the highest numbered analysis for the year and add 1
@@ -104,7 +104,7 @@ class TRaILpicking(BaseImporter):
                              sheet_name = 'master')
 
         # Load the picking specs. This file dictates virtually everything about this import
-        spec = relative_path(__file__, "picking_specs.yaml")
+        spec = relative_path(__file__, 'picking_specs.yaml')
         with open(spec) as f:
             self.picking_specs = load(f)
         
@@ -198,8 +198,8 @@ class TRaILpicking(BaseImporter):
                 'laboratory': researcher,
                 'name': sample+'_'+grain,
                 'material': material,
-                "lab_id": lab_id,
-                "from_archive": 'false',
+                'lab_id': lab_id,
+                'from_archive': 'false',
                 'session': [
                     {
                     'technique': {'id': 'Picking Information'},
@@ -227,18 +227,19 @@ class TRaILpicking(BaseImporter):
                     ]
                 
                 sample_schema['session'].append({
-                    'technique': {'id': "Dates and other derived data"},
-                    'date': "1900-01-01 00:00:00+00", # always pass an "unknown date" value for calculation
+                    'technique': {'id': 'Dates and other derived data'},
+                    'date': '1900-01-01 00:00:00+00', # always pass an 'unknown date' value for calculation
                     'analysis': [
                         {
-                        'analysis_type': "Alpha ejection correction values",
+                        'analysis_type': 'Alpha ejection correction values',
                         'datum': [make_datum(*d) for d in Ft_data]
                         },
                         {
-                        'analysis_type': "Rs, mass, concentrations",
+                        'analysis_type': 'Rs, mass, concentrations',
                         'datum': [make_datum(*d) for d in Rs_mass]
                         }]
                         })
             
+            print(sample_schema)
             print('')
-            self.db.load_data("sample", sample_schema)
+            self.db.load_data('sample', sample_schema)

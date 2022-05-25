@@ -19,22 +19,38 @@ class TRaILdatecalc(BaseImporter):
         super().__init__(app)
         
         # Get the full list of sessions with helium and icpms data
-        helium_sessions = self.db.session.query(self.db.model.session).filter_by(technique='Helium measurement').all()
+        helium_sessions = (self.db.session
+                           .query(self.db.model.session)
+                           .filter_by(technique='Helium measurement')
+                           .all())
         helium_ids = [s.sample_id for s in helium_sessions]
-        icpms_sessions = self.db.session.query(self.db.model.session).filter_by(technique='Trace element measurement').all()
+        icpms_sessions = (self.db.session
+                          .query(self.db.model.session)
+                          .filter_by(technique='ICP-MS measurement')
+                          .all())
         icpms_ids = [s.sample_id for s in icpms_sessions]
-        date_sessions = self.db.session.query(self.db.model.session).filter_by(technique='(U-Th)/He date calculation').all()
+        date_sessions = (self.db.session
+                         .query(self.db.model.session)
+                         .filter_by(technique='Dates and other derived data')
+                         .all())
         date_sample_ids = [s.sample_id for s in date_sessions]
         date_analysis_ids = [s.id for s in date_sessions]
         calculated_ids = []
         # Check for the presence of a raw date in any existing date calculation sessions
         for n, id_ in enumerate(date_analysis_ids):
-            date_analyses = self.db.session.query(self.db.model.analysis).filter_by(session_id=id_).all()
+            date_analyses = (self.db.session
+                             .query(self.db.model.analysis)
+                             .filter_by(session_id=id_)
+                             .all())
             for s in date_analyses:
                 if s.analysis_type == 'Raw date':
                     calculated_ids.append(date_sample_ids[n])
         for c in calculated_ids:
-            print(self.db.session.query(self.db.model.sample).filter_by(id=c).first().name)
+            print(self.db.session
+                  .query(self.db.model.sample)
+                  .filter_by(id=c)
+                  .first()
+                  .name)
         # Find the intersection with both helium and icp data, *where date has not yet been calculated*
         to_calc = list((set(helium_ids) & set(icpms_ids)) ^ set(calculated_ids))
         for d in to_calc:
@@ -70,7 +86,10 @@ class TRaILdatecalc(BaseImporter):
 
     def get_input_data(self, d):
         # Get He data first
-        sample_obj = self.db.session.query(self.db.model.sample).filter_by(id=d).first()
+        sample_obj = (self.db.session
+                      .query(self.db.model.sample)
+                      .filter_by(id=d)
+                      .first())
         print('Reducing sample', sample_obj.name)
 
         # Get 4He from database
@@ -90,7 +109,11 @@ class TRaILdatecalc(BaseImporter):
         Sm147_s = float(Sm147_datum.error)
         
         # Finally, try getting Ft
-        Ft_session = self.db.session.query(self.db.model.session).filter_by(sample_id=d, technique='(U-Th)/He date calculation').all()
+        Ft_session = (self.db.session
+                      .query(self.db.model.session)
+                      .filter_by(sample_id=d,
+                                 technique='Dates and other derived data')
+                      .all())
         if len(Ft_session) > 0:
             get_corrected = True
             Ft238_datum = self.query_ID(sample_obj.lab_id, '238U Ft')
@@ -234,13 +257,13 @@ class TRaILdatecalc(BaseImporter):
         #         }
         #     raw_dict['session_id'] = session_obj.id
         #     corr_dict['session'] = session_obj
-        #     self.db.load_data("analysis", raw_dict)
-        #     self.db.load_data("analysis", corr_dict)
+        #     self.db.load_data('analysis', raw_dict)
+        #     self.db.load_data('analysis', corr_dict)
         # else:
         if True:
             session_dict={
-                'technique': {'id': "(U-Th)/He date calculation"},
-                'date': "1900-01-01 00:00:00+00", # always pass an "unknown date" value for calculation
+                'technique': {'id': '(U-Th)/He date calculation'},
+                'date': '1900-01-01 00:00:00+00', # always pass an 'unknown date' value for calculation
                 'analysis': [{
                     'analysis_type': 'Raw date',
                     'datum': [
@@ -253,4 +276,4 @@ class TRaILdatecalc(BaseImporter):
                     }]
                 }
             session_dict['sample'] = sample_obj
-            self.db.load_data("session", session_dict)
+            self.db.load_data('session', session_dict)

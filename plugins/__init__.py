@@ -13,48 +13,48 @@ from click import secho
 from sparrow.task_manager import task
 from pathlib import Path
 
-@task(name="say-hello")
+@task(name='say-hello')
 def say_hello():
-    secho("Hello World, I am a Sparrow Task", fg='green')
+    secho('Hello World, I am a Sparrow Task', fg='green')
 
 @task(name='import-picking-info')
 def import_picking():
     app = get_app()
-    data_dir = Path("/data")
+    data_dir = Path('/data')
     TRaILpicking(app, data_dir)
     
 @task(name='import-helium')
 def import_helium():
     app = get_app()
-    data_dir = Path("/data")
+    data_dir = Path('/data')
     TRaILhelium(app, data_dir)
                 
 @task(name='import-icpms')
 def import_icpms():
     app = get_app()
-    data_dir = Path("/data")
+    data_dir = Path('/data')
     TRaILicpms(app, data_dir)
     
 @task(name='import-archive')
 def import_full_data():
     app = get_app()
-    data_dir = Path("/data")
+    data_dir = Path('/data')
     TRaILImporter(app, data_dir)
     
 @task(name='export-ID')
 def export_ID():
     app = get_app()
-    data_dir = Path("/data")
+    data_dir = Path('/data')
     LabID_exporter(app, data_dir)
     
 @task(name='calculate-dates')
 def get_date():
     app = get_app()
-    data_dir = Path("/data")
+    data_dir = Path('/data')
     TRaILdatecalc(app, data_dir)
     
 @task(name='add-note')
 def add_note():
     app = get_app()
-    data_dir = Path("/data")
+    data_dir = Path('/data')
     AddSampleNote(app, data_dir)
