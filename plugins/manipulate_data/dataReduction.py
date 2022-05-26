@@ -214,7 +214,7 @@ class TRaILdatecalc(BaseImporter):
                                                       Ft238=Ft238, Ft235=Ft235, Ft232=Ft232, Ft147=Ft147,
                                                       U238_s=U238_mol_s, Th232_s=Th232_mol_s, Sm147_s=Sm147_mol_s,
                                                       Ft238_s=Ft238_s, Ft235_s=Ft235_s, Ft232_s=Ft232_s, Ft147_s=Ft147_s)
-        precision = 0.01#0.01/100 # precision in percent
+        precision = 0.01/100 # precision in percent
         mc_number = linear_uncertainty**2/(precision*date['corrected date'])**2
         if mc_number < 5:
             mc_number = 5
@@ -235,34 +235,37 @@ class TRaILdatecalc(BaseImporter):
         
         print('')
         
-        # if get_corrected:
-        #     session_obj = self.db.session.query(self.db.model.session).filter_by(sample_id=d, technique='(U-Th)/He date calculation').first()
-        #     print(session_obj.technique)
-        #     raw_dict = {
-        #         'analysis_type': 'Raw date',
-        #         'datum': [
-        #             make_datum('Raw date', 'MC average CI, raw', reduced_data, 'Ma'),
-        #             make_datum('Number of Monte Carlo simulations', None, reduced_data, '')],
-        #         'attribute': [
-        #                 make_CI_attribute(reduced_data['MC +68% CI, raw'], reduced_data['MC -68% CI, raw'])]
-        #         }
-        #     corr_dict = {
-        #         'analysis_type': 'Corrected date',
-        #         'datum': [
-        #             make_datum('Corrected date', 'MC average CI, corrected', reduced_data, 'Ma'),
-        #             make_datum('Number of Monte Carlo simulations', None, reduced_data, '')
-        #             ],
-        #         'attribute': [
-        #             make_CI_attribute(reduced_data['MC +68% CI, corrected'][0], reduced_data['MC -68% CI, corrected'][0])]
-        #         }
-        #     raw_dict['session_id'] = session_obj.id
-        #     corr_dict['session'] = session_obj
-        #     self.db.load_data('analysis', raw_dict)
-        #     self.db.load_data('analysis', corr_dict)
-        # else:
-        if True:
+        if get_corrected:
+            session_obj = (self.db.session
+                           .query(self.db.model.session)
+                           .filter_by(sample_id=d,
+                                      technique='Dates and other derived data')
+                           .first())
+            print(session_obj.technique)
+            raw_dict = {
+                'analysis_type': 'Raw date',
+                'datum': [
+                    make_datum('Raw date', 'MC average CI, raw', reduced_data, 'Ma'),
+                    make_datum('Number of Monte Carlo simulations', None, reduced_data, '')],
+                'attribute': [
+                        make_CI_attribute(reduced_data['MC +68% CI, raw'], reduced_data['MC -68% CI, raw'])]
+                }
+            corr_dict = {
+                'analysis_type': 'Corrected date',
+                'datum': [
+                    make_datum('Corrected date', 'MC average CI, corrected', reduced_data, 'Ma'),
+                    make_datum('Number of Monte Carlo simulations', None, reduced_data, '')
+                    ],
+                'attribute': [
+                    make_CI_attribute(reduced_data['MC +68% CI, corrected'][0], reduced_data['MC -68% CI, corrected'][0])]
+                }
+            raw_dict['session'] = session_obj
+            corr_dict['session'] = session_obj
+            self.db.load_data('analysis', raw_dict)
+            self.db.load_data('analysis', corr_dict)
+        else:
             session_dict={
-                'technique': {'id': '(U-Th)/He date calculation'},
+                'technique': {'id': 'Dates and other derived data'},
                 'date': '1900-01-01 00:00:00+00', # always pass an 'unknown date' value for calculation
                 'analysis': [{
                     'analysis_type': 'Raw date',
