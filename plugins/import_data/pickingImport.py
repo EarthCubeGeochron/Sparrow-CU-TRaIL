@@ -194,8 +194,8 @@ class TRaILpicking(BaseImporter):
             sample_schema = {
                 'member_of': {'name': sample,
                               'material': 'rock'},
-                'researcher': {'name': researcher},
-                'laboratory': researcher,
+                'researcher': [{'name': researcher}],
+                #'Lab_Owner': researcher,
                 'name': sample+'_'+grain,
                 'material': material,
                 'lab_id': lab_id,
@@ -242,4 +242,4 @@ class TRaILpicking(BaseImporter):
             
             print(sample_schema)
             print('')
-            self.db.load_data('sample', sample_schema)
+            self.db.load_data('sample', sample_schema, strict=True)

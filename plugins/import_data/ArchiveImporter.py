@@ -382,18 +382,19 @@ class TRaILImporter(BaseImporter):
             owner_values = self.owner_keys.loc[self.owner_keys['Archive data "Owner"'] == researcher['value']]
             if isna(owner_values['Date'].iloc[0]):
                 sample['Lab/Owner'] = owner_values['Lab/Owner'].item()
-                sample['Analyst'] = {'name': owner_values['Analyst'].item()}
+                sample['researcher'] = [{'name': owner_values['Analyst'].item()}]
             elif not self.dateerr:
                 if int(owner_values['Date'].iloc[0][-4:])>int(date[:4]):
                     sample['Lab/Owner'] = owner_values['Lab/Owner'].iloc[0]
-                    sample['Analyst'] = {'name': owner_values['Analyst'].iloc[0]}
+                    sample['researcher'] = [{'name': owner_values['Analyst'].iloc[0]}]
                 else:
                     sample['Lab/Owner'] = owner_values['Lab/Owner'].iloc[1]
-                    sample['Analyst'] = {'name': owner_values['Analyst'].iloc[1]}
+                    sample['researcher'] = [{'name': owner_values['Analyst'].iloc[1]}]
         else:
-            sample['Lab/Owner'] = 'Not recorded'
+            sample['Lab_Owner'] = 'Not recorded'
         
         res = self.db.load_data('sample', sample)
-
+    
+        # print(sample)        
         print('')
         return res
