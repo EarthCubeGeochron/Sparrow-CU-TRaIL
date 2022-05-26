@@ -90,28 +90,28 @@ class TRaILicpms(BaseImporter):
                 sample_int_id = (self.db.session
                                  .query(self.db.model.sample)
                                  .filter_by(lab_id=sample_id)
-                                 .all())[0].id
+                                 .first()).id
                 derived = (self.db.session
                            .query(self.db.model.session)
                            .filter_by(sample_id=sample_int_id,
                                       technique='Dates and other derived data')
-                           .all())
+                           .first())
                 analysis = (self.db.session
                             .query(self.db.model.analysis)
-                            .filter_by(session_id = derived[0].id,
+                            .filter_by(session_id = derived.id,
                                        analysis_type='Rs, mass, concentrations')
-                            .all())
+                            .first())
                 dim_mass = (self.db.session
                             .query(self.db.model.datum)
                             .filter_by(type = self.dim_mass_id,
-                                       analysis=analysis[0].id)
-                            .all())[0]
-                self.add_ppm(raw_data, dim_mass)
-            except IndexError:
+                                       analysis=analysis.id)
+                            .first())
+                self.add_ppm(raw_data, dim_mass, analysis)
+            except AttributeError:
                 print('')
 
     # Generate ppm values and add to existing derived data session
-    def add_ppm(self, raw_data, dim_mass):
+    def add_ppm(self, raw_data, dim_mass, analysis_obj):
         dim_mass_val = float(dim_mass.value)
         dim_mass_err = float(dim_mass.error)
         
@@ -125,30 +125,28 @@ class TRaILicpms(BaseImporter):
         for r in radionuclides:
             if 'U' in r['type']['parameter']:
                 ppm_dict = make_ppm(r, dim_mass_val, dim_mass_err)
-                ppm_data.append(ppm_dict)
+                # ppm_data.append(ppm_dict)
+                ppm_dict['analysis'] = analysis_obj
+                self.db.load_data('datum', ppm_dict)
                 eU += ppm_dict['value']
                 eU_err.append(ppm_dict['error']**2)
             elif 'Th' in r['type']['parameter']:
                 ppm_dict = make_ppm(r, dim_mass_val, dim_mass_err)
-                ppm_data.append(ppm_dict)
+                ppm_dict['analysis'] = analysis_obj
+                # ppm_data.append(ppm_dict)
+                self.db.load_data('datum', ppm_dict)
                 eU += 0.238*ppm_dict['value']
                 eU_err.append((0.238*ppm_dict['error'])**2)
             elif 'Sm' in r['type']['parameter']:
                 ppm_dict = make_ppm(r, dim_mass_val, dim_mass_err)
-                ppm_data.append(ppm_dict)
+                ppm_dict['analysis'] = analysis_obj
+                # ppm_data.append(ppm_dict)
+                self.db.load_data('datum', ppm_dict)
                 eU += 0.0012*ppm_dict['value']
                 eU_err.append((0.0012*ppm_dict['error'])**2)
         ppm_data.append({'value': eU, 'error': sum(eU_err)**(1/2),
-                         'type': {'parameter': 'eU', 'unit': 'ppm'}})
-        print(ppm_data)
+                         'type': {'parameter': 'eU', 'unit': 'ppm'},
+                         'analysis': analysis_obj})
+        self.db.load_data('datum', ppm_dict)
 
-        # Add the ppm data to the ICPMS session
-        # session_dict['analysis'].append({'analysis_type': 'Derived Data',
-        #                                  'datum': ppm_data})
-        
-        # # Add the sample to the session dictionary for database update
-        # session_dict['sample'] = sample_obj
-        # # Print an empty line to keep the command line clean
-        # print('')
-        # # Upload session-- this has the sample info attached, so the sample will be updated as well
-        # self.db.load_data('session', session_dict)
+        print('')

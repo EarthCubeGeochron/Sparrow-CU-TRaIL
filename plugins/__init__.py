@@ -7,6 +7,7 @@ from .import_data.icpmsImport import TRaILicpms
 from .export_data.sampleID_export import LabID_exporter
 from .manipulate_data.dataReduction import TRaILdatecalc
 from .manipulate_data.AddSampleNote import AddSampleNote
+from .manipulate_data.printFullSample import TRaILprintsample
 
 from sparrow import get_app
 from click import secho
@@ -58,3 +59,10 @@ def add_note():
     app = get_app()
     data_dir = Path('/data')
     AddSampleNote(app, data_dir)
+    
+    
+@task(name='print-sample')
+def print_sample():
+    app = get_app()
+    data_dir = Path('/data')
+    TRaILprintsample(app, data_dir)
