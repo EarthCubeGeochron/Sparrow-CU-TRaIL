@@ -1,22 +1,18 @@
 # This is a simple yaml file that gives the necessary info for code-efficient helium data import
 # Each entry has the same format, commented inline below
 4He: # The name to show on the front end
-  - He amt # The column name for the value
-  - ' +/-' # The column name for the error
+  - 4He (ncc) # The column name for the value
+  - +/- # The column name for the error
   - ncc # The unit to apply
 Q used:
-  - Q avg
-  - Q +/-
-  - ncc
+  - Q
+  - +/-.1 # has .1 after because of previous "+/-" column name
+  - ratio
 Blank used:
-  - Blk used
-  - Blk +/-
+  - Blank(ncc)
+  - +/-.2 # has .2 after because of previous two "+/-" column names
   - ncc
 Percent initial extract:
-  - '%IE'
+  - IE
   - NULL
   - '%'
-Number of reextracts:
-  - Num reextract
-  - NULL
-  - NULL

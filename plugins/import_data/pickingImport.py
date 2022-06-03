@@ -12,6 +12,7 @@ from rich import print
 from math import sqrt
 from sparrow.import_helpers import BaseImporter
 from sparrow.util import relative_path
+import datetime
 from yaml import load
 
 # Replicates Ketcham et al., 2011 for Ft calculation
@@ -75,18 +76,19 @@ class TRaILpicking(BaseImporter):
     def __init__(self, app, data_dir, **kwargs):
         super().__init__(app)
         # file_list = glob.glob(str(data_dir)+'/PickingData/*.xlsx')
-        file_list = glob.glob(str(data_dir)+'/PickingData/Picking_data_example.xlsx')
+        file_list = glob.glob(str(data_dir)+'/PickingData/test_packing_sheet.xlsx')
+        # file_list = glob.glob(str(data_dir)+'/PickingData/Picking_data_example.xlsx')
         self.iterfiles(file_list, **kwargs)
     
     
     # Method to generate a lab ID for a new sample based on the date of the analysis
-    def make_labID(self, row):
-        date = str(row['Date Packed'].year)[-2:]
+    def make_labID(self, date):
+        year = str(date.year)[-2:]
         # Query database for all lab IDs
         all_IDs = [el for tup in self.db.session.query(self.db.model.sample.lab_id).all()
                    for el in tup if el is not None]
         # Isolate lab IDs from the same year
-        same_year = [i for i in all_IDs if date+'-' in i]
+        same_year = [i for i in all_IDs if year+'-' in i]
         # Get the highest numbered analysis for the year and add 1
         if len(same_year) > 0:
             max_num = max([int(i.split('-')[1]) for i in same_year])
@@ -94,33 +96,36 @@ class TRaILpicking(BaseImporter):
             max_num = 0
         id_num = max_num+1
         # Combine year and analysis number to get lab_id
-        lab_id = date+'-'+f'{id_num:05d}'
+        lab_id = year+'-'+f'{id_num:05d}'
         return lab_id
 
     def import_datafile(self, fn, rec, **kwargs):
         data = pd.read_excel(fn,
-                             skiprows = range(2,6),
-                             header = 1,
+                             skiprows = 1,
+                             header = 0,
                              sheet_name = 'master')
-
+        
         # Load the picking specs. This file dictates virtually everything about this import
         spec = relative_path(__file__, 'picking_specs.yaml')
         with open(spec) as f:
             self.picking_specs = load(f)
         
         # Find actual data by figuring out where the analyst rows are full
-        data = data[data[self.picking_specs['Metadata']['Researcher']].notnull()]
+        data = data[(data[self.picking_specs['Metadata']['Researcher']].notnull())&
+                    (data['Sample']!='EXAMPLE')]
         
         for d in range(len(data)):
             # Generate a lab ID for each grain
-            lab_id = self.make_labID(data.iloc[d])
+            date = str(data.iloc[d][self.picking_specs['Metadata']['Date']])
+            if date == 'NaT':
+                date = datetime.datetime.now()
+            lab_id = self.make_labID(date)
             
             # Generate metadata required for every grain
             researcher = str(data.iloc[d][self.picking_specs['Metadata']['Researcher']])
             sample = data.iloc[d][self.picking_specs['Metadata']['Sample']]
             grain = data.iloc[d][self.picking_specs['Metadata']['Grain']]
             print('Importing: '+sample+'_'+grain)
-            date = str(data.iloc[d]['Date Packed'])
             material = self.picking_specs['mineral_key'][data.iloc[d][self.picking_specs['Metadata']['Mineral']]]
             
             # Create necessary data for Fts if not a shard. This info MUST be recorded for whole grains

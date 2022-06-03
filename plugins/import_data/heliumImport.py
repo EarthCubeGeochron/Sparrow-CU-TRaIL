@@ -4,12 +4,19 @@ from sparrow.util import relative_path
 from rich import print
 import pandas as pd
 import glob
+from dateutil import parser
 from yaml import load
 
 # Make datum using info in yaml file
 def make_datum(row, name, data_info):
+    if data_info[1] == None:
+        error = None
+    elif pd.isna(row[data_info[1]]):
+        error = None
+    else:
+        error = row[data_info[1]]
     return {'value': row[data_info[0]],
-            'error': None if data_info[1] == None else row[data_info[1]],
+            'error': error,
             'type': {'parameter': name, 'unit': data_info[2]}}
 
 # Make attribute using info in yaml file
@@ -21,12 +28,12 @@ def make_attribute(row, name, data_info):
 class TRaILhelium(BaseImporter):
     def __init__(self, app, data_dir, **kwargs):
         super().__init__(app)
-        file_list = glob.glob(str(data_dir)+'/heliumData/test_He_import.xlsx')
+        file_list = glob.glob(str(data_dir)+'/heliumData/21HE39_2022_05_19_sparrow.txt')
         self.iterfiles(file_list, **kwargs)
 
     # Method to generate a lab ID for a new sample based on the date of the analysis
     def make_labID(self, row):
-        date = str(row['Date'].year)[-2:]
+        date = str(parser.parse(row['Date'][:-5]).year)[-2:]
         # Query database for all lab IDs
         all_IDs = [el for tup in self.db.session.query(self.db.model.sample.lab_id).all()
                    for el in tup if el is not None]
@@ -43,7 +50,7 @@ class TRaILhelium(BaseImporter):
         return lab_id
 
     def import_datafile(self, fn, rec, **kwargs):
-        data = pd.read_excel(fn)
+        data = pd.read_csv(fn, delimiter = '\t')
         
         # Load the column specs; structure is {parameter: [value col, error col, unit str]}
         spec = relative_path(__file__, 'helium-specs.yaml')
@@ -51,15 +58,16 @@ class TRaILhelium(BaseImporter):
             self.picking_specs = load(f)
         
         # Split data according to whether each sample has picking information
-        data_new_sample = data.loc[data['Expect picking?'] == 'N']
-        data_add_he = data.loc[data['Expect picking?'] == 'Y']
+        # the column PickingInfo is read in as a boolean, so pandas slicing can happen implicitly.
+        data_new_sample = data.loc[~data['PickingInfo']]
+        data_add_he = data.loc[data['PickingInfo']]
         # First, upload the new samples (no picking info)
         for ix, row in data_new_sample.iterrows():
-            print('Importing:', row['Sample'].split(' ')[0])
+            print('Importing:', row['SampleName'].split(' ')[0])
             self.create_sample(row)
         # Then, upload the samples where we expect picking info
         for ix, row in data_add_he.iterrows():
-            print('Importing:', row['Sample'].split(' ')[1])
+            print('Importing:', row['SampleName'].split(' ')[1])
             self.add_he(row)
     
     # Method to generate the helium session dictionary
@@ -67,7 +75,7 @@ class TRaILhelium(BaseImporter):
         return {
             'technique': {'id': 'Helium measurement'},
             'instrument': {'name': 'Alphachron'},
-            'date': row['Date'].to_pydatetime().isoformat(),
+            'date': str(parser.parse(row['Date'][:-5])),
             'analysis': [{
                 'analysis_type': 'Helium measurement',
                     # Here we call the make datum and make_attribute functions
@@ -99,7 +107,7 @@ class TRaILhelium(BaseImporter):
     # For samples with picking info, add he data to existing sample
     def add_he(self, row):
         # Get the sample ID from the sample name column
-        sample_id = row['Sample'].split(' ')[0]
+        sample_id = row['SampleName'].split(' ')[0]
         try:
             # get the same sample ID from the database
             sample_obj = (self.db.session
@@ -107,14 +115,14 @@ class TRaILhelium(BaseImporter):
                           .filter_by(lab_id=sample_id)
                           .all())[0]
             # Check that the sample name in the database matches the sample name in the data file
-            if sample_obj.name != row['Sample'].split(' ')[1]:
+            if sample_obj.name != row['SampleName'].split(' ')[1]:
                 print('Mimatched name:\n',
                       sample_obj.name, 'in database, but\n',
-                      row['Sample'].split(' ')[1],
+                      row['SampleName'].split(' ')[1],
                        'in importing sheet. Double-check that sample ID is correct')
         # If no lab ID is found, altert the user and skip uploading
         except IndexError:
-            print('Sample ID for', row['Sample'].split(' ')[1],
+            print('Sample ID for', row['SampleName'].split(' ')[1],
                   'not found. Double-check that the IDs match.\n')
             return
         # Make session dictionary
@@ -156,8 +164,12 @@ class TRaILhelium(BaseImporter):
         nmol_he = ncc_he/22413.6
         ug_mass = self.query_shard(derived_session_obj)
         nmol_g = (nmol_he*1e6)/float(ug_mass.value)
-        nmol_g_s = (((float(ug_mass.error)/float(ug_mass.value))**2+
-                    (ncc_he_s/ncc_he)**2)**(1/2))*nmol_g
+        # Upload None to database if NaN in uncertainty column
+        try:
+            nmol_g_s = (((float(ug_mass.error)/float(ug_mass.value))**2+
+                        (ncc_he_s/ncc_he)**2)**(1/2))*nmol_g
+        except TypeError:
+            nmol_g_s = None
         
         analysis_obj = (self.db.session
                         .query(self.db.model.analysis)
