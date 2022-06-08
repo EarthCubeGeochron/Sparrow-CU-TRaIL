@@ -12,7 +12,7 @@ Blank used:
   - Blank(ncc)
   - +/-.2 # has .2 after because of previous two "+/-" column names
   - ncc
-Percent initial extract:
+Initial extract:
   - IE
   - NULL
-  - '%'
+  - ''
