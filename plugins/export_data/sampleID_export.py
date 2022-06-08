@@ -7,13 +7,11 @@ Created on Sun Apr 17 16:51:18 2022
 
 from sparrow.import_helpers import BaseImporter
 import pandas as pd
-import glob
-import datetime
 
 class LabID_exporter(BaseImporter):
     def __init__(self, app, data_dir, **kwargs):
         super().__init__(app)
-        self.file = glob.glob(str(data_dir)+'/ExportSampleID/exportID.xlsx')[0]
+        self.file = str(data_dir)+'/ExportSampleID/exportID.xlsx'
         self.get_IDs(self.file, data_dir)
         
     def get_IDs(self, file, data_dir):
@@ -39,7 +37,7 @@ class LabID_exporter(BaseImporter):
                 picking_date = (self.db.session
                                 .query(self.db.model.session.date)
                                 .filter_by(sample_id=i[0],
-                                           technique='Picking Information')
+                                           technique='Picking information')
                                 .all())
                 picking_dates[n].append(picking_date[0][0])
         for n, l in enumerate(picking_dates):
