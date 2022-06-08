@@ -158,15 +158,15 @@ class TRaILpicking(BaseImporter):
                     shape_attributes.append([value, s[col]])
                 # make analysis dictionary
                 shape_dict = {
-                    'analysis_type': 'Grain Shape',
+                    'analysis_type': 'Grain dimensions & shape',
                     'datum': [make_datum(*d) for d in shape_data],
                     'attribute': [make_attribute(*a) for a in shape_attributes]
                     }
             # If a shard, simply add that as a note and don't calculate Ft values
             else:
-                Fts = False#{'238U': 1, '235U': 1, '232Th': 1, '147Sm': 1}
+                Fts = False
                 shape_dict = {
-                    'analysis_type': 'Grain Shape',
+                    'analysis_type': 'Grain dimensions & shape',
                     'attribute': [make_attribute('Crystal shard', 'Shape notes')]
                     }
             
@@ -207,7 +207,7 @@ class TRaILpicking(BaseImporter):
                 'from_archive': 'false',
                 'session': [
                     {
-                    'technique': {'id': 'Picking Information'},
+                    'technique': {'id': 'Picking information'},
                     'instrument': {'name': 'Leica microscope'},
                     'date': date,
                     'analysis': [
