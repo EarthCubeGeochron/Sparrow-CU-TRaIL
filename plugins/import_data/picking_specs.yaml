@@ -5,8 +5,8 @@ Metadata:
   Researcher: Analyst
   Fragment: Shard (Y or N)?
   Mineral: 'Mineral (a, z, t, or m)'
-  Terminations: Np (0,1, or 2)
-  Geometry: Geometry (1,2,3, or 4, see chart)
+  Crystal terminations: Np (0,1, or 2)
+  Crystal geometry: Geometry (1,2,3, or 4, see chart)
   Date: Date Packed
   Dimensions: # Need to explicitly define 
     Length 1: L1
@@ -17,8 +17,8 @@ Metadata:
 # In each category, we record data (hard numbers), and attributes (descriptors).
 # For attributes, first give the column name and then the label to put in sparrow, e.g., "- Surface Color or Staining: Surface color/staining"
 # For data, we need to record the column name first and the give the name to put in sparrow as well as the unit, following the convention below
-# Since data are more complicated and don't appear and different on the front end, we only use data when units are necessary
-# Also note, the results will appear in the front end in the same order they're listed here
+# Since data are more complicated and don't appear any different on the front end, we only use data when units are necessary
+# Also note, the results should appear in the front end in the same order they're listed here
 Shape:
   data:
     - L1:
