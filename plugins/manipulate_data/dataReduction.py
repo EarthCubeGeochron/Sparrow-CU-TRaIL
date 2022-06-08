@@ -12,7 +12,7 @@ def make_datum(val, err, data_dict, unit):
 # Make attribute using info in yaml file
 def make_CI_attribute(CI_pos, CI_neg):
     return {'parameter': 'Confidence intervals',
-            'value': '[+'+str(CI_pos)+', -'+str(CI_neg)+']'}
+            'value': '[+'+str(CI_pos)+', -'+str(CI_neg)+'] Ma'}
 
 class TRaILdatecalc(BaseImporter):
     def __init__(self, app, data_dir, **kwargs):
@@ -45,12 +45,6 @@ class TRaILdatecalc(BaseImporter):
             for s in date_analyses:
                 if s.analysis_type == 'Raw date':
                     calculated_ids.append(date_sample_ids[n])
-        for c in calculated_ids:
-            print(self.db.session
-                  .query(self.db.model.sample)
-                  .filter_by(id=c)
-                  .first()
-                  .name)
         # Find the intersection with both helium and icp data, *where date has not yet been calculated*
         to_calc = list((set(helium_ids) & set(icpms_ids)) ^ set(calculated_ids))
         for d in to_calc:
@@ -91,22 +85,26 @@ class TRaILdatecalc(BaseImporter):
                       .filter_by(id=d)
                       .first())
         print('Reducing sample', sample_obj.name)
-
-        # Get 4He from database
-        He4_datum = self.query_ID(sample_obj.lab_id, '4He')
-        He4 = float(He4_datum.value)
-        He4_s = float(He4_datum.error)
         
-        # Then get radionuclides
-        U238_datum = self.query_ID(sample_obj.lab_id, '238U', datum_unit='ng')
-        U238 = float(U238_datum.value)
-        U238_s = float(U238_datum.error)
-        Th232_datum = self.query_ID(sample_obj.lab_id, '232Th', datum_unit='ng')
-        Th232 = float(Th232_datum.value)
-        Th232_s = float(Th232_datum.error)
-        Sm147_datum = self.query_ID(sample_obj.lab_id, '147Sm', datum_unit='ng')
-        Sm147 = float(Sm147_datum.value)
-        Sm147_s = float(Sm147_datum.error)
+        try:
+            # Get 4He from database
+            He4_datum = self.query_ID(sample_obj.lab_id, '4He')
+            He4 = float(He4_datum.value)
+            He4_s = float(He4_datum.error)
+            
+            # Then get radionuclides
+            U238_datum = self.query_ID(sample_obj.lab_id, '238U', datum_unit='ng')
+            U238 = float(U238_datum.value)
+            U238_s = float(U238_datum.error)
+            Th232_datum = self.query_ID(sample_obj.lab_id, '232Th', datum_unit='ng')
+            Th232 = float(Th232_datum.value)
+            Th232_s = float(Th232_datum.error)
+            Sm147_datum = self.query_ID(sample_obj.lab_id, '147Sm', datum_unit='ng')
+            Sm147 = float(Sm147_datum.value)
+            Sm147_s = float(Sm147_datum.error)
+        # if not all necessary numbers are present in the database, don't calculate
+        except TypeError:
+            return
         
         # Finally, try getting Ft
         Ft_session = (self.db.session
@@ -215,11 +213,14 @@ class TRaILdatecalc(BaseImporter):
                                                       U238_s=U238_mol_s, Th232_s=Th232_mol_s, Sm147_s=Sm147_mol_s,
                                                       Ft238_s=Ft238_s, Ft235_s=Ft235_s, Ft232_s=Ft232_s, Ft147_s=Ft147_s)
         precision = 0.01/100 # precision in percent
-        mc_number = linear_uncertainty**2/(precision*date['corrected date'])**2
+        mc_number = int(linear_uncertainty**2/(precision*date['corrected date'])**2)
         if mc_number < 5:
             mc_number = 5
-        else:
-            mc_number = int(mc_number)
+            precision = linear_uncertainty/(((mc_number)**(1/2))*date['corrected date'])
+        # set uppper limit of ten million cycles in case of extremely imprecise data
+        elif mc_number > 1e7:
+            mc_number = int(1e7)
+            precision = linear_uncertainty/(((mc_number)**(1/2))*date['corrected date'])
         print('Number of MC cycles:', mc_number)
         
         measured_U235 = False
@@ -233,7 +234,15 @@ class TRaILdatecalc(BaseImporter):
         reduced_data = _sample_loop(save_out, sample_data, measured_U235, linear, monteCarlo,
                                     histograms, parameterize, decimals, precision)
         
+        for dat in reduced_data:
+            if reduced_data['Number of Monte Carlo simulations'][0] == 'NaN':
+                reduced_data['Number of Monte Carlo simulations'][0] = 0
+            elif reduced_data[dat][0] == 'NaN':
+                reduced_data[dat][0] = None
+        
         print('')
+        
+        print(reduced_data)
         
         if get_corrected:
             session_obj = (self.db.session
@@ -241,14 +250,13 @@ class TRaILdatecalc(BaseImporter):
                            .filter_by(sample_id=d,
                                       technique='Dates and other derived data')
                            .first())
-            print(session_obj.technique)
             raw_dict = {
                 'analysis_type': 'Raw date',
                 'datum': [
                     make_datum('Raw date', 'MC average CI, raw', reduced_data, 'Ma'),
                     make_datum('Number of Monte Carlo simulations', None, reduced_data, '')],
                 'attribute': [
-                        make_CI_attribute(reduced_data['MC +68% CI, raw'], reduced_data['MC -68% CI, raw'])]
+                        make_CI_attribute(reduced_data['MC +68% CI, raw'][0], reduced_data['MC -68% CI, raw'][0])]
                 }
             corr_dict = {
                 'analysis_type': 'Corrected date',
