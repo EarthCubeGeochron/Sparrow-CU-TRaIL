@@ -62,6 +62,8 @@ class TRaILicpms(BaseImporter):
     def import_datafile(self, fn, rec, **kwargs):
         # data = pd.read_excel(fn)
         data = pd.read_csv(fn, delimiter = '\t')
+        # trim extraneous rows (assume empty if >80% are null)
+        data.drop(data.index[data.isnull().sum(axis=1)/len(data.columns)>0.8], inplace=True)
         
         # Iterate through rows
         for ix, row in data.iterrows():
