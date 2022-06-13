@@ -74,10 +74,9 @@ class PublicationTable_exporter(BaseImporter):
         Analysis = self.db.model.analysis
         Attribute = self.db.model.attribute
         res = (self.db.session.query(Attribute)
-               .join(Analysis)
+               .join(Analysis.attribute_collection)
                .join(Session)
                .join(Sample)
-               .join(Analysis.attribute_collection)
                .filter(Sample.lab_id == lab_id)
                .filter(Attribute.parameter == attribute_param)
                .first())
@@ -116,7 +115,11 @@ class PublicationTable_exporter(BaseImporter):
             ws.column_dimensions[openpyxl.utils.get_column_letter(n)].width = dict_[key]['width']
             if dict_[key]['error']:
                 n+=1
-                add_column(ws, n, '± ['+str(dict_[key]['error footnote'])+']', thin)
+                ws.column_dimensions[openpyxl.utils.get_column_letter(n)].width = dict_[key]['error_width']
+                if 'error_name' in dict_[key]:
+                    add_column(ws, n, dict_[key]['error_name'], thin)
+                else:
+                    add_column(ws, n, '± '+str(dict_[key]['error_footnote']), thin)
                 
         
         # Add data one sample at a time
@@ -135,8 +138,7 @@ class PublicationTable_exporter(BaseImporter):
                     item = self.query_datum(aliquot[1], key)
                     # If None found, key should lead to attribute
                     if not item:
-                        # item = self.query_attribute(samples[0], key)
-                        pass
+                        item = self.query_attribute(samples[0], key)
                     # Overwrite with correct unit if necessary
                     if 'unit' in dict_[key]:
                         item = self.query_datum_unit(aliquot[1], key, dict_[key]['unit'])
@@ -160,10 +162,6 @@ class PublicationTable_exporter(BaseImporter):
         for note in self.table_specs[-1]['Footnotes']:
             row+=1
             ws.cell(row=row, column=1, value=note)
-        
-        print(self.query_datum(samples[0], 'Length 1').value)
-        # print(self.query_attribute(samples[0], 'geometry').value)
-        print(self.query_datum_unit(samples[0], '238U', 'ng').value)
         
         # Save workbook
         wb.save(filepath)

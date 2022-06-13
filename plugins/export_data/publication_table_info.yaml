@@ -16,7 +16,7 @@
     column: width 2 (µm) [c]
     error: False
     width: 8
-- Geometry:
+- Crystal geometry:
     column: Geometry [e]
     error: False
     width: 8
@@ -24,18 +24,88 @@
     column: Np [f]
     error: False
     width: 8
-- 4He: # Example of column with uncertainty
+- 4He (±2σ): # Example of column with uncertainty
     column: 4He (fmol) [g]
     unit: ncc
     error: True
-    error footnote: h
+    error_footnote: "[h]"
     width: 8
-- 238U: # Example of column with uncertainty including need to specify unit
+    error_width: 8
+- 238U (±2σ): # Example of column with uncertainty including need to specify unit
     column: U (ng) [i]
     unit: ng
     error: True
-    error footnote: h
+    error_footnote: "[h]"
     width: 8
+    error_width: 8
+- 232Th (±2σ):
+    column: Th (ng) [j]
+    unit: ng
+    error: True
+    error_footnote: "[h]"
+    width: 8
+    error_width: 8
+- 147Sm (±2σ):
+    column: 147Sm (ng) [k]
+    unit: ng
+    error: True
+    error_footnote: "[h]"
+    width: 8
+    error_width: 8
+- Equivalent spherical radius (±2σ):
+    column: Rs (µm) [l]
+    error: False
+    width: 8
+- Dimensional mass (±2σ):
+    column: Mass (µg) [m]
+    error: False
+    width: 8
+- 4He (±2σ):
+    column: 4He (nmol/g) [n]
+    unit: nmol/g
+    error: True
+    error_footnote: "[o]"
+    width: 8
+    error_width: 8
+- 238U (±2σ):
+    column: U (ppm) [n]
+    unit: ppm
+    error: True
+    error_footnote: "[o]"
+    width: 8
+    error_width: 8
+- 232Th (±2σ):
+    column: Th (ppm) [n]
+    unit: ppm
+    error: True
+    error_footnote: "[o]"
+    width: 8
+    error_width: 8
+- 147Sm (±2σ):
+    column: Sm (ppm) [n]
+    unit: ppm
+    error: True
+    error_footnote: "[o]"
+    width: 8
+    error_width: 8
+- eU:
+    column: eU [p]
+    error: True
+    error_footnote: "[q]"
+    width: 8
+    error_width: 8
+- Raw date:
+    column: Uncorr Date (Ma) [r]
+    error: True
+    error_name: Uncorr Date Analytical ± (Ma) 2s [s]
+    width: 8
+    error_width: 15
+- Corrected date (±2σ, TAU):
+    column: Corrected Date (Ma) [u]
+    error: True
+    error_name: ± TAU (Ma) 2σ [v]
+    width: 8
+    error_width: 15
 - Footnotes:
   - 'a - This table follows the recommendations and approach in Flowers et al. (2022).'
   - 'b - Sample and mineral being analyzed. a is apatite. z is zircon. t is titanite.'
