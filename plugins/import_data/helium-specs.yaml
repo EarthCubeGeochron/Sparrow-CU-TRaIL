@@ -1,18 +1,18 @@
 # This is a simple yaml file that gives the necessary info for code-efficient helium data import
 # Each entry has the same format, commented inline below
-4He: # The name to show on the front end
+4He (±2σ): # The name to show on the front end
   - 4He (ncc) # The column name for the value
   - +/- # The column name for the error
   - ncc # The unit to apply
-Q used:
+Q used (±2σ):
   - Q
   - +/-.1 # has .1 after because of previous "+/-" column name
   - ratio
-Blank used:
+Blank used  (±2σ):
   - Blank(ncc)
   - +/-.2 # has .2 after because of previous two "+/-" column names
   - ncc
 Initial extract:
   - IE
-  - NULL
+  - NULL # Initial extract has no uncertainty
   - ''

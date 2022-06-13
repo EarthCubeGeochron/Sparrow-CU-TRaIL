@@ -153,7 +153,7 @@ class TRaILhelium(BaseImporter):
                .join(Session)
                .join(DatumType)
                .filter(Session.id == session_obj.id)
-               .filter(DatumType.parameter == 'Dimensional mass')
+               .filter(DatumType.parameter == 'Dimensional mass (±2σ)')
                .first())
         return res
     
@@ -177,6 +177,6 @@ class TRaILhelium(BaseImporter):
                                    analysis_type='Rs, mass, concentrations')
                         .first())
         datum_dict = {'value': nmol_g, 'error': nmol_g_s,
-                      'type': {'parameter': '4He', 'unit': 'nmol/g'},
+                      'type': {'parameter': '4He (±2σ)', 'unit': 'nmol/g'},
                       'analysis': analysis_obj}
         self.db.load_data('datum', datum_dict)
