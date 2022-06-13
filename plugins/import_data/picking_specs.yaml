@@ -1,4 +1,5 @@
 # First we define metadata necessary to perform data reduction for a given grain
+# The labels on the left side should never be changed because they interact directly with the importer code
 Metadata:
   Sample: Sample.1 # the .1 is because this is actually the second column called "Sample"
   Grain: Aliquot             (label a01, a02, z01, z02, etc.)
@@ -23,7 +24,7 @@ Shape:
   data:
     - L1:
         name: Length 1
-        unit: "\u03bcm"
+        unit: "\u03bcm" # unicode for micron
     - W1:
         name: Width 1
         unit: "\u03bcm"
@@ -34,7 +35,7 @@ Shape:
         name: Width 2
         unit: "\u03bcm"
   attributes:
-    - Geometry (1,2,3, or 4, see chart): Geometry
+    - Geometry (1,2,3, or 4, see chart): Crystal geometry
     - Np (0,1, or 2): Crystal terminations
 Characteristics:
   attributes:

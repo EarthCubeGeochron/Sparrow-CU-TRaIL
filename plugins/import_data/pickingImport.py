@@ -135,8 +135,8 @@ class TRaILpicking(BaseImporter):
                 width1 = data.iloc[d][self.picking_specs['Metadata']['Dimensions']['Width 1']]
                 length2 = data.iloc[d][self.picking_specs['Metadata']['Dimensions']['Length 2']]
                 width2 = data.iloc[d][self.picking_specs['Metadata']['Dimensions']['Width 2']]
-                terminations = data.iloc[d][self.picking_specs['Metadata']['Terminations']]
-                geometry = data.iloc[d][self.picking_specs['Metadata']['Geometry']]
+                terminations = data.iloc[d][self.picking_specs['Metadata']['Crystal terminations']]
+                geometry = data.iloc[d][self.picking_specs['Metadata']['Crystal geometry']]
                 
                 # Generate Ft and dimensional mass
                 Fts = get_Ft(length1, width1, length2, width2,
@@ -155,7 +155,11 @@ class TRaILpicking(BaseImporter):
                 for s in self.picking_specs['Shape']['attributes']:
                     col = next(iter(s))
                     value = str(data.iloc[d][col])
-                    shape_attributes.append([value, s[col]])
+                    if 'eometry' in col:
+                        sparrow_val = self.picking_specs['geometry_key'][int(float(value))]
+                    if 'Np' in col:
+                        sparrow_val = self.picking_specs['terminations_key'][int(float(value))]
+                    shape_attributes.append([sparrow_val, s[col]])
                 # make analysis dictionary
                 shape_dict = {
                     'analysis_type': 'Grain dimensions & shape',
@@ -221,14 +225,14 @@ class TRaILpicking(BaseImporter):
             if Fts:
                 # Compile Ft data for date calculation session
                 Ft_data = [
-                    [Fts['238U'], Fts['238U']*Ft_err, '238U Ft', ''],
-                    [Fts['235U'], Fts['235U']*Ft_err,'235U Ft', ''],
-                    [Fts['232Th'], Fts['232Th']*Ft_err,'232Th Ft', ''],
-                    [Fts['147Sm'], Fts['147Sm']*Ft_err,'147Sm Ft', ''],
+                    [Fts['238U'], Fts['238U']*Ft_err*2, '238U Ft (±2σ)', ''],
+                    [Fts['235U'], Fts['235U']*Ft_err*2,'235U Ft (±2σ)', ''],
+                    [Fts['232Th'], Fts['232Th']*Ft_err*2,'232Th Ft (±2σ)', ''],
+                    [Fts['147Sm'], Fts['147Sm']*Ft_err*2,'147Sm Ft (±2σ)', ''],
                     ]
                 Rs_mass = [
-                    [dimensional_mass, dimensional_mass*dim_mass_err, 'Dimensional mass', 'μg'],
-                    [Fts['Rs'], Fts['Rs']*Rs_err, 'Equivalent Spherical Radius', 'μm']
+                    [dimensional_mass, dimensional_mass*dim_mass_err*2, 'Dimensional mass (±2σ)', 'μg'],
+                    [Fts['Rs'], Fts['Rs']*Rs_err*2, 'Equivalent spherical radius (±2σ)', 'μm']
                     ]
                 
                 sample_schema['session'].append({
