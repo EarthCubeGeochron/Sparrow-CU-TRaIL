@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 import hecalc
+import copy
 from hecalc.main import _sample_loop
 from rich import print
 from sparrow.import_helpers import BaseImporter
 
-def make_datum(val, err, data_dict, unit):
+def make_datum(val, err, data_dict, unit, TAU):
     return {'value': data_dict[val][0],
             'error': data_dict[err][0] if err else None,
-            'type': {'parameter': val, 'unit': unit}}
+            'type': {'parameter': val + TAU, 'unit': unit}}
 
 # Make attribute using info in yaml file
-def make_CI_attribute(CI_pos, CI_neg):
+def make_CI_attribute(CI_pos, CI_neg, TAU):
     return {'parameter': 'Confidence intervals',
-            'value': '[+'+str(CI_pos)+', -'+str(CI_neg)+'] Ma'}
+            'value': '[+'+str(CI_pos)+', -'+str(CI_neg)+'] Ma'+TAU}
 
 class TRaILdatecalc(BaseImporter):
     def __init__(self, app, data_dir, **kwargs):
@@ -47,6 +48,10 @@ class TRaILdatecalc(BaseImporter):
                     calculated_ids.append(date_sample_ids[n])
         # Find the intersection with both helium and icp data, *where date has not yet been calculated*
         to_calc = list((set(helium_ids) & set(icpms_ids)) ^ set(calculated_ids))
+        # Add option to force recalculation of all dates.
+        recalculate = True
+        if recalculate:
+            to_calc = list(set(helium_ids) & set(icpms_ids))
         for d in to_calc:
             self.get_input_data(d)
 
@@ -88,20 +93,20 @@ class TRaILdatecalc(BaseImporter):
         
         try:
             # Get 4He from database
-            He4_datum = self.query_ID(sample_obj.lab_id, '4He')
+            He4_datum = self.query_ID(sample_obj.lab_id, '4He (±2σ)')
             He4 = float(He4_datum.value)
-            He4_s = float(He4_datum.error)
+            He4_s = float(He4_datum.error)/2
             
             # Then get radionuclides
-            U238_datum = self.query_ID(sample_obj.lab_id, '238U', datum_unit='ng')
+            U238_datum = self.query_ID(sample_obj.lab_id, '238U (±2σ)', datum_unit='ng')
             U238 = float(U238_datum.value)
-            U238_s = float(U238_datum.error)
-            Th232_datum = self.query_ID(sample_obj.lab_id, '232Th', datum_unit='ng')
+            U238_s = float(U238_datum.error)/2
+            Th232_datum = self.query_ID(sample_obj.lab_id, '232Th (±2σ)', datum_unit='ng')
             Th232 = float(Th232_datum.value)
-            Th232_s = float(Th232_datum.error)
-            Sm147_datum = self.query_ID(sample_obj.lab_id, '147Sm', datum_unit='ng')
+            Th232_s = float(Th232_datum.error)/2
+            Sm147_datum = self.query_ID(sample_obj.lab_id, '147Sm (±2σ)', datum_unit='ng')
             Sm147 = float(Sm147_datum.value)
-            Sm147_s = float(Sm147_datum.error)
+            Sm147_s = float(Sm147_datum.error)/2
         # if not all necessary numbers are present in the database, don't calculate
         except TypeError:
             return
@@ -114,18 +119,18 @@ class TRaILdatecalc(BaseImporter):
                       .all())
         if len(Ft_session) > 0:
             get_corrected = True
-            Ft238_datum = self.query_ID(sample_obj.lab_id, '238U Ft')
+            Ft238_datum = self.query_ID(sample_obj.lab_id, '238U Ft (±2σ)')
             Ft238 = float(Ft238_datum.value)
-            Ft238_s = float(Ft238_datum.error)
-            Ft235_datum = self.query_ID(sample_obj.lab_id, '235U Ft')
+            Ft238_s = float(Ft238_datum.error)/2
+            Ft235_datum = self.query_ID(sample_obj.lab_id, '235U Ft (±2σ)')
             Ft235 = float(Ft235_datum.value)
-            Ft235_s = float(Ft235_datum.error)
-            Ft232_datum =  self.query_ID(sample_obj.lab_id, '232Th Ft')
+            Ft235_s = float(Ft235_datum.error)/2
+            Ft232_datum =  self.query_ID(sample_obj.lab_id, '232Th Ft (±2σ)')
             Ft232 = float(Ft232_datum.value)
-            Ft232_s = float(Ft232_datum.error)
-            Ft147_datum =  self.query_ID(sample_obj.lab_id, '147Sm Ft')
+            Ft232_s = float(Ft232_datum.error)/2
+            Ft147_datum =  self.query_ID(sample_obj.lab_id, '147Sm Ft (±2σ)')
             Ft147 = float(Ft147_datum.value)
-            Ft147_s = float(Ft147_datum.error)
+            Ft147_s = float(Ft147_datum.error)/2
         # If no Fts in database, sample is a fragment and only raw dates should be calculated
         else:
             get_corrected = False
@@ -207,12 +212,14 @@ class TRaILdatecalc(BaseImporter):
         date = hecalc.get_date(He4_mol, U238=U238_mol, U235=None, Th232=Th232_mol, Sm147=Sm147_mol,
                               Ft238=Ft238, Ft235=Ft235, Ft232=Ft232, Ft147=Ft147)
         
+        # Get total uncertainty first
         linear_uncertainty = hecalc.date_uncertainty(He4_mol, t=date['corrected date'], He_s = He4_mol_s,
                                                       U238=U238_mol, U235=None, Th232=Th232_mol, Sm147=Sm147_mol,
                                                       Ft238=Ft238, Ft235=Ft235, Ft232=Ft232, Ft147=Ft147,
                                                       U238_s=U238_mol_s, Th232_s=Th232_mol_s, Sm147_s=Sm147_mol_s,
                                                       Ft238_s=Ft238_s, Ft235_s=Ft235_s, Ft232_s=Ft232_s, Ft147_s=Ft147_s)
-        precision = 0.01/100 # precision in percent
+        precision = 0.001/100 # precision in percent
+        # Check that precision doesn't require too many or too few cycles
         mc_number = int(linear_uncertainty**2/(precision*date['corrected date'])**2)
         if mc_number < 5:
             mc_number = 5
@@ -221,7 +228,28 @@ class TRaILdatecalc(BaseImporter):
         elif mc_number > 1e7:
             mc_number = int(1e7)
             precision = linear_uncertainty/(((mc_number)**(1/2))*date['corrected date'])
-        print('Number of MC cycles:', mc_number)
+        
+        # Then repeat for TAU ("total analytical uncertainty") -- no Ft uncertainty
+        if get_corrected:
+            save_out_TAU = copy.deepcopy(save_out)
+            linear_uncertainty_TAU = hecalc.date_uncertainty(He4_mol, t=date['corrected date'], He_s = He4_mol_s,
+                                                             U238=U238_mol, U235=None, Th232=Th232_mol, Sm147=Sm147_mol,
+                                                             Ft238=Ft238, Ft235=Ft235, Ft232=Ft232, Ft147=Ft147,
+                                                             U238_s=U238_mol_s, Th232_s=Th232_mol_s, Sm147_s=Sm147_mol_s,
+                                                             Ft238_s=0, Ft235_s=0, Ft232_s=0, Ft147_s=0)
+            sample_data_TAU = copy.deepcopy(sample_data)
+            sample_data_TAU.update({'± 238Ft': 0, '± 235Ft': 0, '± 232Ft': 0, '± 147Ft': 0})
+            precision_TAU = 0.001/100 # precision in percent
+            mc_number_TAU = int(linear_uncertainty_TAU**2/(precision_TAU*date['corrected date'])**2)
+            if mc_number_TAU < 5:
+                mc_number_TAU = 5
+                precision_TAU = linear_uncertainty_TAU/(((mc_number_TAU)**(1/2))*date['corrected date'])
+            # set uppper limit of ten million cycles in case of extremely imprecise data
+            elif mc_number_TAU > 1e7:
+                mc_number_TAU = int(1e7)
+                precision_TAU = linear_uncertainty_TAU/(((mc_number_TAU)**(1/2))*date['corrected date'])
+        else:
+            mc_number_TAU = 0
         
         measured_U235 = False
         linear = True
@@ -229,22 +257,26 @@ class TRaILdatecalc(BaseImporter):
         histograms = False
         parameterize = False
         decimals = 2
-        print('Starting Monte Carlo')
+        print('Number of MC cycles: '+str(mc_number + mc_number_TAU)+'\nStarting Monte Carlo\n')
         
         reduced_data = _sample_loop(save_out, sample_data, measured_U235, linear, monteCarlo,
                                     histograms, parameterize, decimals, precision)
-        
         for dat in reduced_data:
             if reduced_data['Number of Monte Carlo simulations'][0] == 'NaN':
                 reduced_data['Number of Monte Carlo simulations'][0] = 0
             elif reduced_data[dat][0] == 'NaN':
                 reduced_data[dat][0] = None
         
-        print('')
-        
-        print(reduced_data)
-        
         if get_corrected:
+            reduced_data_TAU = _sample_loop(save_out_TAU, sample_data_TAU, measured_U235, linear, monteCarlo,
+                                            histograms, parameterize, decimals, precision_TAU)
+            
+            for dat in reduced_data_TAU:
+                if reduced_data_TAU['Number of Monte Carlo simulations'][0] == 'NaN':
+                    reduced_data_TAU['Number of Monte Carlo simulations'][0] = 0
+                elif reduced_data_TAU[dat][0] == 'NaN':
+                    reduced_data_TAU[dat][0] = None
+        
             session_obj = (self.db.session
                            .query(self.db.model.session)
                            .filter_by(sample_id=d,
@@ -253,19 +285,28 @@ class TRaILdatecalc(BaseImporter):
             raw_dict = {
                 'analysis_type': 'Raw date',
                 'datum': [
-                    make_datum('Raw date', 'MC average CI, raw', reduced_data, 'Ma'),
-                    make_datum('Number of Monte Carlo simulations', None, reduced_data, '')],
+                    make_datum('Raw date', 'MC average CI, raw', reduced_data, 'Ma', ''),
+                    make_datum('Number of Monte Carlo simulations', None, reduced_data, '', '')],
                 'attribute': [
-                        make_CI_attribute(reduced_data['MC +68% CI, raw'][0], reduced_data['MC -68% CI, raw'][0])]
+                        make_CI_attribute(reduced_data['MC +68% CI, raw'][0],
+                                          reduced_data['MC -68% CI, raw'][0],
+                                          '')]
                 }
             corr_dict = {
                 'analysis_type': 'Corrected date',
                 'datum': [
-                    make_datum('Corrected date', 'MC average CI, corrected', reduced_data, 'Ma'),
-                    make_datum('Number of Monte Carlo simulations', None, reduced_data, '')
+                    make_datum('Corrected date', 'MC average CI, corrected', reduced_data_TAU, 'Ma', ' (±2σ, TAU)'),
+                    make_datum('Corrected date', 'MC average CI, corrected', reduced_data, 'Ma', ' (±2σ, TAU+Ft)'),
+                    make_datum('Number of Monte Carlo simulations', None, reduced_data, '', '')
                     ],
                 'attribute': [
-                    make_CI_attribute(reduced_data['MC +68% CI, corrected'][0], reduced_data['MC -68% CI, corrected'][0])]
+                    make_CI_attribute(reduced_data_TAU['MC +68% CI, corrected'][0],
+                                      reduced_data_TAU['MC -68% CI, corrected'][0],
+                                      ', TAU'),
+                    make_CI_attribute(reduced_data['MC +68% CI, corrected'][0],
+                                      reduced_data['MC -68% CI, corrected'][0],
+                                      ', TAU+Ft'),
+                    ]
                 }
             raw_dict['session'] = session_obj
             corr_dict['session'] = session_obj
@@ -278,11 +319,13 @@ class TRaILdatecalc(BaseImporter):
                 'analysis': [{
                     'analysis_type': 'Raw date',
                     'datum': [
-                        make_datum('Raw date', 'MC average CI, raw', reduced_data, 'Ma'),
-                        make_datum('Number of Monte Carlo simulations', None, reduced_data, '')
+                        make_datum('Raw date', 'MC average CI, raw', reduced_data, 'Ma', ' (±2σ)'),
+                        make_datum('Number of Monte Carlo simulations', None, reduced_data, '', '')
                         ],
                     'attribute': [
-                        make_CI_attribute(reduced_data['MC +68% CI, raw'][0], reduced_data['MC -68% CI, raw'][0])
+                        make_CI_attribute(reduced_data['MC +68% CI, raw'][0],
+                                          reduced_data['MC -68% CI, raw'][0],
+                                          '')
                         ]
                     }]
                 }
