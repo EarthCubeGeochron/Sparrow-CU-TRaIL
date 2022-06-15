@@ -51,12 +51,14 @@ class TRaILhelium(BaseImporter):
 
     def import_datafile(self, fn, rec, **kwargs):
         data = pd.read_csv(fn, delimiter = '\t')
+        # trim extraneous rows (assume empty if >80% are null)
+        data.drop(data.index[data.isnull().sum(axis=1)/len(data.columns)>0.8], inplace=True)
         
         # Load the column specs; structure is {parameter: [value col, error col, unit str]}
         spec = relative_path(__file__, 'helium-specs.yaml')
         with open(spec) as f:
             self.picking_specs = load(f)
-        
+            
         # Split data according to whether each sample has picking information
         # the column PickingInfo is read in as a boolean, so pandas slicing can happen implicitly.
         data_new_sample = data.loc[~data['PickingInfo']]
