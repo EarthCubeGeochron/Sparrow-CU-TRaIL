@@ -93,7 +93,7 @@ class TRaILdatecalc(BaseImporter):
         
         try:
             # Get 4He from database
-            He4_datum = self.query_ID(sample_obj.lab_id, '4He (±2σ)')
+            He4_datum = self.query_ID(sample_obj.lab_id, '4He blank corrected (±2σ)', datum_unit='ncc')
             He4 = float(He4_datum.value)
             He4_s = float(He4_datum.error)/2
             
@@ -207,7 +207,6 @@ class TRaILdatecalc(BaseImporter):
             '235Ft-147Ft': Ft235_s*Ft147_s,
             '232Ft-147Ft': Ft232_s*Ft147_s
         }
-        
         
         date = hecalc.get_date(He4_mol, U238=U238_mol, U235=None, Th232=Th232_mol, Sm147=Sm147_mol,
                               Ft238=Ft238, Ft235=Ft235, Ft232=Ft232, Ft147=Ft147)
