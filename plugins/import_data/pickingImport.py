@@ -13,6 +13,7 @@ from math import sqrt
 from sparrow.import_helpers import BaseImporter
 from sparrow.util import relative_path
 import datetime
+from dateutil.parser import parse
 from yaml import load
 
 # Replicates Ketcham et al., 2011 for Ft calculation
@@ -77,7 +78,12 @@ class TRaILpicking(BaseImporter):
         super().__init__(app)
         # file_list = glob.glob(str(data_dir)+'/PickingData/*.xlsx')
         file_list = glob.glob(str(data_dir)+'/PickingData/test_packing_sheet.xlsx')
-        # file_list = glob.glob(str(data_dir)+'/PickingData/Picking_data_example.xlsx')
+        
+        # Load the picking specs. This file dictates virtually everything about this import
+        spec = relative_path(__file__, 'picking_specs.yaml')
+        with open(spec) as f:
+            self.picking_specs = load(f)
+        
         self.iterfiles(file_list, **kwargs)
     
     
@@ -103,12 +109,8 @@ class TRaILpicking(BaseImporter):
         data = pd.read_excel(fn,
                              skiprows = 1,
                              header = 0,
+                             dtype={self.picking_specs['Metadata']['Date']: str},
                              sheet_name = 'master')
-        
-        # Load the picking specs. This file dictates virtually everything about this import
-        spec = relative_path(__file__, 'picking_specs.yaml')
-        with open(spec) as f:
-            self.picking_specs = load(f)
         
         # Find actual data by figuring out where the analyst rows are full
         data = data[(data[self.picking_specs['Metadata']['Researcher']].notnull())&
@@ -116,7 +118,7 @@ class TRaILpicking(BaseImporter):
         
         for d in range(len(data)):
             # Generate a lab ID for each grain
-            date = str(data.iloc[d][self.picking_specs['Metadata']['Date']])
+            date = parse(str(data.iloc[d][self.picking_specs['Metadata']['Date']]))
             if date == 'NaT':
                 date = datetime.datetime.now()
             lab_id = self.make_labID(date)
