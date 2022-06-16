@@ -165,3 +165,6 @@ class PublicationTable_exporter(BaseImporter):
         
         # Save workbook
         wb.save(filepath)
+        
+        
+        print('Table generated')
