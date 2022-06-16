@@ -87,10 +87,14 @@ class PublicationTable_exporter(BaseImporter):
         samples = list(pd.read_csv(self.file, header = None)[0])
         sample_dict = {}
         for sample in samples:
-            aliquot = (self.db.session
-                                 .query(self.db.model.sample)
-                                 .filter_by(lab_id=sample)
-                                 .first().name)
+            try:
+                aliquot = (self.db.session
+                           .query(self.db.model.sample)
+                           .filter_by(lab_id=sample)
+                           .first().name)
+            except AttributeError:
+                print('No sample with lab ID:', sample)
+                continue
             # split by sample and aliquot names for table formatting
             aliquot_split = aliquot.rsplit('_', 1)
             if aliquot_split[0] not in sample_dict:
@@ -165,6 +169,5 @@ class PublicationTable_exporter(BaseImporter):
         
         # Save workbook
         wb.save(filepath)
-        
         
         print('Table generated')
