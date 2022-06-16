@@ -115,12 +115,14 @@ class TRaILpicking(BaseImporter):
         # Find actual data by figuring out where the analyst rows are full
         data = data[(data[self.picking_specs['Metadata']['Researcher']].notnull())&
                     (data['Sample']!='EXAMPLE')]
-        
+                
         for d in range(len(data)):
             # Generate a lab ID for each grain
-            date = parse(str(data.iloc[d][self.picking_specs['Metadata']['Date']]))
-            if date == 'NaT':
+            date = str(data.iloc[d][self.picking_specs['Metadata']['Date']])
+            if date == 'nan':
                 date = datetime.datetime.now()
+            else:
+                date = parse(date)
             lab_id = self.make_labID(date)
             
             # Generate metadata required for every grain
