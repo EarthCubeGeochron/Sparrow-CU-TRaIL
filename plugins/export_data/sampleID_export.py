@@ -5,6 +5,7 @@ Created on Sun Apr 17 16:51:18 2022
 @author: Peter
 """
 
+import shutil
 from sparrow.import_helpers import BaseImporter
 import pandas as pd
 
@@ -48,6 +49,8 @@ class LabID_exporter(BaseImporter):
         samples['lab_id'] = lab_ids
         samples['picking date(s)'] = picking_dates
         # print(samples)
-        samples.to_excel(str(data_dir)+'/ExportSampleID/sample_ids.xlsx')
+        samples.to_excel('/tmp/sample_ids.xlsx')
+        shutil.move('/tmp/sample_ids.xlsx', str(data_dir)+'/ExportSampleID/sample_ids.xlsx')
+        print('Lab IDs exported')
         
         return
