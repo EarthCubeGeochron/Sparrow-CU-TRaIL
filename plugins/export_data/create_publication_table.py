@@ -11,6 +11,7 @@ from yaml import load
 from rich import print
 import pandas as pd
 import openpyxl
+import shutil
 
 def add_column(ws, col, label, thin):
         ws.cell(row=2, column=col, value=label)
@@ -103,7 +104,8 @@ class PublicationTable_exporter(BaseImporter):
                 sample_dict[aliquot_split[0]].append((aliquot_split[1], sample))
         
         # Make workbook
-        filepath = str(data_dir)+'/ExportPublicationTable/test.xlsx'
+        file_path = str(data_dir)+'/ExportPublicationTable/test.xlsx'
+        temp_path = '/tmp/test.xslx'
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.cell(row=1, column=1, value='Table . Publication table')
@@ -168,6 +170,7 @@ class PublicationTable_exporter(BaseImporter):
             ws.cell(row=row, column=1, value=note)
         
         # Save workbook
-        wb.save(filepath)
+        wb.save(temp_path)
+        shutil.move(temp_path, file_path)
         
         print('Table generated')
