@@ -99,7 +99,11 @@ class PublicationTable_exporter(BaseImporter):
             # split by sample and aliquot names for table formatting
             aliquot_split = aliquot.rsplit('_', 1)
             if aliquot_split[0] not in sample_dict:
-                sample_dict[aliquot_split[0]] = [(aliquot_split[1], sample)]
+                try:
+                    sample_dict[aliquot_split[0]] = [(aliquot_split[1], sample)]
+                # If no underscore in sample name, 
+                except IndexError:
+                    sample_dict.setdefault('Unknown parent sample', []).append((aliquot_split[0], sample))
             else:
                 sample_dict[aliquot_split[0]].append((aliquot_split[1], sample))
         
@@ -144,7 +148,7 @@ class PublicationTable_exporter(BaseImporter):
                     item = self.query_datum(aliquot[1], key)
                     # If None found, key should lead to attribute
                     if not item:
-                        item = self.query_attribute(samples[0], key)
+                        item = self.query_attribute(aliquot[1], key)
                     # Overwrite with correct unit if necessary
                     if 'unit' in dict_[key]:
                         item = self.query_datum_unit(aliquot[1], key, dict_[key]['unit'])
@@ -157,7 +161,8 @@ class PublicationTable_exporter(BaseImporter):
                             ws.cell(row=row, column=col).alignment = openpyxl.styles.Alignment(horizontal='center')
                             pass
                     except:
-                        pass
+                        if dict_[key]['error']:
+                            col+=1
         
         # Add gap row before footnotes
         row += 1
