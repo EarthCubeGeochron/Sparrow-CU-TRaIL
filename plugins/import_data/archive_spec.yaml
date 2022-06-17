@@ -27,7 +27,7 @@
     names:
         - width 2 (mm)
     unit: ~um
-- Crystal Geometry:
+- Crystal geometry:
     names:
         - Geometry
     missing: Not Reported
@@ -79,7 +79,7 @@
     names:
         - 4He (nmol/g)
         - 4He (nmol/g).1
-- 4He (ncc):
+- 4He blank corrected (ncc):
     names:
         - 4He (ncc)
 - Initial extract (%):

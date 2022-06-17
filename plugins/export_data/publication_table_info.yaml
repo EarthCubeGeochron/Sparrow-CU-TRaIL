@@ -24,7 +24,7 @@
     column: Np [f]
     error: False
     width: 8
-- 4He (±2σ): # Example of column with uncertainty
+- 4He blank corrected (±2σ): # Example of column with uncertainty
     column: 4He (fmol) [g]
     unit: ncc
     error: True
