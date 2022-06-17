@@ -2,18 +2,22 @@
 # Each entry has the same format, commented inline below
 - Length 1: # The name in Sparrow
     column: length 1 (µm) [c]
+    round: 1
     error: False
     width: 8
 - Width 1:
     column: width 1 (µm) [c]
+    round: 1
     error: False
     width: 8
 - Length 2:
     column: length 2 (µm) [c]
+    round: 1
     error: False
     width: 8
 - Width 2:
     column: width 2 (µm) [c]
+    round: 1
     error: False
     width: 8
 - Crystal geometry:
@@ -27,85 +31,112 @@
 - 4He blank corrected (±2σ): # Example of column with uncertainty
     column: 4He (fmol) [g]
     unit: ncc
+    round: 3
     error: True
+    error_round: 4
     error_footnote: "[h]"
     width: 8
     error_width: 8
 - 238U (±2σ): # Example of column with uncertainty including need to specify unit
     column: U (ng) [i]
     unit: ng
+    round: 3
     error: True
+    error_round: 4
     error_footnote: "[h]"
     width: 8
     error_width: 8
 - 232Th (±2σ):
     column: Th (ng) [j]
     unit: ng
+    round: 3
     error: True
+    error_round: 4
     error_footnote: "[h]"
     width: 8
     error_width: 8
 - 147Sm (±2σ):
     column: 147Sm (ng) [k]
     unit: ng
+    round: 3
     error: True
+    error_round: 4
     error_footnote: "[h]"
     width: 8
     error_width: 8
 - Equivalent spherical radius (±2σ):
     column: Rs (µm) [l]
+    round: 1
     error: False
     width: 8
 - Dimensional mass (±2σ):
     column: Mass (µg) [m]
+    round: 3
     error: False
     width: 8
 - 4He (±2σ):
     column: 4He (nmol/g) [n]
     unit: nmol/g
+    round: 3
     error: True
+    error_round: 4
     error_footnote: "[o]"
     width: 8
     error_width: 8
 - 238U (±2σ):
     column: U (ppm) [n]
     unit: ppm
+    round: 1
     error: True
+    error_round: 1
     error_footnote: "[o]"
     width: 8
     error_width: 8
 - 232Th (±2σ):
     column: Th (ppm) [n]
     unit: ppm
+    round: 1
     error: True
+    error_round: 1
     error_footnote: "[o]"
     width: 8
     error_width: 8
 - 147Sm (±2σ):
     column: Sm (ppm) [n]
     unit: ppm
+    round: 1
     error: True
+    error_round: 1
     error_footnote: "[o]"
     width: 8
     error_width: 8
 - eU:
     column: eU [p]
+    round: 1
     error: True
+    error_round: 1
     error_footnote: "[q]"
     width: 8
     error_width: 8
 - Raw date:
     column: Uncorr Date (Ma) [r]
+    round: 1
     error: True
+    error_round: 1
     error_name: Uncorr Date Analytical ± (Ma) 2s [s]
     width: 8
     error_width: 15
 - Corrected date (±2σ, TAU):
     column: Corrected Date (Ma) [u]
+    round: 0
     error: True
+    error_round: 0
     error_name: ± TAU (Ma) 2σ [v]
     width: 8
     error_width: 15
+    secondary_error: Corrected date (±2σ, TAU+Ft)
+    secondary_error_name: ± TAU+Ft (Ma) 2σ [v]
+    secondary_error_round: 0
 - Footnotes:
   - 'a - This table follows the recommendations and approach in Flowers et al. (2022).'
   - 'b - Sample and mineral being analyzed. a is apatite. z is zircon. t is titanite.'

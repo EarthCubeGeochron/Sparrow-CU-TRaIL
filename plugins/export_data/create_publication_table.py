@@ -130,7 +130,9 @@ class PublicationTable_exporter(BaseImporter):
                     add_column(ws, n, dict_[key]['error_name'], thin)
                 else:
                     add_column(ws, n, '± '+str(dict_[key]['error_footnote']), thin)
-                
+                if 'secondary_error' in dict_[key]:
+                    n+=1
+                    add_column(ws, n, dict_[key]['secondary_error_name'], thin)
         
         # Add data one sample at a time
         row = 2
@@ -153,13 +155,20 @@ class PublicationTable_exporter(BaseImporter):
                     if 'unit' in dict_[key]:
                         item = self.query_datum_unit(aliquot[1], key, dict_[key]['unit'])
                     try:
-                        ws.cell(row=row, column=col, value=item.value).font = openpyxl.styles.Font(size = '12')
+                        rounded_num = round(item.value, dict_[key]['round']) if dict_[key]['round'] != 0 else int(item.value)
+                        ws.cell(row=row, column=col, value= rounded_num).font = openpyxl.styles.Font(size = '12')
                         ws.cell(row=row, column=col).alignment = openpyxl.styles.Alignment(horizontal='center')
                         if dict_[key]['error']:
                             col+=1
-                            ws.cell(row=row, column=col, value=item.error).font = openpyxl.styles.Font(size = '12')
+                            rounded_err = round(item.error, dict_[key]['error_round']) if dict_[key]['error_round'] != 0 else int(item.error)
+                            ws.cell(row=row, column=col, value=rounded_err).font = openpyxl.styles.Font(size = '12')
                             ws.cell(row=row, column=col).alignment = openpyxl.styles.Alignment(horizontal='center')
-                            pass
+                            if 'secondary_error' in dict_[key]:
+                                col+=1
+                                second_err_item = self.query_datum(aliquot[1], dict_[key]['secondary_error'])
+                                rounded_second_err = round(second_err_item.error, dict_[key]['secondary_error_round']) if dict_[key]['secondary_error_round'] != 0 else int(second_err_item.error)
+                                ws.cell(row=row, column=col, value=rounded_second_err).font = openpyxl.styles.Font(size = '12')
+                                ws.cell(row=row, column=col).alignment = openpyxl.styles.Alignment(horizontal='center')
                     except:
                         if dict_[key]['error']:
                             col+=1
