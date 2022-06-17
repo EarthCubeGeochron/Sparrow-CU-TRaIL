@@ -44,14 +44,12 @@ class TRaILdatecalc(BaseImporter):
                              .filter_by(session_id=id_)
                              .all())
             for s in date_analyses:
-                if s.analysis_type == 'Raw date':
+                if s.analysis_type == 'Raw date' or s.analysis_type == 'Date':
                     calculated_ids.append(date_sample_ids[n])
         # Find the intersection with both helium and icp data, *where date has not yet been calculated*
         to_calc = list((set(helium_ids) & set(icpms_ids)) ^ set(calculated_ids))
-        # Add option to force recalculation of all dates.
-        recalculate = True
-        if recalculate:
-            to_calc = list(set(helium_ids) & set(icpms_ids))
+        if len(to_calc)==0:
+            print('All data is reduced!')
         for d in to_calc:
             self.get_input_data(d)
 
@@ -109,6 +107,19 @@ class TRaILdatecalc(BaseImporter):
             Sm147_s = float(Sm147_datum.error)/2
         # if not all necessary numbers are present in the database, don't calculate
         except TypeError:
+            print('Invalid data for date calculation\n')
+            session_obj = (self.db.session
+                           .query(self.db.model.session)
+                           .filter_by(sample_id=d,
+                                      technique='Dates and other derived data')
+                           .first())
+            date_dict = {
+                'analysis_type': 'Date',
+                'attribute': [{'parameter': 'Note',
+                        'value': 'Invalid data for date calculation.'}]
+                }
+            date_dict['session'] = session_obj
+            self.db.load_data('analysis', date_dict)
             return
         
         # Finally, try getting Ft
