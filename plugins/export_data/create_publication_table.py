@@ -24,9 +24,22 @@ def add_column(ws, col, label, thin):
         
 
 class PublicationTable_exporter(BaseImporter):
-    def __init__(self, app, data_dir, **kwargs):
+    def __init__(self, app, data_dir, file_out, **kwargs):
         super().__init__(app)
-        self.file = str(data_dir)+'/ExportPublicationTable/SampleIDs.csv'
+        self.file = str(data_dir)+'/ExportPublicationTable/Sample_IDs.xlsx'
+        
+        # Get file name from UI or input function if run from CLI
+        if not file_out:
+            self.file_out = input('Enter name of publication table to save: ')
+        else:
+            self.file_out = file_out
+        if '.' in self.file_out:
+            if not self.file_out.endswith('.xlsx'):
+                self.file_out = self.file_out.split('.')[0]+'.xlsx'
+        else:
+            self.file_out = self.file_out +'.xlsx'
+        
+        print('Saving table as:', self.file_out)
         
         # Load the column specs; structure is {parameter: [value col, error col, unit str]}
         spec = relative_path(__file__, 'publication_table_info.yaml')
@@ -85,7 +98,7 @@ class PublicationTable_exporter(BaseImporter):
     
     def create_table(self, data_dir):
         # get samples from input file
-        samples = list(pd.read_csv(self.file, header = None)[0])
+        samples = list(pd.read_excel(self.file, header = None)[0])
         sample_dict = {}
         for sample in samples:
             try:
@@ -108,8 +121,8 @@ class PublicationTable_exporter(BaseImporter):
                 sample_dict[aliquot_split[0]].append((aliquot_split[1], sample))
         
         # Make workbook
-        file_path = str(data_dir)+'/ExportPublicationTable/test.xlsx'
-        temp_path = '/tmp/test.xslx'
+        file_path = str(data_dir)+'/ExportPublicationTable//'+self.file_out
+        temp_path = '/tmp//'+self.file_out
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.cell(row=1, column=1, value='Table . Publication table')
@@ -155,9 +168,13 @@ class PublicationTable_exporter(BaseImporter):
                     if 'unit' in dict_[key]:
                         item = self.query_datum_unit(aliquot[1], key, dict_[key]['unit'])
                     try:
-                        rounded_num = round(item.value, dict_[key]['round']) if dict_[key]['round'] != 0 else int(item.value)
-                        ws.cell(row=row, column=col, value= rounded_num).font = openpyxl.styles.Font(size = '12')
-                        ws.cell(row=row, column=col).alignment = openpyxl.styles.Alignment(horizontal='center')
+                        if 'round' in dict_[key]:
+                            rounded_num = round(item.value, dict_[key]['round']) if dict_[key]['round'] != 0 else int(item.value)
+                            ws.cell(row=row, column=col, value=rounded_num).font = openpyxl.styles.Font(size = '12')
+                            ws.cell(row=row, column=col).alignment = openpyxl.styles.Alignment(horizontal='center')
+                        else:
+                            ws.cell(row=row, column=col, value=item.value).font = openpyxl.styles.Font(size = '12')
+                            ws.cell(row=row, column=col).alignment = openpyxl.styles.Alignment(horizontal='center')
                         if dict_[key]['error']:
                             col+=1
                             rounded_err = round(item.error, dict_[key]['error_round']) if dict_[key]['error_round'] != 0 else int(item.error)
