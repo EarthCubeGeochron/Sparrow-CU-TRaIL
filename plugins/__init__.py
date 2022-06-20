@@ -49,10 +49,10 @@ def get_date():
     TRaILdatecalc(app, data_dir)
     
 @task(name='add-note')
-def add_note():
+def add_note(id_: str = None, note: str = None):
     app = get_app()
     data_dir = Path('/data')
-    AddSampleNote(app, data_dir)
+    AddSampleNote(app, data_dir, id_, note)
     
 @task(name='export-ID')
 def export_ID():
