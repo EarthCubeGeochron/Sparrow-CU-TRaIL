@@ -108,19 +108,34 @@ class TRaILdatecalc(BaseImporter):
         # if not all necessary numbers are present in the database, don't calculate
         except TypeError:
             print('Invalid data for date calculation\n')
+            # See whether date session exists (will not exist for samples without picking data)
             session_obj = (self.db.session
                            .query(self.db.model.session)
                            .filter_by(sample_id=d,
                                       technique='Dates and other derived data')
                            .first())
-            date_dict = {
-                'analysis_type': 'Date',
-                'attribute': [{'parameter': 'Note',
-                        'value': 'Invalid data for date calculation.'}]
-                }
-            date_dict['session'] = session_obj
-            self.db.load_data('analysis', date_dict)
-            return
+            if session_obj:
+                date_dict = {
+                    'analysis_type': 'Date',
+                    'attribute': [{'parameter': 'Note',
+                            'value': 'Invalid data for date calculation.'}]
+                    }
+                date_dict['session'] = session_obj
+                self.db.load_data('analysis', date_dict)
+                return
+            # If no date session, create one
+            else:
+                date_session = {
+                    'sample': sample_obj,
+                    'technique': {'id': 'Dates and other derived data'},
+                    'date': '1900-01-01 00:00:00+00', # always pass an 'unknown date' value for calculation
+                    'analysis': [
+                        {
+                        'analysis_type': 'Date',
+                        'attribute': [{'parameter': 'Note', 'value': 'Invalid data for date calculation.'}]
+                        }]}
+                self.db.load_data('session', date_session)
+                return
         
         # Finally, try getting Ft
         Ft_session = (self.db.session
