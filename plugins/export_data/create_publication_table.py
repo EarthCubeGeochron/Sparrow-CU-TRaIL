@@ -30,7 +30,11 @@ class PublicationTable_exporter(BaseImporter):
         
         # Get file name from UI or input function if run from CLI
         if not file_out:
-            self.file_out = input('Enter name of publication table to save: ')
+            try:
+                self.file_out = input('Enter name of publication table to save: ')
+            except:
+                print('Please enter a file name to save.')
+                return
         else:
             self.file_out = file_out
         if '.' in self.file_out:

@@ -61,7 +61,7 @@ def export_ID():
     LabID_exporter(app, data_dir)
 
 @task(name='export-table')
-def export_table(file_out: str = None):
+def export_table(filename: str = None):
     app = get_app()
     data_dir = Path('/data')
-    PublicationTable_exporter(app, data_dir, file_out)
+    PublicationTable_exporter(app, data_dir, filename)
