@@ -40,7 +40,12 @@ class LabIDexporter(BaseImporter):
                                 .filter_by(sample_id=i[0],
                                            technique='Picking information')
                                 .first())
-                
+                if not picking_date:
+                    picking_date = (self.db.session
+                                    .query(self.db.model.session.date)
+                                    .filter_by(sample_id=i[0],
+                                               technique='Helium measurement')
+                                    .first())
                 picking_dates[n].append(picking_date[0])
         for n, l in enumerate(picking_dates):
             picking_dates[n] = ', '.join([i.strftime('%Y-%m-%d') for i in l])
