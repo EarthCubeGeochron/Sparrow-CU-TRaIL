@@ -118,7 +118,7 @@
     error_footnote: "[q]"
     width: 8
     error_width: 8
-- Raw date:
+- Raw date (±2σ):
     column: Uncorr Date (Ma) [r]
     round: 1
     error: True

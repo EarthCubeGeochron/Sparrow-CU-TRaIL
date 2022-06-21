@@ -310,7 +310,7 @@ class TRaILdatecalc(BaseImporter):
             raw_dict = {
                 'analysis_type': 'Raw date',
                 'datum': [
-                    make_datum('Raw date', 'MC average CI, raw', reduced_data, 'Ma', ''),
+                    make_datum('Raw date', 'MC average CI, raw', reduced_data, 'Ma', ' (±2σ)'),
                     make_datum('Number of Monte Carlo simulations', None, reduced_data, '', '')],
                 'attribute': [
                         make_CI_attribute(reduced_data['MC +68% CI, raw'][0],
