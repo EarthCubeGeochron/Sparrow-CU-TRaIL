@@ -12,11 +12,11 @@ import pandas as pd
 class LabID_exporter(BaseImporter):
     def __init__(self, app, data_dir, **kwargs):
         super().__init__(app)
-        self.file = str(data_dir)+'/ExportSampleID/exportID.xlsx'
+        self.file = str(data_dir)+'/ExportSampleID/sample_names.xlsx'
         self.get_IDs(self.file, data_dir)
         
     def get_IDs(self, file, data_dir):
-        samples = pd.read_excel(self.file)
+        samples = pd.read_excel(self.file, header = None, names=['Name'])
         
         lab_ids = []
         sample_ids = []
@@ -49,7 +49,7 @@ class LabID_exporter(BaseImporter):
         samples['lab_id'] = lab_ids
         samples['picking date(s)'] = picking_dates
         # print(samples)
-        samples.to_excel('/tmp/sample_ids.xlsx')
+        samples.to_excel('/tmp/sample_ids.xlsx', index=False)
         shutil.move('/tmp/sample_ids.xlsx', str(data_dir)+'/ExportSampleID/sample_ids.xlsx')
         print('Lab IDs exported')
         
