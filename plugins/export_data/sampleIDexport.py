@@ -9,7 +9,7 @@ import shutil
 from sparrow.import_helpers import BaseImporter
 import pandas as pd
 
-class LabID_exporter(BaseImporter):
+class LabIDexporter(BaseImporter):
     def __init__(self, app, data_dir, **kwargs):
         super().__init__(app)
         self.file = str(data_dir)+'/ExportSampleID/sample_names.xlsx'
@@ -39,8 +39,9 @@ class LabID_exporter(BaseImporter):
                                 .query(self.db.model.session.date)
                                 .filter_by(sample_id=i[0],
                                            technique='Picking information')
-                                .all())
-                picking_dates[n].append(picking_date[0][0])
+                                .first())
+                
+                picking_dates[n].append(picking_date[0])
         for n, l in enumerate(picking_dates):
             picking_dates[n] = ', '.join([i.strftime('%Y-%m-%d') for i in l])
         for n, l in enumerate(lab_ids):

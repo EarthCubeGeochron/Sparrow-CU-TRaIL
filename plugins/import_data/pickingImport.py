@@ -76,8 +76,7 @@ def make_attribute(value, parameter):
 class TRaILpicking(BaseImporter):
     def __init__(self, app, data_dir, **kwargs):
         super().__init__(app)
-        # file_list = glob.glob(str(data_dir)+'/PickingData/*.xlsx')
-        file_list = glob.glob(str(data_dir)+'/PickingData/test_packing_sheet.xlsx')
+        file_list = glob.glob(str(data_dir)+'/PickingData/*.xlsx')
         
         # Load the picking specs. This file dictates virtually everything about this import
         spec = relative_path(__file__, 'picking_specs.yaml')

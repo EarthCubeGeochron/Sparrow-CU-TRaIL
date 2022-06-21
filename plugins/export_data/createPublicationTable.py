@@ -23,7 +23,7 @@ def add_column(ws, col, label, thin):
         ws.cell(row=2, column=col).border = openpyxl.styles.Border(top=thin, bottom=thin)
         
 
-class PublicationTable_exporter(BaseImporter):
+class PublicationTableExporter(BaseImporter):
     def __init__(self, app, data_dir, file_out, **kwargs):
         super().__init__(app)
         self.file = str(data_dir)+'/ExportPublicationTable/Sample_IDs.xlsx'

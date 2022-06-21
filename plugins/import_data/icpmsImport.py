@@ -26,8 +26,7 @@ def make_ppm(data, dim_mass_val, dim_mass_err):
 class TRaILicpms(BaseImporter):
     def __init__(self, app, data_dir, **kwargs):
         super().__init__(app)
-        file_list = glob.glob(str(data_dir)+'/icpmsData/*.txt')
-        file_list = [f for f in file_list if '$' not in f]
+        file_list = glob.glob(str(data_dir)+'/IcpmsData/*.txt')
         
         self.iterfiles(file_list, **kwargs)
     

@@ -75,7 +75,7 @@ def create_analysis(analysis_name, vals, **kwargs):
         'attribute': [create_attribute(d) for d in attributes]
     }
 
-class TRaILImporter(BaseImporter):
+class TRaILarchive(BaseImporter):
     def __init__(self, app, data_dir, **kwargs):
         super().__init__(app)
         # file_list = glob.glob(str(data_dir)+'/CompleteData/*/*.xlsx')

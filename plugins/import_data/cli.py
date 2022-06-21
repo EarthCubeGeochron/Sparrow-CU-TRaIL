@@ -1,6 +1,6 @@
 from click import command, option
 from sparrow import get_app
-from .ArchiveImporter import TRaILImporter
+from .archiveImporter import TRaILarchive
 ##from .customImport import TRaILpartial
 from .pickingImport import TRaILpicking
 from .heliumImport import TRaILhelium
@@ -25,9 +25,9 @@ def import_data(redo=False, stop_on_error=False, verbose=False, show_data=False)
     if proceed == 'Full'.casefold():
         #data_dir = get_data_directory()
         # The unit of work for a session is a row in the data-reduction sheet...
-        TRaILImporter(app, data_dir, redo=redo)
-    if proceed == 'Partial'.casefold():
-        TRaILpartial(app, data_dir, redo=redo)
+        TRaILarchive(app, data_dir, redo=redo)
+    # if proceed == 'Partial'.casefold():
+    #     TRaILpartial(app, data_dir, redo=redo)
     if proceed == 'Picking'.casefold():
         TRaILpicking(app, data_dir, redo=redo)
     if proceed == 'Helium'.casefold():

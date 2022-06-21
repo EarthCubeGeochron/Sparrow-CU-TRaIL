@@ -1,13 +1,13 @@
 # from .import_data import DataReductionImportPlugin
 # from .grain_images import import_grain_images, ThumbnailAPIPlugin
-from .import_data.ArchiveImporter import TRaILImporter
+from .import_data.archiveImporter import TRaILarchive
 from .import_data.pickingImport import TRaILpicking
 from .import_data.heliumImport import TRaILhelium
 from .import_data.icpmsImport import TRaILicpms
-from .export_data.sampleID_export import LabID_exporter
-from .export_data.create_publication_table import PublicationTable_exporter
+from .export_data.sampleIDexport import LabIDexporter
+from .export_data.createPublicationTable import PublicationTableExporter
 from .manipulate_data.dataReduction import TRaILdatecalc
-from .manipulate_data.AddSampleNote import AddSampleNote
+from .manipulate_data.addSampleNote import AddSampleNote
 
 from sparrow import get_app
 from click import secho
@@ -22,7 +22,7 @@ def say_hello():
 def import_full_data():
     app = get_app()
     data_dir = Path('/data')
-    TRaILImporter(app, data_dir)
+    TRaILarchive(app, data_dir)
     
 @task(name='import-picking-info')
 def import_picking():
@@ -58,10 +58,10 @@ def add_note(id_: str = None, note: str = None):
 def export_ID():
     app = get_app()
     data_dir = Path('/data')
-    LabID_exporter(app, data_dir)
+    LabIDexporter(app, data_dir)
 
 @task(name='export-table')
 def export_table(filename: str = None):
     app = get_app()
     data_dir = Path('/data')
-    PublicationTable_exporter(app, data_dir, filename)
+    PublicationTableExporter(app, data_dir, filename)

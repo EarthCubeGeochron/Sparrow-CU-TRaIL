@@ -28,7 +28,7 @@ def make_attribute(row, name, data_info):
 class TRaILhelium(BaseImporter):
     def __init__(self, app, data_dir, **kwargs):
         super().__init__(app)
-        file_list = glob.glob(str(data_dir)+'/heliumData/21HE39_2022_05_19_sparrow.txt')
+        file_list = glob.glob(str(data_dir)+'/HeliumData/*.txt')
         self.iterfiles(file_list, **kwargs)
 
     # Method to generate a lab ID for a new sample based on the date of the analysis
@@ -93,7 +93,7 @@ class TRaILhelium(BaseImporter):
         # create the session dictionary
         session_dict = self.make_session_dict(row)
         # Create the barebones sample to add the session to
-        sample_name = row['Sample'].split(' ')[0]
+        sample_name = row['SampleName'].split(' ')[0]
         sample_schema = {
             'lab_id': lab_id,
             'name': sample_name,
