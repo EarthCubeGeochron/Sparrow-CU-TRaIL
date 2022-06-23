@@ -2,6 +2,7 @@
 from sparrow.import_helpers import BaseImporter
 import glob
 from rich import print
+from sqlalchemy import exc
 import pandas as pd
 import re
 from dateutil import parser
@@ -122,8 +123,9 @@ class TRaILicpms(BaseImporter):
             for Ft in Fts:
                 Fts[Ft] = self.query_datum(sample_id, Ft)
             if dim_mass:
-                self.add_ppm(raw_data, dim_mass, ppm_analysis)
-                self.add_Ft_comb(ft_analysis, Fts)
+                ppm_full = self.add_ppm(raw_data, dim_mass, ppm_analysis)
+                if ppm_full:
+                    self.add_Ft_comb(ft_analysis, Fts)
                 print('')
             else:
                 print('')
@@ -140,31 +142,36 @@ class TRaILicpms(BaseImporter):
         eU_err = []
         self.ppms = {}
         
-        for r in radionuclides:
-            if 'U' in r['type']['parameter']:
-                ppm_dict = make_ppm(r, dim_mass_val, dim_mass_err)
-                ppm_dict['analysis'] = analysis_obj
-                self.ppms[r['type']['parameter']] = ppm_dict
-                self.db.load_data('datum', ppm_dict)
-                eU += ppm_dict['value']
-                eU_err.append((ppm_dict['error']/2)**2)
-            elif 'Th' in r['type']['parameter']:
-                ppm_dict = make_ppm(r, dim_mass_val, dim_mass_err)
-                ppm_dict['analysis'] = analysis_obj
-                self.ppms[r['type']['parameter']] = ppm_dict
-                self.db.load_data('datum', ppm_dict)
-                eU += 0.238*ppm_dict['value']
-                eU_err.append((0.238*(ppm_dict['error']/2))**2)
-            elif 'Sm' in r['type']['parameter']:
-                ppm_dict = make_ppm(r, dim_mass_val, dim_mass_err)
-                ppm_dict['analysis'] = analysis_obj
-                self.db.load_data('datum', ppm_dict)
-                eU += 0.0012*ppm_dict['value']
-                eU_err.append((0.0012*(ppm_dict['error']/2))**2)
-        eU_dict = {'value': eU, 'error': eU*0.15, #sum(eU_err)**(1/2),
-                   'type': {'parameter': 'eU', 'unit': 'ppm'},# (±2σ)', 'unit': 'ppm'},
-                   'analysis': analysis_obj}
-        self.db.load_data('datum', eU_dict)
+        try:
+            for r in radionuclides:
+                if 'U' in r['type']['parameter']:
+                    ppm_dict = make_ppm(r, dim_mass_val, dim_mass_err)
+                    ppm_dict['analysis'] = analysis_obj
+                    self.ppms[r['type']['parameter']] = ppm_dict
+                    self.db.load_data('datum', ppm_dict)
+                    eU += ppm_dict['value']
+                    eU_err.append((ppm_dict['error']/2)**2)
+                elif 'Th' in r['type']['parameter']:
+                    ppm_dict = make_ppm(r, dim_mass_val, dim_mass_err)
+                    ppm_dict['analysis'] = analysis_obj
+                    self.ppms[r['type']['parameter']] = ppm_dict
+                    self.db.load_data('datum', ppm_dict)
+                    eU += 0.238*ppm_dict['value']
+                    eU_err.append((0.238*(ppm_dict['error']/2))**2)
+                elif 'Sm' in r['type']['parameter']:
+                    ppm_dict = make_ppm(r, dim_mass_val, dim_mass_err)
+                    ppm_dict['analysis'] = analysis_obj
+                    self.db.load_data('datum', ppm_dict)
+                    eU += 0.0012*ppm_dict['value']
+                    eU_err.append((0.0012*(ppm_dict['error']/2))**2)
+            eU_dict = {'value': eU, 'error': eU*0.15, #sum(eU_err)**(1/2),
+                       'type': {'parameter': 'eU', 'unit': 'ppm'},# (±2σ)', 'unit': 'ppm'},
+                       'analysis': analysis_obj}
+            self.db.load_data('datum', eU_dict)
+            return True
+        except exc.IntegrityError:
+            print('Cannot overwrite existing data. Skipping sample.')
+            return False
 
     def add_Ft_comb(self, analysis_obj, Fts):
         a_238 = (1.04+0.247*(self.ppms['232Th (±2σ)']['value']/self.ppms['238U (±2σ)']['value']))**-1
