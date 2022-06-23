@@ -197,7 +197,7 @@ class TRaILpicking(BaseImporter):
                             Ft_err = self.picking_specs['Ft_err_key'][xtalform]
                 # Cast attributes (no data for characteristics) for analysis to dictionary
                 chars_dict = {
-                    'analysis_type': 'Grain Characteristics',
+                    'analysis_type': 'Grain characteristics',
                     'attribute': [make_attribute(*a) for a in chars_attributes]
                     }
             
