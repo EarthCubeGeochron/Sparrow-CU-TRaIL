@@ -150,6 +150,7 @@ class PublicationTableExporter(BaseImporter):
                 if 'secondary_error' in dict_[key]:
                     n+=1
                     add_column(ws, n, dict_[key]['secondary_error_name'], thin)
+                    ws.column_dimensions[openpyxl.utils.get_column_letter(n)].width = dict_[key]['secondary_error_width']
         
         # Add data one sample at a time
         row = 2

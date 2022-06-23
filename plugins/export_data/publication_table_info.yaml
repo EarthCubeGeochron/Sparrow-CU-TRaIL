@@ -137,6 +137,7 @@
     secondary_error: Corrected date (±2σ, TAU+Ft)
     secondary_error_name: ± TAU+Ft (Ma) 2σ [v]
     secondary_error_round: 0
+    secondary_error_width: 15
 - Footnotes:
   - 'a - This table follows the recommendations and approach in Flowers et al. (2022).'
   - 'b - Sample and mineral being analyzed. a is apatite. z is zircon. t is titanite.'
