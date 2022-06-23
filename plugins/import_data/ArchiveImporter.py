@@ -93,7 +93,7 @@ class TRaILarchive(BaseImporter):
         
         # Generate list of expected columns. Some include dict where the
         # expected column has key 'header', along with other relevant info
-        spec = relative_path(__file__, 'archive_spec.yaml')
+        spec = relative_path(__file__, 'archive_specs.yaml')
         with open(spec) as f:
             self.column_spec = load(f)
             

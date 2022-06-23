@@ -55,7 +55,7 @@ class TRaILhelium(BaseImporter):
         data.drop(data.index[data.isnull().sum(axis=1)/len(data.columns)>0.8], inplace=True)
         
         # Load the column specs; structure is {parameter: [value col, error col, unit str]}
-        spec = relative_path(__file__, 'helium-specs.yaml')
+        spec = relative_path(__file__, 'helium_specs.yaml')
         with open(spec) as f:
             self.picking_specs = load(f)
             
