@@ -102,7 +102,11 @@ class PublicationTableExporter(BaseImporter):
     
     def create_table(self, data_dir):
         # get samples from input file
-        samples = list(pd.read_excel(self.file, header = None)[0])
+        df = pd.read_excel(self.file, header = None)
+        if 0 in df.columns:
+            samples = list(df[0])
+        else:
+            samples = []
         sample_dict = {}
         for sample in samples:
             try:
