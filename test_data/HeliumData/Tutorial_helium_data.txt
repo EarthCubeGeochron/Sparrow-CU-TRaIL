@@ -1,4 +1,4 @@
-HeNumber	SampleName	PickingInfo	Mineral	Date	4He (ncc)	+/-	IE	Q	+/-	Blank(ncc)	+/-
+HeNumber	SampleName	PickingInfo	Mineral	Date	4He (fmol)	+/-	IE	Q	+/-	Blank(fmol)	+/-
 50941	21-00001 Sample1_a01 6A 5min H1	TRUE		05/19/2022_1448	8.60E-01	2.22E-03	9.94E-01	4.32E+04	4.54E+01	1.24E-04	4.21E-05
 50948	21-00002 Sample1_a02 6A 5min H1	TRUE		05/19/2022_1833	2.92E-01	7.89E-04	9.99E-01	4.32E+04	4.54E+01	5.20E-04	7.48E-05
 50950	21-00003 Sample1_a03 6A 5min H1	TRUE		05/19/2022_1913	5.81E-01	1.49E-03	9.99E-01	4.32E+04	4.54E+01	5.20E-04	7.48E-05

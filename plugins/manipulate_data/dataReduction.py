@@ -90,7 +90,7 @@ class TRaILdatecalc(BaseImporter):
         
         try:
             # Get 4He from database
-            He4_datum = self.query_ID(sample_obj.lab_id, '4He blank corrected (±2σ)', datum_unit='ncc')
+            He4_datum = self.query_ID(sample_obj.lab_id, '4He blank corrected (±2σ)', datum_unit='fmol')
             He4 = float(He4_datum.value)
             He4_s = float(He4_datum.error)/2
             
@@ -169,7 +169,7 @@ class TRaILdatecalc(BaseImporter):
         U328_mol_per_ng = 1/(238.03*1e9)
         Th232_mol_per_ng = 1/(232*1e9)
         Sm147_mol_per_ng = 1/(157*1e9)
-        He_mol_per_ncc = 1/(1000000000*22413.6)
+        He_mol_per_fmol = 1/(1e15)
         
         U238_mol = U238*U328_mol_per_ng
         U238_mol_s = U238_s*U328_mol_per_ng
@@ -177,8 +177,8 @@ class TRaILdatecalc(BaseImporter):
         Th232_mol_s = Th232_s*Th232_mol_per_ng
         Sm147_mol = Sm147*Sm147_mol_per_ng
         Sm147_mol_s = Sm147_s*Sm147_mol_per_ng
-        He4_mol = He4*He_mol_per_ncc
-        He4_mol_s = He4_s*He_mol_per_ncc
+        He4_mol = He4*He_mol_per_fmol
+        He4_mol_s = He4_s*He_mol_per_fmol
 
         # Use the _sample_loop helper function from HeCalc to more
         # smoothly take care of the date calculation aspects

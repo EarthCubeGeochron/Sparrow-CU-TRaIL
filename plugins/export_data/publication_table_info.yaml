@@ -1,10 +1,11 @@
 # This is a simple yaml file that gives the necessary info for code-efficient helium data import
-# Each entry has the same format, commented inline below
+# There are a total of 12 possible options for each datum.
+# Each option is commented when it first appears in this file.
 - Length 1: # The name in Sparrow
-    column: length 1 (µm) [c]
-    round: 1
-    error: False
-    width: 8
+    column: length 1 (µm) [c] # The name to give the output column
+    round: 1 # How many digits to round to
+    error: False # Whether there is uncertainty in the column (should always be True/False)
+    width: 8 # The width of the column to save in excel
 - Width 1:
     column: width 1 (µm) [c]
     round: 1
@@ -28,16 +29,16 @@
     column: Np [f]
     error: False
     width: 8
-- 4He blank corrected (±2σ): # Example of column with uncertainty
+- 4He blank corrected (±2σ): # Example of column with uncertainty and needing to specify unit
     column: 4He (fmol) [g]
-    unit: ncc
+    unit: fmol # Provide unit in cases where the same name is present in Sparrow multiple times
     round: 3
     error: True
-    error_round: 4
-    error_footnote: "[h]"
-    width: 8
-    error_width: 8
-- 238U (±2σ): # Example of column with uncertainty including need to specify unit
+    error_round: 4 # How many decimals to round the uncertainty to
+    error_footnote: "[h]" # What to append to the ± in the column header
+    width: 8 
+    error_width: 8 # width of uncertainty column to save in excel
+- 238U (±2σ):
     column: U (ng) [i]
     unit: ng
     round: 3
@@ -131,13 +132,13 @@
     round: 0
     error: True
     error_round: 0
-    error_name: ± TAU (Ma) 2σ [v]
+    error_name: ± TAU (Ma) 2σ [v] # If uncertianty column should just be called ±, what to label the column
     width: 8
     error_width: 15
-    secondary_error: Corrected date (±2σ, TAU+Ft)
-    secondary_error_name: ± TAU+Ft (Ma) 2σ [v]
-    secondary_error_round: 0
-    secondary_error_width: 15
+    secondary_error: Corrected date (±2σ, TAU+Ft) # If a second uncertainty column is needed, what data in Sparrow to take it from
+    secondary_error_name: ± TAU+Ft (Ma) 2σ [v] # What to call the secondary uncertainty column. There is no default for this, must be present if two uncertainties are needed
+    secondary_error_round: 0 # How many decimals to round the secondary uncertainty column to. There is no default for this, must be present if two uncertainties are needed
+    secondary_error_width: 15 # Width of secondary uncertainty column to save. There is no default for this, must be present if two uncertainties are needed
 - Footnotes:
   - 'a - This table follows the recommendations and approach in Flowers et al. (2022).'
   - 'b - Sample and mineral being analyzed. a is apatite. z is zircon. t is titanite.'
