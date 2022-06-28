@@ -8,6 +8,8 @@ from .export_data.sampleIDexport import LabIDexporter
 from .export_data.createPublicationTable import PublicationTableExporter
 from .manipulate_data.dataReduction import TRaILdatecalc
 from .manipulate_data.addSampleNote import AddSampleNote
+from .manipulate_data.addLocation import AddLocation
+from .manipulate_data.removeEmbargo import RemoveEmbargo
 
 from sparrow import get_app
 from click import secho
@@ -47,7 +49,19 @@ def get_date():
     app = get_app()
     data_dir = Path('/data')
     TRaILdatecalc(app, data_dir)
-    
+
+@task(name='add-locations')
+def add_locations():
+    app = get_app()
+    data_dir = Path('/data')
+    AddLocation(app, data_dir)
+
+@task(name='remove-embargo')
+def remove_embargo():
+    app = get_app()
+    data_dir = Path('/data')
+    RemoveEmbargo(app, data_dir)
+
 @task(name='add-note')
 def add_note(id_: str = None, note: str = None):
     app = get_app()

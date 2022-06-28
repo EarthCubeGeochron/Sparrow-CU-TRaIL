@@ -201,16 +201,17 @@ class TRaILpicking(BaseImporter):
                     'attribute': [make_attribute(*a) for a in chars_attributes]
                     }
             
-            # TODO add more complicated researcher-laboratory schema from yaml/csv
             # Create a new sample in the database using the picking sheet metadata
             sample_schema = {
                 'member_of': {'name': sample,
-                              'material': 'rock'},
+                              'material': 'rock',
+                              'embargo_date': '2150-01-01'},
                 'researcher': [{'name': researcher}],
                 'lab_owner': researcher,
                 'name': sample+'_'+grain,
                 'material': material,
                 'lab_id': lab_id,
+                'embargo_date': '2150-01-01',
                 'from_archive': 'false',
                 'session': [
                     {

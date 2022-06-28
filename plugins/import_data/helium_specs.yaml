@@ -15,4 +15,4 @@ Blank used  (±2σ):
 Initial extract:
   - IE
   - NULL # Initial extract has no uncertainty
-  - ''
+  - '' # Unit is empty because we keep this as a proportion rather than percent

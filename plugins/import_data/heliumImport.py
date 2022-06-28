@@ -99,6 +99,7 @@ class TRaILhelium(BaseImporter):
             'name': sample_name,
             'from_archive': 'false',
             'material': row['Mineral'],
+            'embargo_date': '2150-01-01',
             'session': [session_dict]
             }
         # Print an empty line to keep the command line clean

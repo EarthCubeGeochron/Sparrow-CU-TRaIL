@@ -333,6 +333,7 @@ class TRaILarchive(BaseImporter):
             'material': str(material['value']),
             'lab_id': lab_id,
             'from_archive': 'true',
+            'embargo_date': '2150-01-01',
             # Here we pass a list of dicts instead of a single dict
             # because each (U-Th)/He analysis consists of three
             # individual sessions
