@@ -1,5 +1,6 @@
 # First we define metadata necessary to perform data reduction for a given grain
 # The labels on the left side should never be changed because they interact directly with the importer code
+# Labels on the right are the *exact* column header of interest in the picking sheet
 Metadata:
   Sample: Sample.1 # the .1 is because this is actually the second column called "Sample"
   Grain: Aliquot             (label a01, a02, z01, z02, etc.)
@@ -9,7 +10,7 @@ Metadata:
   Crystal terminations: Np (0,1, or 2)
   Crystal geometry: Geometry (1,2,3, or 4, see chart)
   Date: Date Packed
-  Dimensions: # Need to explicitly define 
+  Dimensions: # Need to explicitly define dimensions for Ft measurements
     Length 1: L1
     Width 1: W1
     Length 2: L2
