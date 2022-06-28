@@ -85,7 +85,7 @@ class TRaILarchive(BaseImporter):
         file_list = []
         for ext in exts:
             file_list.extend(glob.glob(str(data_dir)+'/CompleteData/**/*.'+ext, recursive=True))
-        file_list = [f for f in file_list if '03_12_2021' in f or '01_07_2014' in f]
+        # file_list = [f for f in file_list if '03_12_2021' in f or '01_07_2014' in f]
         
         self.image_folder = data_dir / 'Photographs and Measurement Data'
 
