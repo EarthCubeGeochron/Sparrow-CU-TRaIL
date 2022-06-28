@@ -4,7 +4,6 @@ import copy
 from hecalc.main import _sample_loop
 from rich import print
 from sparrow.import_helpers import BaseImporter
-
 def make_datum(val, err, data_dict, unit, TAU):
     return {'value': data_dict[val][0],
             'error': data_dict[err][0] if err else None,
@@ -12,7 +11,7 @@ def make_datum(val, err, data_dict, unit, TAU):
 
 # Make attribute using info in yaml file
 def make_CI_attribute(CI_pos, CI_neg, TAU):
-    return {'parameter': 'Confidence intervals',
+    return {'parameter': '95% confidence intervals',
             'value': '[+'+str(CI_pos)+', -'+str(CI_neg)+'] Ma'+TAU}
 
 class TRaILdatecalc(BaseImporter):
@@ -188,15 +187,23 @@ class TRaILdatecalc(BaseImporter):
         save_out =  {
             'Sample': ['_'],
             'Raw date': [],
-            'Linear raw uncertainty': [],
-            'MC average CI, raw': [],
+            'Linear raw 1σ uncertainty': [],
+            'MC average 68% CI, raw': [],
             'MC +68% CI, raw': [],
             'MC -68% CI, raw': [],
+            'Linear raw 2σ uncertainty': [],
+            'MC average 95% CI, raw': [],
+            'MC +95% CI, raw': [],
+            'MC -95% CI, raw': [],
             'Corrected date': [],
-            'Linear corrected uncertainty': [],
-            'MC average CI, corrected': [],
+            'Linear corrected 1σ uncertainty': [],
+            'MC average 68% CI, corrected': [],
             'MC +68% CI, corrected': [],
             'MC -68% CI, corrected': [],
+            'Linear corrected 2σ uncertainty': [],
+            'MC average 95% CI, corrected': [],
+            'MC +95% CI, corrected': [],
+            'MC -95% CI, corrected': [],
             'Number of Monte Carlo simulations': []
         }
         
@@ -243,9 +250,9 @@ class TRaILdatecalc(BaseImporter):
                                                       Ft238=Ft238, Ft235=Ft235, Ft232=Ft232, Ft147=Ft147,
                                                       U238_s=U238_mol_s, Th232_s=Th232_mol_s, Sm147_s=Sm147_mol_s,
                                                       Ft238_s=Ft238_s, Ft235_s=Ft235_s, Ft232_s=Ft232_s, Ft147_s=Ft147_s)
-        precision = 0.001/100 # precision in percent
+        precision = 0.01/100 # precision in percent
         # Check that precision doesn't require too many or too few cycles
-        mc_number = int(linear_uncertainty**2/(precision*date['corrected date'])**2)
+        mc_number = int((2*(precision*date['corrected date'])**2+linear_uncertainty**2)/(2*(precision*date['corrected date'])**2))
         if mc_number < 5:
             mc_number = 5
             precision = linear_uncertainty/(((mc_number)**(1/2))*date['corrected date'])
@@ -310,26 +317,26 @@ class TRaILdatecalc(BaseImporter):
             raw_dict = {
                 'analysis_type': 'Raw date',
                 'datum': [
-                    make_datum('Raw date', 'MC average CI, raw', reduced_data, 'Ma', ' (±2σ)'),
+                    make_datum('Raw date', 'MC average 95% CI, raw', reduced_data, 'Ma', ' (±2σ)'),
                     make_datum('Number of Monte Carlo simulations', None, reduced_data, '', '')],
                 'attribute': [
-                        make_CI_attribute(reduced_data['MC +68% CI, raw'][0],
-                                          reduced_data['MC -68% CI, raw'][0],
+                        make_CI_attribute(reduced_data['MC +95% CI, raw'][0],
+                                          reduced_data['MC -95% CI, raw'][0],
                                           '')]
                 }
             corr_dict = {
                 'analysis_type': 'Corrected date',
                 'datum': [
-                    make_datum('Corrected date', 'MC average CI, corrected', reduced_data_TAU, 'Ma', ' (±2σ, TAU)'),
-                    make_datum('Corrected date', 'MC average CI, corrected', reduced_data, 'Ma', ' (±2σ, TAU+Ft)'),
+                    make_datum('Corrected date', 'MC average 95% CI, corrected', reduced_data_TAU, 'Ma', ' (±2σ, TAU)'),
+                    make_datum('Corrected date', 'MC average 95% CI, corrected', reduced_data, 'Ma', ' (±2σ, TAU+Ft)'),
                     make_datum('Number of Monte Carlo simulations', None, reduced_data, '', '')
                     ],
                 'attribute': [
-                    make_CI_attribute(reduced_data_TAU['MC +68% CI, corrected'][0],
-                                      reduced_data_TAU['MC -68% CI, corrected'][0],
+                    make_CI_attribute(reduced_data_TAU['MC +95% CI, corrected'][0],
+                                      reduced_data_TAU['MC -95% CI, corrected'][0],
                                       ', TAU'),
-                    make_CI_attribute(reduced_data['MC +68% CI, corrected'][0],
-                                      reduced_data['MC -68% CI, corrected'][0],
+                    make_CI_attribute(reduced_data['MC +95% CI, corrected'][0],
+                                      reduced_data['MC -95% CI, corrected'][0],
                                       ', TAU+Ft'),
                     ]
                 }
@@ -344,12 +351,12 @@ class TRaILdatecalc(BaseImporter):
                 'analysis': [{
                     'analysis_type': 'Raw date',
                     'datum': [
-                        make_datum('Raw date', 'MC average CI, raw', reduced_data, 'Ma', ' (±2σ)'),
+                        make_datum('Raw date', 'MC average 95% CI, raw', reduced_data, 'Ma', ' (±2σ)'),
                         make_datum('Number of Monte Carlo simulations', None, reduced_data, '', '')
                         ],
                     'attribute': [
-                        make_CI_attribute(reduced_data['MC +68% CI, raw'][0],
-                                          reduced_data['MC -68% CI, raw'][0],
+                        make_CI_attribute(reduced_data['MC +95% CI, raw'][0],
+                                          reduced_data['MC -95% CI, raw'][0],
                                           '')
                         ]
                     }]

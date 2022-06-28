@@ -18,7 +18,7 @@ RUN pip3 install opencv-python-headless
 
 # Install additional packages needed for TRaIL-Sparrow
 RUN pip3 install uncertainties
-RUN pip3 install hecalc
+RUN pip3 install --upgrade hecalc
 
 # Test that the libraries are installed
 RUN python3 -c "import cv2"
