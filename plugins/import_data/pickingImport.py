@@ -126,6 +126,8 @@ class TRaILpicking(BaseImporter):
             
             # Generate metadata required for every grain
             researcher = str(data.iloc[d][self.picking_specs['Metadata']['Researcher']])
+            lab_owner = str(data.iloc[d][self.picking_specs['Metadata']['Lab_owner']])
+            funding = str(data.iloc[d][self.picking_specs['Metadata']['Funding']])
             sample = data.iloc[d][self.picking_specs['Metadata']['Sample']]
             grain = data.iloc[d][self.picking_specs['Metadata']['Grain']]
             print('Importing: '+sample+'_'+grain)
@@ -207,7 +209,8 @@ class TRaILpicking(BaseImporter):
                               'material': 'rock',
                               'embargo_date': '2150-01-01'},
                 'researcher': [{'name': researcher}],
-                'lab_owner': researcher,
+                'lab_owner': lab_owner,
+                'funding': funding,
                 'name': sample+'_'+grain,
                 'material': material,
                 'lab_id': lab_id,

@@ -5,6 +5,8 @@ Metadata:
   Sample: Sample.1 # the .1 is because this is actually the second column called "Sample"
   Grain: Aliquot             (label a01, a02, z01, z02, etc.)
   Researcher: Analyst
+  Lab_owner: 'Lab/Owner'
+  Funding: Funding
   Fragment: Shard (Y or N)?
   Mineral: 'Mineral (a, z, t, or m)'
   Crystal terminations: Np (0,1, or 2)
