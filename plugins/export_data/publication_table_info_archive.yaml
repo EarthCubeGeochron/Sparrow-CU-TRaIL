@@ -65,12 +65,12 @@
     error_footnote: "[h]"
     width: 8
     error_width: 8
-- Equivalent spherical radius:
+- Equivalent Spherical Radius:
     column: Rs (µm) [l]
     round: 1
     error: False
     width: 8
-- Dimensional mass:
+- Dimensional Mass:
     column: Mass (µg) [m]
     round: 3
     error: False
