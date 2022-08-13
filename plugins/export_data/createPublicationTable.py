@@ -204,6 +204,7 @@ class PublicationTableExporter(BaseImporter):
                             ws.cell(row=row, column=col, value=item.value).font = openpyxl.styles.Font(size = '12')
                             ws.cell(row=row, column=col).alignment = openpyxl.styles.Alignment(horizontal='center')
                         if dict_[key]['error']:
+                            err_in_unc = True
                             col+=1
                             rounded_err = round(item.error, dict_[key]['error_round']) if dict_[key]['error_round'] != 0 else int(item.error)
                             ws.cell(row=row, column=col, value=rounded_err).font = openpyxl.styles.Font(size = '12')
@@ -214,8 +215,9 @@ class PublicationTableExporter(BaseImporter):
                                 rounded_second_err = round(second_err_item.error, dict_[key]['secondary_error_round']) if dict_[key]['secondary_error_round'] != 0 else int(second_err_item.error)
                                 ws.cell(row=row, column=col, value=rounded_second_err).font = openpyxl.styles.Font(size = '12')
                                 ws.cell(row=row, column=col).alignment = openpyxl.styles.Alignment(horizontal='center')
+                            err_in_unc = False
                     except:
-                        if dict_[key]['error']:
+                        if dict_[key]['error'] and not err_in_unc:
                             col+=1
         
         # Add gap row before footnotes
