@@ -1,0 +1,173 @@
+# This is a simple yaml file that gives the necessary info for code-efficient helium data import
+# There are a total of 12 possible options for each datum.
+# Each option is commented when it first appears in this file.
+- Length 1: # The name in Sparrow
+    column: length 1 (µm) [c] # The name to give the output column
+    round: 1 # How many digits to round to
+    error: False # Whether there is uncertainty in the column (should always be True/False)
+    width: 8 # The width of the column to save in excel
+- Width 1:
+    column: width 1 (µm) [c]
+    round: 1
+    error: False
+    width: 8
+- Length 2:
+    column: length 2 (µm) [c]
+    round: 1
+    error: False
+    width: 8
+- Width 2:
+    column: width 2 (µm) [c]
+    round: 1
+    error: False
+    width: 8
+- Crystal geometry:
+    column: Geometry [e]
+    error: False
+    width: 8
+- Crystal termination:
+    column: Np [f]
+    error: False
+    width: 8
+- 4He blank corrected (±2σ): # Example of column with uncertainty and needing to specify unit
+    column: 4He (fmol) [g]
+    unit: ncc # Provide unit in cases where the same name is present in Sparrow multiple times
+    round: 3
+    error: True
+    error_round: 4 # How many decimals to round the uncertainty to
+    error_footnote: "[h]" # What to append to the ± in the column header
+    width: 8 
+    error_width: 8 # width of uncertainty column to save in excel
+- U (±2σ):
+    column: U (ng) [i]
+    unit: ng
+    round: 3
+    error: True
+    error_round: 4
+    error_footnote: "[h]"
+    width: 8
+    error_width: 8
+- Th (±2σ):
+    column: Th (ng) [j]
+    unit: ng
+    round: 3
+    error: True
+    error_round: 4
+    error_footnote: "[h]"
+    width: 8
+    error_width: 8
+- Sm (±2σ):
+    column: 147Sm (ng) [k]
+    unit: ng
+    round: 3
+    error: True
+    error_round: 4
+    error_footnote: "[h]"
+    width: 8
+    error_width: 8
+- Equivalent spherical radius:
+    column: Rs (µm) [l]
+    round: 1
+    error: False
+    width: 8
+- Dimensional mass:
+    column: Mass (µg) [m]
+    round: 3
+    error: False
+    width: 8
+- 4He (±2σ):
+    column: 4He (nmol/g) [n]
+    unit: nmol/g
+    round: 3
+    error: True
+    error_round: 4
+    error_footnote: "[o]"
+    width: 8
+    error_width: 8
+- U (±2σ):
+    column: U (ppm) [n]
+    unit: ppm
+    round: 1
+    error: True
+    error_round: 1
+    error_footnote: "[o]"
+    width: 8
+    error_width: 8
+- Th (±2σ):
+    column: Th (ppm) [n]
+    unit: ppm
+    round: 1
+    error: True
+    error_round: 1
+    error_footnote: "[o]"
+    width: 8
+    error_width: 8
+- Sm (±2σ):
+    column: Sm (ppm) [n]
+    unit: ppm
+    round: 1
+    error: True
+    error_round: 1
+    error_footnote: "[o]"
+    width: 8
+    error_width: 8
+- eU:
+    column: eU [p]
+    round: 1
+    error: True
+    error_round: 1
+    error_footnote: "[q]"
+    width: 8
+    error_width: 8
+- Iterated Raw Date (±2σ):
+    column: Uncorr Date (Ma) [r]
+    round: 1
+    error: True
+    error_round: 1
+    error_name: Uncorr Date Analytical ± (Ma) 2s [s]
+    width: 8
+    error_width: 15
+- Iterated Corrected Date (±2σ):
+    column: Corrected Date (Ma) [u]
+    round: 0
+    error: True
+    error_round: 0
+    error_name: ± TAU (Ma) 2σ [v] # If uncertianty column should just be called ±, what to label the column
+    width: 8
+    error_width: 15
+    secondary_error: Corrected date (±2σ, TAU+Ft) # If a second uncertainty column is needed, what data in Sparrow to take it from
+    secondary_error_name: ± TAU+Ft (Ma) 2σ [v] # What to call the secondary uncertainty column. There is no default for this, must be present if two uncertainties are needed
+    secondary_error_round: 0 # How many decimals to round the secondary uncertainty column to. There is no default for this, must be present if two uncertainties are needed
+    secondary_error_width: 15 # Width of secondary uncertainty column to save. There is no default for this, must be present if two uncertainties are needed
+- Footnotes:
+  - 'a - This table follows the recommendations and approach in Flowers et al. (2022).'
+  - 'b - Sample and mineral being analyzed. a is apatite. z is zircon. t is titanite.'
+  - 'c - Length is measured parallel to the c-axis and includes pyramidal terminations. It is measured twice on two perpendicular sides.'
+  - 'd - Width 1 is measured perpendicular to the c-axis. Width 2 is measured perpendicular to both the c-axis and width 1.'
+  - 'e - Geometry is defined as described as in Figure 3 of Ketcham et al. (2011). 1 is ellipsoid, 2 is cylinder, 3 is tetrahedral prism, and 4 is hexagonal prism. f is noted if the analyzed grain is a fragment, otherwise the analyzed grain is a whole crystal.'
+  - 'f - Np denotes the number of pyramidal terminations of the grain.'
+  - 'g - Blank-corrected 4He'
+  - 'h - Uncertainties on 4He, U, Th, and Sm are reported as the 1s standard deviation and include the propagated uncertainties on the measurements of the sample, blank, spike, and standard.'
+  - 'i - Total blank-corrected ng of 238U and 235U. Total 238U is measured and 235U is calculated assuming 235U = 238U/137.818 after Hiess et al. (2012).'
+  - 'j - Total blank-corrected ng of 232Th'
+  - 'k - Total blank-corrected ng of 147Sm. In some cases Sm may not be measured, for example in minerals like zircon with negligible Sm. n.m. indicates when Sm is not measured.'
+  - 'l - Rs is the radius of a sphere with an equivalent alpha-ejection correction as the grain, calculated using equation A6 in Cooperdock et al. (2019)'
+  - 'm - Mass is the mass of the crystal. Determined from the measured grain dimensions, the volume assuming the reported grain geometry, and the volume equations and mineral densities in Ketcham et al. (2011).'
+  - 'n - Concentration of each element (He, U, Th and Sm) computed from the mass and the absolute amount of the measured isotopes (where 147Sm is 0.15 of the total Sm reported here). In some cases Sm may not be measured, for example in minerals like zircon with negligible Sm. n.m. indicates when Sm is not measured.'
+  - 'o - Uncertainties on U, Th, Sm, and He concentrations are reported at 2s and include the propagated total analytical uncertainties (TAU).'
+  - 'p - eU is effective uranium concentration. Calculated as U + 0.238*Th + 0.0012*Sm after Appendix A of Cooperdock et al. (2019).'
+  - 'q - Uncertainty on eU is estimated at 15% of the eU value.'
+  - 'r - Uncorrected (U-Th)/He date is calculated iteratively using the 4He production equation defined as equation 1 in Wolf et al. (1998) modified to include He produced from Sm decay and assuming secular equilibrium.'
+  - 's - Uncertainty on the uncorrected (U-Th)/He date is reported at 2s and includes the propagated total analytical uncertainties (TAU) on the U, Th, Sm and He measurements.'
+  - 't - The combined alpha-ejection correction for the crystal calculated from the parent isotope-specific FT corrections, the proportion of U and Th contributing to 4He production, and assuming homogeneous parent isotope distributions using equation A4 in Cooperdock et al., (2019). The parent isotope-specific alpha ejection-corrections were computed assuming the reported grain geometry in this table and the equations and alpha-stopping distances in Ketcham et al., (2011).'
+  - 'u - The corrected (U-Th)/He date is calculated iteratively using the absolute values of He, U, Th and Sm, the isotope specific FT corrections, and equation 34 in Ketcham at al. (2011) assuming secular equilibrium.'
+  - 'v - Uncertainty on the corrected (U-Th)/He date is reported at 2s and includes the propagated total analytical uncertainties (TAU) on the U, Th, Sm and He measurements. Uncertainty propagation done using HeCalc (Martin et al., in review).'
+  - 'x - Durango apatite fragments (or Fish Canyon Tuff zircon crystals) ran in conjunction with these analyses yield an unweighted mean and 2s standard error of XX.X ± X.X Ma (n=X).'
+  - ''
+  - 'References cited in footnotes'
+  - 'Cooperdock, E.H.G., Ketcham, R.A., and Stockli, D.F., 2019, Resolving the effects of 2D versus 3D grain measurements on (U-Th)/ He age data and reproducibility: Geochronology, 1, p. 17-41, doi: 10.5194/gchron-1-17-2019.'
+  - 'Flowers, R.M., Zeitler, P.K., Danišík, M., Reiners, P.W., Gautheron, C., Ketcham, R.A., Metcalf, J.R., Stockli, D.F., Enkelmann, E., and Brown, R.W., 2022, (U-Th)/He chronology: Part 1. Data, uncertainty, and reporting: Geological Society of America Bulletin special volume on the Reporting and Interpretation of Geochronologic data, https://doi.org/10.1130/B36266.1'
+  - 'Hiess, J., Condon, D.J., McLean, N., and Noble, S.R., 2012, 238U/235U Systematics in Terrestrial Uranium-Bearing Minerals: Science, v. 335, p. 1610–1615.'
+  - 'Ketcham, R.A., Gautheron, C., and Tassan-Got, L., 2011, Accounting for long alpha-particle stopping distances in (U-Th-Sm)/He geochronology: Refinement of the baseline case: Geochimica et Cosmochimica Acta, v. 75, p. 7779–7791, doi: 10.1016/j.gca.2011.10.011.'
+  - 'Martin, P.E., Metcalf, J.R., and Flowers, R.M., in review, Calculation of uncertainty in the (U-Th)/He system: Geochronology.'
+  - 'Wolf, R.A., Farley, K.A., and Kass, D.M., 1998, Modeling of the temperature sensitivity of the apatite (U-Th)/He thermochronometer: Chemical Geology, v. 148, p. 105–114.'

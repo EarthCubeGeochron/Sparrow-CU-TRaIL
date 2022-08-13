@@ -48,10 +48,19 @@ class PublicationTableExporter(BaseImporter):
         # Load the column specs; structure is {parameter: [value col, error col, unit str]}
         spec = relative_path(__file__, 'publication_table_info.yaml')
         with open(spec) as f:
-            self.table_specs = load(f)
+            self.table_specs_new = load(f)
+        spec = relative_path(__file__, 'publication_table_info_archive.yaml')
+        with open(spec) as fi:
+            self.table_specs_archive = load(fi)
         
-        # print(self.table_specs)
         self.create_table(data_dir)
+    
+    def query_archive(self, lab_id):
+        Sample = self.db.model.sample
+        res = (self.db.session.query(Sample)
+               .filter(Sample.lab_id == lab_id)
+               .first())
+        return res.from_archive
     
     def query_datum(self, lab_id, datum_param):
         Session = self.db.model.session
@@ -139,7 +148,7 @@ class PublicationTableExporter(BaseImporter):
         thin = openpyxl.styles.Side(border_style="thin", color="000000")
         add_column(ws, 1, 'Sample Name and Aliquot', thin)
         n = 1
-        for dict_ in self.table_specs[:-1]:
+        for dict_ in self.table_specs_new[:-1]:
             key = next(iter(dict_))
             n+=1
             add_column(ws, n, dict_[key]['column'], thin)
@@ -165,11 +174,21 @@ class PublicationTableExporter(BaseImporter):
                 row += 1
                 ws.cell(row=row, column=1, value=aliquot[0]).font = openpyxl.styles.Font(size = '12')
                 col = 1
+                archive = self.query_archive(aliquot[1])
+                if archive:
+                    self.table_specs = self.table_specs_archive
+                else:
+                    self.table_specs = self.table_specs_new
                 for dict_ in self.table_specs[:-1]:
                     col += 1
                     key = next(iter(dict_))
                     # Default to datum
                     item = self.query_datum(aliquot[1], key)
+                    # fix special case of some missing iterated dates in archived data
+                    if archive and "Date" in key:
+                        item = self.query_datum(aliquot[1], key)
+                        if not item:
+                            item = self.query_datum(aliquot[1], key.replace("Iterated", "Linear (M&D)"))
                     # If None found, key should lead to attribute
                     if not item:
                         item = self.query_attribute(aliquot[1], key)
@@ -205,7 +224,7 @@ class PublicationTableExporter(BaseImporter):
             ws.cell(row=row, column=n).border = openpyxl.styles.Border(top=thin)
         
         # Add footnotes
-        for note in self.table_specs[-1]['Footnotes']:
+        for note in self.table_specs_new[-1]['Footnotes']:
             row+=1
             ws.cell(row=row, column=1, value=note)
         
