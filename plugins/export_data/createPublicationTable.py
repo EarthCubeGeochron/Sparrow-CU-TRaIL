@@ -144,11 +144,19 @@ class PublicationTableExporter(BaseImporter):
         ws = wb.active
         ws.cell(row=1, column=1, value='Table . Publication table')
         
+        # Figure out what kind of output table to make-- based on the first item
+        first_aliquot = sample_dict[next(iter(sample_dict))][0][1]
+        archive = self.query_archive(first_aliquot)
+        if archive:
+            self.table_specs = self.table_specs_archive
+        else:
+            self.table_specs = self.table_specs_new
+
         # Set up column headers
         thin = openpyxl.styles.Side(border_style="thin", color="000000")
         add_column(ws, 1, 'Sample Name and Aliquot', thin)
         n = 1
-        for dict_ in self.table_specs_new[:-1]:
+        for dict_ in self.table_specs[:-1]:
             key = next(iter(dict_))
             n+=1
             add_column(ws, n, dict_[key]['column'], thin)
@@ -174,11 +182,6 @@ class PublicationTableExporter(BaseImporter):
                 row += 1
                 ws.cell(row=row, column=1, value=aliquot[0]).font = openpyxl.styles.Font(size = '12')
                 col = 1
-                archive = self.query_archive(aliquot[1])
-                if archive:
-                    self.table_specs = self.table_specs_archive
-                else:
-                    self.table_specs = self.table_specs_new
                 for dict_ in self.table_specs[:-1]:
                     col += 1
                     key = next(iter(dict_))
@@ -197,7 +200,7 @@ class PublicationTableExporter(BaseImporter):
                         item = self.query_datum_unit(aliquot[1], key, dict_[key]['unit'])
                     try:
                         if 'round' in dict_[key]:
-                            rounded_num = round(item.value, dict_[key]['round']) if dict_[key]['round'] != 0 else int(item.value)
+                            rounded_num = round(float(item.value), dict_[key]['round']) if dict_[key]['round'] != 0 else int(item.value)
                             ws.cell(row=row, column=col, value=rounded_num).font = openpyxl.styles.Font(size = '12')
                             ws.cell(row=row, column=col).alignment = openpyxl.styles.Alignment(horizontal='center')
                         else:

@@ -127,18 +127,55 @@
     error_name: Uncorr Date Analytical ± (Ma) 2s [s]
     width: 8
     error_width: 15
+- Combined Ft:
+    column: Combined Ft [t]
+    round: 2
+    error: False
+    width: 8
 - Corrected date (±2σ, TAU):
     column: Corrected Date (Ma) [u]
-    round: 0
+    round: 1
     error: True
-    error_round: 0
+    error_round: 1
     error_name: ± TAU (Ma) 2σ [v] # If uncertianty column should just be called ±, what to label the column
     width: 8
     error_width: 15
     secondary_error: Corrected date (±2σ, TAU+Ft) # If a second uncertainty column is needed, what data in Sparrow to take it from
     secondary_error_name: ± TAU+Ft (Ma) 2σ [v] # What to call the secondary uncertainty column. There is no default for this, must be present if two uncertainties are needed
-    secondary_error_round: 0 # How many decimals to round the secondary uncertainty column to. There is no default for this, must be present if two uncertainties are needed
+    secondary_error_round: 1 # How many decimals to round the secondary uncertainty column to. There is no default for this, must be present if two uncertainties are needed
     secondary_error_width: 15 # Width of secondary uncertainty column to save. There is no default for this, must be present if two uncertainties are needed
+- Blank used  (±2σ):
+    column: He blank (fmol)
+    round: 4
+    error: True
+    error_round: 4
+    error name: TAU [h]
+    error_footnote: "[h]"
+    width: 8
+    error_width: 8
+- 238U blank  (±2σ):
+    column: 238U blank (ng)
+    unit: ng
+    round: 4
+    error: True
+    error_round: 4
+    error_footnote: "[i]"
+    width: 8
+    error_width: 8
+- 232Th blank  (±2σ):
+    column: 232Th blank (ng)
+    unit: ng
+    round: 4
+    error: True
+    error_round: 4
+    error_footnote: "[i]"
+    width: 8
+    error_width: 8
+- Initial extract:
+    column: IE
+    error: False
+    round: 3
+    width: 8
 - Footnotes:
   - 'a - This table follows the recommendations and approach in Flowers et al. (2022).'
   - 'b - Sample and mineral being analyzed. a is apatite. z is zircon. t is titanite.'
