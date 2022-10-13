@@ -206,14 +206,20 @@ class PublicationTableExporter(BaseImporter):
                 row += 1
                 ws.cell(row=row, column=1, value=aliquot[0]).font = openpyxl.styles.Font(size = '12')
                 col = 1
-                for dict_ in self.table_specs[:-1]:
+                # Decide whether the sample is archival separately for each aliquot
+                is_archival = self.query_archive(aliquot[1])
+                if is_archival:
+                    table_specs = self.table_specs_archive
+                else:
+                    table_specs = self.table_specs_new
+                for dict_ in table_specs[:-1]:
                     # This happens for each value in YAML file to define columns for each aliquot
                     col += 1
                     key = next(iter(dict_))
                     # Default to datum
                     item = self.query_datum(aliquot[1], key)
                     # fix special case of some missing iterated dates in archived data
-                    if archive and "Date" in key:
+                    if is_archival and "Date" in key:
                         item = self.query_datum(aliquot[1], key)
                         if not item:
                             item = self.query_datum(aliquot[1], key.replace("Iterated", "Linear (M&D)"))
@@ -246,6 +252,8 @@ class PublicationTableExporter(BaseImporter):
                             err_in_unc = False
                     except:
                         if dict_[key]['error'] and not err_in_unc:
+                            col+=1
+                        if 'secondary_error' in dict_[key]:
                             col+=1
 
                 # Add cells for sample-model values at the end
