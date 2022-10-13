@@ -149,6 +149,32 @@
     error: False
     round: 3
     width: 8
+- Notes:
+    column: Notes
+    width: 8
+    error: False
+    internal: true   
+- Mineral inclusions:
+    column: Mineral inclusions
+    width: 8
+    error: False
+    internal: true  
+- Fluid inclusions:
+    column: Fluid inclusions
+    width: 8
+    error: False
+    internal: true  
+- Color:
+    column: Color
+    width: 8
+    error: False
+    internal: true  
+- "Surface color/staining":
+    column: "Surface color/staining"
+    width: 8
+    error: False
+    internal: true
+
 - Footnotes:
   - 'a - This table follows the recommendations and approach in Flowers et al. (2022).'
   - 'b - Sample and mineral being analyzed. a is apatite. z is zircon. t is titanite.'
