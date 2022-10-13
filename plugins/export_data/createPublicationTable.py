@@ -61,6 +61,21 @@ class PublicationTableExporter(BaseImporter):
                .filter(Sample.lab_id == lab_id)
                .first())
         return res.from_archive
+
+    def query_analyst(self, lab_id):
+        Sample = self.db.model.sample
+        Researcher = self.db.model.researcher
+        res = (self.db.session.query(Sample)
+               .filter(Sample.lab_id == lab_id)
+               .first())
+        analyst = ""
+        try:
+            # Right now, the analyst is the first researcher in the researchers list,
+            # because we don't track any specific data about a researcher's contribution
+            analyst = res.researcher_collection[0].name
+        except Exception:
+            pass
+        return analyst
     
     def query_datum(self, lab_id, datum_param):
         Session = self.db.model.session
@@ -119,10 +134,11 @@ class PublicationTableExporter(BaseImporter):
         sample_dict = {}
         for sample in samples:
             try:
-                aliquot = (self.db.session
+                aliquot_ = (self.db.session
                            .query(self.db.model.sample)
                            .filter_by(lab_id=sample)
-                           .first().name)
+                           .first())
+                aliquot = aliquot_.name
             except AttributeError:
                 print('No sample with lab ID:', sample)
                 continue
@@ -130,12 +146,12 @@ class PublicationTableExporter(BaseImporter):
             aliquot_split = aliquot.rsplit('_', 1)
             if aliquot_split[0] not in sample_dict:
                 try:
-                    sample_dict[aliquot_split[0]] = [(aliquot_split[1], sample)]
+                    sample_dict[aliquot_split[0]] = [(aliquot_split[1], sample, aliquot_)]
                 # If no underscore in sample name, 
                 except IndexError:
-                    sample_dict.setdefault('Unknown parent sample', []).append((aliquot_split[0], sample))
+                    sample_dict.setdefault('Unknown parent sample', []).append((aliquot_split[0], sample, aliquot_))
             else:
-                sample_dict[aliquot_split[0]].append((aliquot_split[1], sample))
+                sample_dict[aliquot_split[0]].append((aliquot_split[1], sample, aliquot_))
         
         # Make workbook
         file_path = str(data_dir)+'/ExportPublicationTable//'+self.file_out
@@ -172,6 +188,14 @@ class PublicationTableExporter(BaseImporter):
                     n+=1
                     add_column(ws, n, dict_[key]['secondary_error_name'], thin)
                     ws.column_dimensions[openpyxl.utils.get_column_letter(n)].width = dict_[key]['secondary_error_width']
+
+        # Lab ID, analyst, owner come directly from sample model
+        add_lab_id = True
+        if add_lab_id:
+            for column in ['Lab ID', 'Lab Owner', 'Funding', 'Analyst']:
+                n += 1
+                ws.column_dimensions[openpyxl.utils.get_column_letter(n)].width = 8
+                add_column(ws, n, column, thin)
         
         # Add data one sample at a time
         row = 2
@@ -183,6 +207,7 @@ class PublicationTableExporter(BaseImporter):
                 ws.cell(row=row, column=1, value=aliquot[0]).font = openpyxl.styles.Font(size = '12')
                 col = 1
                 for dict_ in self.table_specs[:-1]:
+                    # This happens for each value in YAML file to define columns for each aliquot
                     col += 1
                     key = next(iter(dict_))
                     # Default to datum
@@ -222,6 +247,14 @@ class PublicationTableExporter(BaseImporter):
                     except:
                         if dict_[key]['error'] and not err_in_unc:
                             col+=1
+
+                # Add cells for sample-model values at the end
+                if add_lab_id:
+                    aliquot_ = aliquot[2]
+                    analyst = self.query_analyst(aliquot[1])
+                    for val in [aliquot_.lab_id, aliquot_.lab_owner, aliquot_.funding, analyst]:
+                        col+=1
+                        ws.cell(row=row, column=col, value=val).font = openpyxl.styles.Font(size = '12')
         
         # Add gap row before footnotes
         row += 1
