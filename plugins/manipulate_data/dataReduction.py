@@ -142,6 +142,8 @@ class TRaILdatecalc(BaseImporter):
                       .filter_by(sample_id=d,
                                  technique='Dates and other derived data')
                       .all())
+# The Ft values and uncertainties below should reference Ft_Corr and Ft_corr_err for each isotope now if the mineral is apatite or zircon. If the mineral is
+# something else, then we need to note that we aren't using corrected values. The values we calculated earlier though are 1s.
         if len(Ft_session) > 0:
             get_corrected = True
             Ft238_datum = self.query_ID(sample_obj.lab_id, '238U Ft (±2σ)')
@@ -166,6 +168,7 @@ class TRaILdatecalc(BaseImporter):
             
     def calculate_date(self, He4, He4_s, U238, U238_s, Th232, Th232_s, Sm147, Sm147_s,
                        Ft238, Ft238_s, Ft235, Ft235_s, Ft232, Ft232_s, Ft147, Ft147_s, get_corrected, d, sample_obj):
+        #This is a typo, but I don't know if it matters. Should be U238_mol_per_ng not 328
         U328_mol_per_ng = 1/(238.03*1e9)
         Th232_mol_per_ng = 1/(232*1e9)
         Sm147_mol_per_ng = 1/(157*1e9)
@@ -240,7 +243,7 @@ class TRaILdatecalc(BaseImporter):
             '235Ft-147Ft': Ft235_s*Ft147_s,
             '232Ft-147Ft': Ft232_s*Ft147_s
         }
-        
+        # These also need to be referencing the corrected valyes and proper uncertainties
         date = hecalc.get_date(He4_mol, U238=U238_mol, U235=None, Th232=Th232_mol, Sm147=Sm147_mol,
                               Ft238=Ft238, Ft235=Ft235, Ft232=Ft232, Ft147=Ft147)
         
