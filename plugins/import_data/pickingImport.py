@@ -10,8 +10,8 @@ import numpy as np
 import pandas as pd
 from rich import print
 from math import sqrt
-from sparrow.import_helpers import BaseImporter
-from sparrow.util import relative_path
+from sparrow.core.import_helpers import BaseImporter
+from macrostrat.utils import relative_path
 import datetime
 from dateutil.parser import parse
 from yaml import load

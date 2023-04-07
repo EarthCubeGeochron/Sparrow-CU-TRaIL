@@ -1,1 +1,1 @@
-from sparrow.plugins import SparrowPlugin
+from sparrow.core.plugins import SparrowPlugin

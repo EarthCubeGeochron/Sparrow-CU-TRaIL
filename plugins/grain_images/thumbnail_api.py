@@ -3,17 +3,17 @@ An API route that allows grain image thumbnails to be resolved
 and served from the SPARROW_DATA_DIR
 """
 from starlette.responses import FileResponse, JSONResponse
-import sparrow
-from sparrow.api import SparrowAPIError
-from sparrow import SparrowPlugin
+from sparrow.core import get_database, settings
+from sparrow.core.api import SparrowAPIError
+from sparrow.core import SparrowPlugin
 from pathlib import Path
 
 
 def get_thumbnail(request):
     """Get a single data file"""
     uuid = request.path_params["uuid"]
-    db = sparrow.get_database()
-    data_dir = Path(sparrow.settings.DATA_DIR)
+    db = get_database()
+    data_dir = Path(settings.DATA_DIR)
 
     thumbnail = data_dir / ".grain-thumbnails" / (uuid + ".jpg")
     if thumbnail.exists():
@@ -37,7 +37,7 @@ def find_grain_image(request):
     # We could probably do this by adapting the basic data_file route
     # but this is potentially simpler while we work on that API
     sample_id = request.query_params["sample_id"]
-    db = sparrow.get_database()
+    db = get_database()
 
     DataFile = db.model.data_file
     DataFileLink = db.model.data_file_link

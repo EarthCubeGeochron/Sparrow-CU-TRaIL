@@ -1,5 +1,5 @@
-import sparrow
-from sparrow.import_helpers import BaseImporter, SparrowImportError
+from sparrow.core.import_helpers import BaseImporter, SparrowImportError
+from sparrow.core import get_database, get_app, task
 from os import environ
 from pathlib import Path
 from rich import print
@@ -31,7 +31,7 @@ class ImageImporter(BaseImporter):
         """
         Create thumbnails for all images
         """
-        db = sparrow.get_database()
+        db = get_database()
         q = db.session.query(db.model.data_file).filter_by(type_id="Grain image")
         for data_file in q:
             infile = self.data_dir / data_file.file_path
@@ -49,7 +49,7 @@ class ImageImporter(BaseImporter):
         # The last part of the filename seems like an image index
         if sample_name[-1] in "abcdef":
             sample_name = sample_name[:-1]
-        db = sparrow.get_database()
+        db = get_database()
         Sample = db.model.sample
 
         # Get or create a sample using SQLAlchemy methods
@@ -67,11 +67,11 @@ class ImageImporter(BaseImporter):
         yield sample
 
 
-@sparrow.task()
+@task()
 def import_grain_images(redo: bool = False, recreate_thumbnails: bool = False):
     """
     Import grain images, link them to samples, and create thumbnails.
     """
-    app = sparrow.get_app()
+    app = get_app()
     importer = ImageImporter(app)
     importer.run(redo=redo, recreate_thumbnails=recreate_thumbnails)

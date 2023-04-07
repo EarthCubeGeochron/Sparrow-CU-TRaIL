@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from sparrow.import_helpers import BaseImporter
+from sparrow.core.import_helpers import BaseImporter
 import glob
 from rich import print
 from sqlalchemy import exc
