@@ -8,32 +8,33 @@ from sparrow.api import SparrowAPIError
 from sparrow import SparrowPlugin
 from pathlib import Path
 
+from sparrow.settings import CACHE_DIR
+
+thumbnail_cache_path = Path(CACHE_DIR)/".grain-thumbnails"
+
 
 def get_thumbnail(request):
     """Get a single data file"""
     uuid = request.path_params["uuid"]
     db = sparrow.get_database()
-    data_dir = Path(sparrow.settings.DATA_DIR)
 
-    thumbnail = data_dir / ".grain-thumbnails" / (uuid + ".jpg")
+    thumbnail = thumbnail_cache_path / (uuid + ".jpg")
     if thumbnail.exists():
         # Success!
         return FileResponse(thumbnail)
 
     # Handle various kinds of errors...
     # Check that data file actually exists
-    if data_file is None:
-        data_file = db.session.query(db.model.data_file).get(uuid)
-    if data_file is None:
-        raise SparrowAPIError("Data file with UUID {uuid} not found", status_code=404)
+    #data_file = db.session.query(db.model.data_file).get(uuid)
+    #if data_file is None:
+    #    raise SparrowAPIError("Data file with UUID {uuid} not found", status_code=404)
     raise SparrowAPIError(
         "Thumbnail not available for data file {uuid}", status_code=404
     )
-    return thumbnail_for_datafile(uuid)
 
 
 def find_grain_image(request):
-    """Get a single data file"""
+    """Find a thumbnail matching a specific sample ID"""
     # We could probably do this by adapting the basic data_file route
     # but this is potentially simpler while we work on that API
     sample_id = request.query_params["sample_id"]

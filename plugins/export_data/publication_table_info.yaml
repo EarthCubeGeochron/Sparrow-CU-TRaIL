@@ -177,7 +177,7 @@
     error_width: 8
     internal: true
 - Initial extract:
-    column: IE
+    column: IE [w]
     error: False
     round: 3
     width: 8
@@ -231,6 +231,7 @@
   - 't - The combined alpha-ejection correction for the crystal calculated from the parent isotope-specific FT corrections, the proportion of U and Th contributing to 4He production, and assuming homogeneous parent isotope distributions using equation A4 in Cooperdock et al., (2019). The parent isotope-specific alpha ejection-corrections were computed assuming the reported grain geometry in this table and the equations and alpha-stopping distances in Ketcham et al., (2011).'
   - 'u - The corrected (U-Th)/He date is calculated iteratively using the absolute values of He, U, Th and Sm, the isotope specific FT corrections, and equation 34 in Ketcham at al. (2011) assuming secular equilibrium.'
   - 'v - Uncertainty on the corrected (U-Th)/He date is reported at 2s and includes the propagated total analytical uncertainties (TAU) on the U, Th, Sm and He measurements. Uncertainty propagation done using HeCalc (Martin et al., in review).'
+  - 'w - The proportion of Helium extracted in the initial extraction. For apatites this should be 1.00'
   - 'x - Durango apatite fragments (or Fish Canyon Tuff zircon crystals) ran in conjunction with these analyses yield an unweighted mean and 2s standard error of XX.X ± X.X Ma (n=X).'
   - ''
   - 'References cited in footnotes'
@@ -238,5 +239,5 @@
   - 'Flowers, R.M., Zeitler, P.K., Danišík, M., Reiners, P.W., Gautheron, C., Ketcham, R.A., Metcalf, J.R., Stockli, D.F., Enkelmann, E., and Brown, R.W., 2022, (U-Th)/He chronology: Part 1. Data, uncertainty, and reporting: Geological Society of America Bulletin special volume on the Reporting and Interpretation of Geochronologic data, https://doi.org/10.1130/B36266.1'
   - 'Hiess, J., Condon, D.J., McLean, N., and Noble, S.R., 2012, 238U/235U Systematics in Terrestrial Uranium-Bearing Minerals: Science, v. 335, p. 1610–1615.'
   - 'Ketcham, R.A., Gautheron, C., and Tassan-Got, L., 2011, Accounting for long alpha-particle stopping distances in (U-Th-Sm)/He geochronology: Refinement of the baseline case: Geochimica et Cosmochimica Acta, v. 75, p. 7779–7791, doi: 10.1016/j.gca.2011.10.011.'
-  - 'Martin, P.E., Metcalf, J.R., and Flowers, R.M., in review, Calculation of uncertainty in the (U-Th)/He system: Geochronology.'
+  - 'Martin, P.E., Metcalf, J.R., and Flowers, R.M., 2023, Calculation of uncertainty in the (U-Th)/He system: Geochronology, 5, 91–107, https://doi.org/10.5194/gchron-5-91-2023'
   - 'Wolf, R.A., Farley, K.A., and Kass, D.M., 1998, Modeling of the temperature sensitivity of the apatite (U-Th)/He thermochronometer: Chemical Geology, v. 148, p. 105–114.'
