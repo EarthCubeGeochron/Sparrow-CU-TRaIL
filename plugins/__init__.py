@@ -10,6 +10,7 @@ from .manipulate_data.dataReduction import TRaILdatecalc
 from .manipulate_data.addSampleNote import AddSampleNote
 from .manipulate_data.addLocation import AddLocation
 from .manipulate_data.removeEmbargo import RemoveEmbargo
+from .grain_images import ImageImporter, ThumbnailAPIPlugin
 
 from sparrow.core import get_app
 from click import secho
@@ -90,3 +91,13 @@ def export_table(filename: str = None):
     app = get_app()
     data_dir = Path("/data")
     PublicationTableExporter(app, data_dir, filename)
+
+
+@task(name="import-grain-images")
+def import_grain_images(redo: bool = False, recreate_thumbnails: bool = False):
+    """
+    Import grain images, link them to samples, and create thumbnails.
+    """
+    app = get_app()
+    importer = ImageImporter(app)
+    importer.run(redo=redo, recreate_thumbnails=recreate_thumbnails)

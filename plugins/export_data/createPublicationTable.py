@@ -125,12 +125,20 @@ class PublicationTableExporter(BaseImporter):
         sample_dict = {}
         for sample in samples:
             try:
+<<<<<<< HEAD
                 aliquot = (
                     self.db.session.query(self.db.model.sample)
                     .filter_by(lab_id=sample)
                     .first()
                     .name
                 )
+=======
+                aliquot_ = (self.db.session
+                           .query(self.db.model.sample)
+                           .filter_by(lab_id=sample)
+                           .first())
+                aliquot = aliquot_.name
+>>>>>>> master
             except AttributeError:
                 print("No sample with lab ID:", sample)
                 continue
@@ -138,6 +146,7 @@ class PublicationTableExporter(BaseImporter):
             aliquot_split = aliquot.rsplit("_", 1)
             if aliquot_split[0] not in sample_dict:
                 try:
+<<<<<<< HEAD
                     sample_dict[aliquot_split[0]] = [(aliquot_split[1], sample)]
                 # If no underscore in sample name,
                 except IndexError:
@@ -147,18 +156,39 @@ class PublicationTableExporter(BaseImporter):
             else:
                 sample_dict[aliquot_split[0]].append((aliquot_split[1], sample))
 
+=======
+                    sample_dict[aliquot_split[0]] = [(aliquot_split[1], sample, aliquot_)]
+                # If no underscore in sample name, 
+                except IndexError:
+                    sample_dict.setdefault('Unknown parent sample', []).append((aliquot_split[0], sample, aliquot_))
+            else:
+                sample_dict[aliquot_split[0]].append((aliquot_split[1], sample, aliquot_))
+        
+>>>>>>> master
         # Make workbook
         file_path = str(data_dir) + "/ExportPublicationTable//" + self.file_out
         temp_path = "/tmp//" + self.file_out
         wb = openpyxl.Workbook()
         ws = wb.active
+<<<<<<< HEAD
         ws.cell(row=1, column=1, value="Table . Publication table")
+=======
+        ws.cell(row=1, column=1, value='Table . Publication table')
+        
+        # Figure out what kind of output table to make-- based on the first item
+        first_aliquot = sample_dict[next(iter(sample_dict))][0][1]
+        archive = self.query_archive(first_aliquot)
+        if archive:
+            self.table_specs = self.table_specs_archive
+        else:
+            self.table_specs = self.table_specs_new
+>>>>>>> master
 
         # Set up column headers
         thin = openpyxl.styles.Side(border_style="thin", color="000000")
         add_column(ws, 1, "Sample Name and Aliquot", thin)
         n = 1
-        for dict_ in self.table_specs_new[:-1]:
+        for dict_ in self.table_specs[:-1]:
             key = next(iter(dict_))
             n += 1
             add_column(ws, n, dict_[key]["column"], thin)
@@ -173,6 +203,7 @@ class PublicationTableExporter(BaseImporter):
                 if "error_name" in dict_[key]:
                     add_column(ws, n, dict_[key]["error_name"], thin)
                 else:
+<<<<<<< HEAD
                     add_column(ws, n, "± " + str(dict_[key]["error_footnote"]), thin)
                 if "secondary_error" in dict_[key]:
                     n += 1
@@ -181,6 +212,22 @@ class PublicationTableExporter(BaseImporter):
                         openpyxl.utils.get_column_letter(n)
                     ].width = dict_[key]["secondary_error_width"]
 
+=======
+                    add_column(ws, n, '± '+str(dict_[key]['error_footnote']), thin)
+                if 'secondary_error' in dict_[key]:
+                    n+=1
+                    add_column(ws, n, dict_[key]['secondary_error_name'], thin)
+                    ws.column_dimensions[openpyxl.utils.get_column_letter(n)].width = dict_[key]['secondary_error_width']
+
+        # Lab ID, analyst, owner come directly from sample model
+        add_lab_id = True
+        if add_lab_id:
+            for column in ['Lab ID', 'Lab Owner', 'Funding', 'Analyst']:
+                n += 1
+                ws.column_dimensions[openpyxl.utils.get_column_letter(n)].width = 8
+                add_column(ws, n, column, thin)
+        
+>>>>>>> master
         # Add data one sample at a time
         row = 2
         for sample in sample_dict:
@@ -194,18 +241,20 @@ class PublicationTableExporter(BaseImporter):
                     row=row, column=1, value=aliquot[0]
                 ).font = openpyxl.styles.Font(size="12")
                 col = 1
-                archive = self.query_archive(aliquot[1])
-                if archive:
-                    self.table_specs = self.table_specs_archive
+                # Decide whether the sample is archival separately for each aliquot
+                is_archival = self.query_archive(aliquot[1])
+                if is_archival:
+                    table_specs = self.table_specs_archive
                 else:
-                    self.table_specs = self.table_specs_new
-                for dict_ in self.table_specs[:-1]:
+                    table_specs = self.table_specs_new
+                for dict_ in table_specs[:-1]:
+                    # This happens for each value in YAML file to define columns for each aliquot
                     col += 1
                     key = next(iter(dict_))
                     # Default to datum
                     item = self.query_datum(aliquot[1], key)
                     # fix special case of some missing iterated dates in archived data
-                    if archive and "Date" in key:
+                    if is_archival and "Date" in key:
                         item = self.query_datum(aliquot[1], key)
                         if not item:
                             item = self.query_datum(
@@ -220,6 +269,7 @@ class PublicationTableExporter(BaseImporter):
                             aliquot[1], key, dict_[key]["unit"]
                         )
                     try:
+<<<<<<< HEAD
                         if "round" in dict_[key]:
                             rounded_num = (
                                 round(item.value, dict_[key]["round"])
@@ -232,6 +282,12 @@ class PublicationTableExporter(BaseImporter):
                             ws.cell(
                                 row=row, column=col
                             ).alignment = openpyxl.styles.Alignment(horizontal="center")
+=======
+                        if 'round' in dict_[key]:
+                            rounded_num = round(float(item.value), dict_[key]['round']) if dict_[key]['round'] != 0 else int(item.value)
+                            ws.cell(row=row, column=col, value=rounded_num).font = openpyxl.styles.Font(size = '12')
+                            ws.cell(row=row, column=col).alignment = openpyxl.styles.Alignment(horizontal='center')
+>>>>>>> master
                         else:
                             ws.cell(
                                 row=row, column=col, value=item.value
@@ -276,9 +332,25 @@ class PublicationTableExporter(BaseImporter):
                                 )
                             err_in_unc = False
                     except:
+<<<<<<< HEAD
                         if dict_[key]["error"] and not err_in_unc:
                             col += 1
 
+=======
+                        if dict_[key]['error'] and not err_in_unc:
+                            col+=1
+                        if 'secondary_error' in dict_[key]:
+                            col+=1
+
+                # Add cells for sample-model values at the end
+                if add_lab_id:
+                    aliquot_ = aliquot[2]
+                    analyst = self.query_analyst(aliquot[1])
+                    for val in [aliquot_.lab_id, aliquot_.lab_owner, aliquot_.funding, analyst]:
+                        col+=1
+                        ws.cell(row=row, column=col, value=val).font = openpyxl.styles.Font(size = '12')
+        
+>>>>>>> master
         # Add gap row before footnotes
         row += 1
         for n in range(1, n + 1):

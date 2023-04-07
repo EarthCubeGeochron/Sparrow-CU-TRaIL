@@ -127,18 +127,87 @@
     error_name: Uncorr Date Analytical ± (Ma) 2s [s]
     width: 8
     error_width: 15
+- Combined Alpha Ejection Factor:
+    column: Combined Ft [t]
+    round: 2
+    error: False
+    width: 8
 - Iterated Corrected Date (±2σ):
     column: Corrected Date (Ma) [u]
-    round: 0
+    round: 1
     error: True
-    error_round: 0
+    error_round: 1
     error_name: ± TAU (Ma) 2σ [v] # If uncertianty column should just be called ±, what to label the column
     width: 8
     error_width: 15
     secondary_error: Corrected date (±2σ, TAU+Ft) # If a second uncertainty column is needed, what data in Sparrow to take it from
     secondary_error_name: ± TAU+Ft (Ma) 2σ [v] # What to call the secondary uncertainty column. There is no default for this, must be present if two uncertainties are needed
-    secondary_error_round: 0 # How many decimals to round the secondary uncertainty column to. There is no default for this, must be present if two uncertainties are needed
+    secondary_error_round: 1 # How many decimals to round the secondary uncertainty column to. There is no default for this, must be present if two uncertainties are needed
     secondary_error_width: 15 # Width of secondary uncertainty column to save. There is no default for this, must be present if two uncertainties are needed
+# Blank columns aren't actually defined for archival data but we put them in to balance the number of columns in the
+# 'modern' output table
+- Blank used  (±2σ):
+    column: He blank (fmol)
+    round: 4
+    error: True
+    error_round: 4
+    error name: TAU [h]
+    error_footnote: "[h]"
+    width: 8
+    error_width: 8
+    # We added this to eventually be able to create the table in a publication mode with a restricted field set OR an internal mode with more data
+    internal: True
+- 238U blank  (±2σ):
+    column: 238U blank (ng)
+    unit: ng
+    round: 4
+    error: True
+    error_round: 4
+    error_footnote: "[i]"
+    width: 8
+    error_width: 8
+    internal: true
+- 232Th blank  (±2σ):
+    column: 232Th blank (ng)
+    unit: ng
+    round: 4
+    error: True
+    error_round: 4
+    error_footnote: "[i]"
+    width: 8
+    error_width: 8
+    internal: true
+- Initial extract:
+    column: IE [w]
+    error: False
+    round: 3
+    width: 8
+- Notes:
+    column: Notes
+    width: 8
+    error: False
+    internal: true   
+- Mineral inclusions:
+    column: Mineral inclusions
+    width: 8
+    error: False
+    internal: true  
+- Fluid inclusions:
+    column: Fluid inclusions
+    width: 8
+    error: False
+    internal: true  
+- Color:
+    column: Color
+    width: 8
+    error: False
+    internal: true  
+- "Surface color/staining":
+    column: "Surface color/staining"
+    width: 8
+    error: False
+    internal: true
+
 - Footnotes:
   - 'a - This table follows the recommendations and approach in Flowers et al. (2022).'
   - 'b - Sample and mineral being analyzed. a is apatite. z is zircon. t is titanite.'
@@ -162,6 +231,7 @@
   - 't - The combined alpha-ejection correction for the crystal calculated from the parent isotope-specific FT corrections, the proportion of U and Th contributing to 4He production, and assuming homogeneous parent isotope distributions using equation A4 in Cooperdock et al., (2019). The parent isotope-specific alpha ejection-corrections were computed assuming the reported grain geometry in this table and the equations and alpha-stopping distances in Ketcham et al., (2011).'
   - 'u - The corrected (U-Th)/He date is calculated iteratively using the absolute values of He, U, Th and Sm, the isotope specific FT corrections, and equation 34 in Ketcham at al. (2011) assuming secular equilibrium.'
   - 'v - Uncertainty on the corrected (U-Th)/He date is reported at 2s and includes the propagated total analytical uncertainties (TAU) on the U, Th, Sm and He measurements. Uncertainty propagation done using HeCalc (Martin et al., in review).'
+  - 'w - The fraction of He that was degassed on the Initial Extraction. For apatites this should be 1.00, lower values may indicate the presence of inclusions. For other minerals this number can vary widely.'
   - 'x - Durango apatite fragments (or Fish Canyon Tuff zircon crystals) ran in conjunction with these analyses yield an unweighted mean and 2s standard error of XX.X ± X.X Ma (n=X).'
   - ''
   - 'References cited in footnotes'
@@ -169,5 +239,5 @@
   - 'Flowers, R.M., Zeitler, P.K., Danišík, M., Reiners, P.W., Gautheron, C., Ketcham, R.A., Metcalf, J.R., Stockli, D.F., Enkelmann, E., and Brown, R.W., 2022, (U-Th)/He chronology: Part 1. Data, uncertainty, and reporting: Geological Society of America Bulletin special volume on the Reporting and Interpretation of Geochronologic data, https://doi.org/10.1130/B36266.1'
   - 'Hiess, J., Condon, D.J., McLean, N., and Noble, S.R., 2012, 238U/235U Systematics in Terrestrial Uranium-Bearing Minerals: Science, v. 335, p. 1610–1615.'
   - 'Ketcham, R.A., Gautheron, C., and Tassan-Got, L., 2011, Accounting for long alpha-particle stopping distances in (U-Th-Sm)/He geochronology: Refinement of the baseline case: Geochimica et Cosmochimica Acta, v. 75, p. 7779–7791, doi: 10.1016/j.gca.2011.10.011.'
-  - 'Martin, P.E., Metcalf, J.R., and Flowers, R.M., in review, Calculation of uncertainty in the (U-Th)/He system: Geochronology.'
+  - 'Martin, P.E., Metcalf, J.R., and Flowers, R.M., 2023, Calculation of uncertainty in the (U-Th)/He system: Geochronology, 5, 91–107, https://doi.org/10.5194/gchron-5-91-2023.'
   - 'Wolf, R.A., Farley, K.A., and Kass, D.M., 1998, Modeling of the temperature sensitivity of the apatite (U-Th)/He thermochronometer: Chemical Geology, v. 148, p. 105–114.'

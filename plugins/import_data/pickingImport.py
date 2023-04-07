@@ -194,8 +194,10 @@ class TRaILpicking(BaseImporter):
                         # get derived data uncertainties for later
                         if 'Idealness' in i:
                             xtalform = l[0]
+                            # THIS IS WHERE DECISION TREES WOULD BE REFERENCED
                             dim_mass_err = self.picking_specs['Dim_mass_key'][xtalform]
                             Rs_err = self.picking_specs['Rs_err_key'][xtalform]
+                            # Right now, Ft_err is a proportion, 1sigma. i.e. 0.2 = 20%
                             Ft_err = self.picking_specs['Ft_err_key'][xtalform]
                 # Cast attributes (no data for characteristics) for analysis to dictionary
                 chars_dict = {
@@ -231,6 +233,7 @@ class TRaILpicking(BaseImporter):
             # Only incude derived data if not a shard
             if Fts:
                 # Compile Ft data for date calculation session
+                # This is where Ft_errors are calculated
                 Ft_data = [
                     [Fts['238U'], Fts['238U']*Ft_err*2, '238U Ft (±2σ)', ''],
                     [Fts['235U'], Fts['235U']*Ft_err*2,'235U Ft (±2σ)', ''],
@@ -244,7 +247,8 @@ class TRaILpicking(BaseImporter):
                 
                 sample_schema['session'].append({
                     'technique': {'id': 'Dates and other derived data'},
-                    'date': '1900-01-01 00:00:00+00', # always pass an 'unknown date' value for calculation
+                    'date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    #'date': '1900-01-01 00:00:00+00', # always pass an 'unknown date' value for calculation
                     'analysis': [
                         {
                         'analysis_type': 'Alpha ejection correction values',
