@@ -10,7 +10,7 @@ from .thumbnail_api import get_thumbnail, ThumbnailAPIPlugin
 
 # from .trim_image import create_thumbnail
 
-from sparrow.settings import DATA_DIR, CACHE_DIR
+from sparrow.core.settings import DATA_DIR, CACHE_DIR
 
 
 class ImageImporter(BaseImporter):

@@ -8,7 +8,7 @@ from sparrow.core.api import SparrowAPIError
 from sparrow.core import SparrowPlugin
 from pathlib import Path
 
-from sparrow.settings import CACHE_DIR
+from sparrow.core.settings import CACHE_DIR
 
 thumbnail_cache_path = Path(CACHE_DIR) / ".grain-thumbnails"
 
