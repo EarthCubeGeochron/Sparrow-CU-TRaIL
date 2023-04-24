@@ -62,6 +62,19 @@ class PublicationTableExporter(BaseImporter):
         res = self.db.session.query(Sample).filter(Sample.lab_id == lab_id).first()
         return res.from_archive
 
+    def query_analyst(self, lab_id):
+        Sample = self.db.model.sample
+        Researcher = self.db.model.researcher
+        res = self.db.session.query(Sample).filter(Sample.lab_id == lab_id).first()
+        analyst = ""
+        try:
+            # Right now, the analyst is the first researcher in the researchers list,
+            # because we don't track any specific data about a researcher's contribution
+            analyst = res.researcher_collection[0].name
+        except Exception:
+            pass
+        return analyst
+
     def query_datum(self, lab_id, datum_param):
         Session = self.db.model.session
         Sample = self.db.model.sample
