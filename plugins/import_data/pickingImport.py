@@ -252,6 +252,7 @@ class TRaILpicking(BaseImporter):
                 # First, get uncertainty for each derived parameter
                 # We have defined some of these already. Ft_err is defined in my calcs above, and dim_mass_err should just be dim_mass*(Vcorrerr/Vcorr). Rs_err
                 # will be done on the ICPMS import phase
+                dim_mass_err = dim_mass * (V_corr_err/Vcorr)
                 for l in chars_attributes:
                     for i in l:
                         # get derived data uncertainties for later
