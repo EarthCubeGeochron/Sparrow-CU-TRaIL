@@ -18,6 +18,9 @@ from yaml import load
 
 # Replicates Ketcham et al., 2011 for Ft calculation
 def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material):
+# We need to make sure that we know the maximum width. I think we should define that here as
+Wmax = Greater(w1,w2)
+
     Ft_dat = {}
     for iso in ['238U', '235U','232Th', '147Sm']:
         R = Ft_constants[material][iso]
@@ -62,6 +65,66 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material):
     Ft_dat['V'] = V
     Ft_dat['Rs'] = Rs
     return Ft_dat
+
+# First correct the Volume (V) values. This depends upon the mineral and the geometry. Right now we have this for apatite and zircon, so if
+# the material is something else then Vcorr should just equal V, and Vcorr_err should be XX.
+IF Mineral (material?) = zircon
+    IF shape == 'Orthorhombic'
+        Then    Vcorr = 0.81*V
+                Vcorr_err = 0.13*VCorr
+    IF shape == 'Ellipsoid'
+        Then    Vcorr = 1.04*V
+                VCorr_err = 0.21*VCorr
+IF Mineral (material?) = apatite
+    IF shape == 'Hexagonal'
+        Then    Vcorr = 0.83*V
+                Vcorr_err = 0.20*VCorr
+    IF shape == 'Ellipsoid'
+        Then    Vcorr = 0.74*V
+                VCorr_err = 0.23*VCorr
+            
+# Now correct the Ft. This will depend upon the material, geometry, and maximum width.
+IF Mineral (material?) = 'zircon'
+    IF shape = 'Orthorhombic'
+            Then    238Ftcorr = 0.97*238Ft
+                        IF Wmax < 100, Then 238Fterr = 0.03*238Ftcorr, else 238Fterr = 0.02*238Ftcorr
+                    235Ftcorr = 0.97*235Ft
+                        IF Wmax < 100, Then 235Fterr = 0.04*235Ftcorr, else 235Fterr = 0.03*235Fterr
+                    232Ftcorr = 0.97*232Ft
+                        IF Wmax < 100, Then 232Fterr = 0.05*232Ftcorr, else 232Fterr = 0.02*232Fterr
+                    147Ftcorr = 0.96*147Ft
+                        147Fterr = 0.01*147Ftcorr
+    IF shape = 'Ellipsoid'
+            Then    238Ftcorr = 238Ft
+                        238Fterr = 0.03*238Ftcorr
+                    235Ftcorr = 235Ft
+                        235Fterr = 0.04*235Ftcorr
+                    232Ftcorr = 232Ft
+                        232Fterr = 0.04*232Ftcorr
+                    147Ftcorr = 147Ft
+                        147Fterr = 0.01*147Ftcorr
+                        
+IF Mineral (material?) = 'apatite'
+    IF shape = 'Orthorhombic'
+            Then    238Ftcorr = 0.97*238Ft
+                        IF Wmax < 100, Then 238Fterr = 0.03*238Ftcorr, else 238Fterr = 0.02*238Ftcorr
+                    235Ftcorr = 0.96*235Ft
+                        IF Wmax < 100, Then 235Fterr = 0.04*235Ftcorr, else 235Fterr = 0.02*235Fterr
+                    232Ftcorr = 0.96*232Ft
+                        IF Wmax < 100, Then 232Fterr = 0.04*232Ftcorr, else 232Fterr = 0.02*232Fterr
+                    147Ftcorr = 0.99*147Ft
+                        147Fterr = 0.01*147Ftcorr
+    IF shape = 'Ellipsoid'
+            Then    238Ftcorr = 0.92*238Ft
+                        238Fterr = 0.05*238Ftcorr
+                    235Ftcorr = 0.91*235Ft
+                        235Fterr = 0.06*235Ftcorr
+                    232Ftcorr = 0.91*232Ft
+                        232Fterr = 0.06*232Ftcorr
+                    147Ftcorr = 0.97*147Ft
+                        147Fterr = 0.01*147Ftcorr                      
+            
+                    
 
 # Function to make datum
 def make_datum(datum, error, parameter, unit):
@@ -144,10 +207,11 @@ class TRaILpicking(BaseImporter):
                 geometry = data.iloc[d][self.picking_specs['Metadata']['Crystal geometry']]
                 
                 # Generate Ft and dimensional mass
+                # This needs to be modified to use Vcorr values as described above. I changed that
                 Fts = get_Ft(length1, width1, length2, width2,
                              int(terminations), self.picking_specs['geometry_key'][geometry],
                              self.picking_specs['Ft_constants'], material)
-                dimensional_mass = self.picking_specs['Ft_constants'][material]['density']*Fts['V']/1e6
+                dimensional_mass = self.picking_specs['Ft_constants'][material]['density']*Fts['Vcorr']/1e6
 
                 # create datum and attributes for shape analysis
                 shape_data = []
@@ -189,6 +253,8 @@ class TRaILpicking(BaseImporter):
             # make analysis dictionary, exclude missing data if shards
             if shard != 'Y' and shard != 'y':
                 # First, get uncertainty for each derived parameter
+                # We have defined some of these already. Ft_err is defined in my calcs above, and dim_mass_err should just be dim_mass*(Vcorrerr/Vcorr). Rs_err
+                # will be done on the ICPMS import phase
                 for l in chars_attributes:
                     for i in l:
                         # get derived data uncertainties for later
