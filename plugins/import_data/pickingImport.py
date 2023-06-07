@@ -18,8 +18,8 @@ from yaml import load
 
 # Replicates Ketcham et al., 2011 for Ft calculation
 def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material):
-# We need to make sure that we know the maximum width. I think we should define that here as
-Wmax = Greater(w1,w2)
+    # We need to make sure that we know the maximum width. I think we should define that here as
+    Wmax = max(w1,w2)
 
     Ft_dat = {}
     for iso in ['238U', '235U','232Th', '147Sm']:
@@ -64,67 +64,64 @@ Wmax = Greater(w1,w2)
         Ft_dat[iso] = Ft
     Ft_dat['V'] = V
     Ft_dat['Rs'] = Rs
-    return Ft_dat
+    #return Ft_dat
 
-# First correct the Volume (V) values. This depends upon the mineral and the geometry. Right now we have this for apatite and zircon, so if
-# the material is something else then Vcorr should just equal V, and Vcorr_err should be XX.
-IF Mineral (material?) = zircon
-    IF shape == 'Orthorhombic'
-        Then    Vcorr = 0.81*V
-                Vcorr_err = 0.13*VCorr
-    IF shape == 'Ellipsoid'
-        Then    Vcorr = 1.04*V
-                VCorr_err = 0.21*VCorr
-IF Mineral (material?) = apatite
-    IF shape == 'Hexagonal'
-        Then    Vcorr = 0.83*V
-                Vcorr_err = 0.20*VCorr
-    IF shape == 'Ellipsoid'
-        Then    Vcorr = 0.74*V
-                VCorr_err = 0.23*VCorr
-            
-# Now correct the Ft. This will depend upon the material, geometry, and maximum width.
-IF Mineral (material?) = 'zircon'
-    IF shape = 'Orthorhombic'
-            Then    238Ftcorr = 0.97*238Ft
-                        IF Wmax < 100, Then 238Fterr = 0.03*238Ftcorr, else 238Fterr = 0.02*238Ftcorr
-                    235Ftcorr = 0.97*235Ft
-                        IF Wmax < 100, Then 235Fterr = 0.04*235Ftcorr, else 235Fterr = 0.03*235Fterr
-                    232Ftcorr = 0.97*232Ft
-                        IF Wmax < 100, Then 232Fterr = 0.05*232Ftcorr, else 232Fterr = 0.02*232Fterr
-                    147Ftcorr = 0.96*147Ft
-                        147Fterr = 0.01*147Ftcorr
-    IF shape = 'Ellipsoid'
-            Then    238Ftcorr = 238Ft
-                        238Fterr = 0.03*238Ftcorr
-                    235Ftcorr = 235Ft
-                        235Fterr = 0.04*235Ftcorr
-                    232Ftcorr = 232Ft
-                        232Fterr = 0.04*232Ftcorr
-                    147Ftcorr = 147Ft
-                        147Fterr = 0.01*147Ftcorr
-                        
-IF Mineral (material?) = 'apatite'
-    IF shape = 'Orthorhombic'
-            Then    238Ftcorr = 0.97*238Ft
-                        IF Wmax < 100, Then 238Fterr = 0.03*238Ftcorr, else 238Fterr = 0.02*238Ftcorr
-                    235Ftcorr = 0.96*235Ft
-                        IF Wmax < 100, Then 235Fterr = 0.04*235Ftcorr, else 235Fterr = 0.02*235Fterr
-                    232Ftcorr = 0.96*232Ft
-                        IF Wmax < 100, Then 232Fterr = 0.04*232Ftcorr, else 232Fterr = 0.02*232Fterr
-                    147Ftcorr = 0.99*147Ft
-                        147Fterr = 0.01*147Ftcorr
-    IF shape = 'Ellipsoid'
-            Then    238Ftcorr = 0.92*238Ft
-                        238Fterr = 0.05*238Ftcorr
-                    235Ftcorr = 0.91*235Ft
-                        235Fterr = 0.06*235Ftcorr
-                    232Ftcorr = 0.91*232Ft
-                        232Fterr = 0.06*232Ftcorr
-                    147Ftcorr = 0.97*147Ft
-                        147Fterr = 0.01*147Ftcorr                      
-            
-                    
+    # First correct the Volume (V) values. This depends upon the mineral and the geometry. Right now we have this for apatite and zircon, so if
+    # the material is something else then Vcorr should just equal V, and Vcorr_err should be XX.
+    if material == "zircon":
+        if shape == 'Orthorhombic':
+            Vcorr = 0.81*V
+            Vcorr_err = 0.13*VCorr
+        elif shape == 'Ellipsoid':
+            Vcorr = 1.04*V
+            VCorr_err = 0.21*VCorr
+    elif material == "apatite":
+        if shape == 'Hexagonal':
+            Vcorr = 0.83*V
+            Vcorr_err = 0.20*VCorr
+        elif shape == 'Ellipsoid':
+            Vcorr = 0.74*V
+            VCorr_err = 0.23*VCorr
+
+    # Now correct the Ft. This will depend upon the material, geometry, and maximum width.
+    if material == 'zircon':
+        if shape = 'Orthorhombic':
+            _238Ftcorr = 0.97*_238Ft
+            _238Fterr = 0.03*_238Ftcorr if  Wmax < 100 else 0.02*_238Ftcorr
+            _235Ftcorr = 0.97*_235Ft
+            _235Fterr = 0.04*_235Ftcorr if Wmax < 100 else 0.03*_235Fterr
+            _232Ftcorr = 0.97*_232Ft
+            _232Fterr = 0.05*_232Ftcorr if Wmax < 100 else 0.02*_232Fterr
+            _147Ftcorr = 0.96*_147Ft
+            _147Fterr = 0.01*_147Ftcorr
+        elif shape == 'Ellipsoid':
+            _238Ftcorr = _238Ft
+            _238Fterr = 0.03*_238Ftcorr
+            _235Ftcorr = _235Ft
+            _235Fterr = 0.04*_235Ftcorr
+            _232Ftcorr = _232Ft
+            _232Fterr = 0.04*_232Ftcorr
+            _147Ftcorr = _147Ft
+            _147Fterr = 0.01*_147Ftcorr
+    if material == 'apatite':
+        if shape == 'Orthorhombic':
+            _238Ftcorr = 0.97*_238Ft
+            _238Fterr =  0.03*_238Ftcorr if Wmax < 100 else 0.02*_238Ftcorr
+            _235Ftcorr = 0.96*_235Ft
+            _235Fterr =  0.04*_235Ftcorr if Wmax < 100 else 0.02*_235Fterr
+            _232Ftcorr = 0.96*_232Ft
+            _232Fterr = 0.04*_232Ftcorr if Wmax < 100 else 0.02*_232Fterr
+            _147Ftcorr = 0.99*_147Ft
+            _147Fterr = 0.01*_147Ftcorr
+        if shape == 'Ellipsoid':
+            _238Ftcorr = 0.92*_238Ft
+            _238Fterr = 0.05*_238Ftcorr
+            _235Ftcorr = 0.91*_235Ft
+            _235Fterr = 0.06*_235Ftcorr
+            _232Ftcorr = 0.91*_232Ft
+            _232Fterr = 0.06*_232Ftcorr
+            _147Ftcorr = 0.97*_147Ft
+            _147Fterr = 0.01*_147Ftcorr
 
 # Function to make datum
 def make_datum(datum, error, parameter, unit):
