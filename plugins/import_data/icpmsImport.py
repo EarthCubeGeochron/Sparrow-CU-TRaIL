@@ -182,25 +182,30 @@ class TRaILicpms(BaseImporter):
         Ft_comb_dict= {'value': Ft_comb, 'error': None,
                        'type': {'parameter': 'Combined Ft', 'unit': ''},
                        'analysis': analysis_obj}
+        
+    def calc_ESR_Ft(self, material, shape, Ft_comb):
+        # Here we will caluclate ESR_Ft and it's associated uncertainty. It will call upon FT_constants defined in picking_specs.yaml 
+        # which are material (mineral) and isotope specific. I'll refer to these as S_238, etc, but they will need to vary depending on the mineral.
+        Sbar = a_238*S_238 + a_232*S_232 + (1-a_238-a_235)*S_235
+        S_R = 1.681-2.428*FT_comb+1.153*(Ft_comb^2)-0.406*(Ft_comb^3)
+        ESR_Ft = Sbar/S_R
+        if material == 'apatite':
+            if shape == 'Hexagonal':
+                ESR_Ft_Corr = 0.93*ESR_Ft
+                ESR_Ft_Corr_err = 0.06*ESR_Ft_Corr
+            elif shape == 'Ellipsoid':
+                ESR_Ft_Corr = 0.85*ESR_Ft
+                ESR_Ft_Corr_err = 0.10*ESR_Ft_Corr
+        elif material == 'zircon':
+            if shape == 'Hexagonal':
+                ESR_Ft_Corr = 0.92*ESR_Ft
+                ESR_Ft_Corr_err = 0.08*ESR_Ft_Corr
+            elif shape = 'ellipsoid'
+                ESR_Ft_Corr = 0.98*ESR_Ft
+                ESR_Ft_Corr_err = 0.08*ESR_Ft_Corr
+        ESR_Ft_dict = {'value': ESR_Ft_Corr, 'error': ESR_Ft_Corr_err}    
+
+
         self.db.load_data('datum', Ft_comb_dict)
-# Here we will caluclate ESR_Ft and it's associated uncertainty. It will call upon FT_constants defined in picking_specs.yaml 
-# which are material (mineral) and isotope specific. I'll refer to these as S_238, etc, but they will need to vary depending on the mineral.
-Sbar = a_238*S_238 + a_232*S_232 + (1-a_238-a_235)*S_235
-S_R = 1.681-2.428*FT_comb+1.153*(Ft_comb^2)-0.406*(Ft_comb^3)
-ESR_Ft = Sbar/S_R
-IF Mineral (material?) = 'apatite'
-    IF shape = 'Hexagonal'
-        ESR_Ft_Corr = 0.93*ESR_Ft
-        ESR_Ft_Corr_err = 0.06*ESR_Ft_Corr
-    IF shape = 'ellipsoid'
-        ESR_Ft_Corr = 0.85*ESR_Ft
-        ESR_Ft_Corr_err = 0.10*ESR_Ft_Corr
-IF Mineral (material?) = 'zircon'
-    IF shape = 'Hexagonal'
-        ESR_Ft_Corr = 0.92*ESR_Ft
-        ESR_Ft_Corr_err = 0.08*ESR_Ft_Corr
-    IF shape = 'ellipsoid'
-        ESR_Ft_Corr = 0.98*ESR_Ft
-        ESR_Ft_Corr_err = 0.08*ESR_Ft_Corr
-IF Mineral is otherwise...
-    
+
+
