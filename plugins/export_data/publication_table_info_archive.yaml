@@ -3,26 +3,26 @@
 # Each option is commented when it first appears in this file.
 - Length 1: # The name in Sparrow
     column: length 1 (µm) [c] # The name to give the output column
-    round: 1 # How many digits to round to
+    round: 0 # How many digits to round to
     error: False # Whether there is uncertainty in the column (should always be True/False)
     width: 8 # The width of the column to save in excel
 - Width 1:
-    column: width 1 (µm) [c]
-    round: 1
+    column: width 1 (µm) [d]
+    round: 0
     error: False
     width: 8
 - Length 2:
     column: length 2 (µm) [c]
-    round: 1
+    round: 0
     error: False
     width: 8
 - Width 2:
-    column: width 2 (µm) [c]
-    round: 1
+    column: width 2 (µm) [d]
+    round: 0
     error: False
     width: 8
 - Crystal geometry:
-    column: Geometry [e]
+    column: Geom [e]
     error: False
     width: 8
 - Crystal termination:
@@ -30,11 +30,11 @@
     error: False
     width: 8
 - 4He blank corrected (±2σ): # Example of column with uncertainty and needing to specify unit
-    column: 4He (fmol) [g]
+    column: 4He (ncc) [g]
     unit: ncc # Provide unit in cases where the same name is present in Sparrow multiple times
     round: 3
     error: True
-    error_round: 4 # How many decimals to round the uncertainty to
+    error_round: 3 # How many decimals to round the uncertainty to
     error_footnote: "[h]" # What to append to the ± in the column header
     width: 8 
     error_width: 8 # width of uncertainty column to save in excel
@@ -43,7 +43,7 @@
     unit: ng
     round: 3
     error: True
-    error_round: 4
+    error_round: 3
     error_footnote: "[h]"
     width: 8
     error_width: 8
@@ -52,7 +52,7 @@
     unit: ng
     round: 3
     error: True
-    error_round: 4
+    error_round: 3
     error_footnote: "[h]"
     width: 8
     error_width: 8
@@ -61,26 +61,26 @@
     unit: ng
     round: 3
     error: True
-    error_round: 4
+    error_round: 3
     error_footnote: "[h]"
     width: 8
     error_width: 8
 - Equivalent Spherical Radius:
     column: Rs (µm) [l]
-    round: 1
+    round: 0
     error: False
     width: 8
 - Dimensional Mass:
     column: Mass (µg) [m]
-    round: 3
+    round: 1
     error: False
     width: 8
 - 4He (±2σ):
     column: 4He (nmol/g) [n]
     unit: nmol/g
-    round: 3
+    round: 2
     error: True
-    error_round: 4
+    error_round: 2
     error_footnote: "[o]"
     width: 8
     error_width: 8
@@ -124,11 +124,11 @@
     round: 1
     error: True
     error_round: 1
-    error_name: Uncorr Date Analytical ± (Ma) 2s [s]
+    error_name: TAU ± (Ma) 2s [s]
     width: 8
     error_width: 15
 - Combined Alpha Ejection Factor:
-    column: Combined Ft [t]
+    column: Comb Ft [t]
     round: 2
     error: False
     width: 8
@@ -213,8 +213,8 @@
   - 'b - Sample and mineral being analyzed. a is apatite. z is zircon. t is titanite.'
   - 'c - Length is measured parallel to the c-axis and includes pyramidal terminations. It is measured twice on two perpendicular sides.'
   - 'd - Width 1 is measured perpendicular to the c-axis. Width 2 is measured perpendicular to both the c-axis and width 1.'
-  - 'e - Geometry is defined as described as in Figure 3 of Ketcham et al. (2011). 1 is ellipsoid, 2 is cylinder, 3 is tetrahedral prism, and 4 is hexagonal prism. f is noted if the analyzed grain is a fragment, otherwise the analyzed grain is a whole crystal.'
-  - 'f - Np denotes the number of pyramidal terminations of the grain.'
+  - 'e - Geometry is defined as described as in Figure 3 of Ketcham et al. (2011).'
+  - 'f - Np describes the number of pyramidal terminations of the grain.'
   - 'g - Blank-corrected 4He'
   - 'h - Uncertainties on 4He, U, Th, and Sm are reported as the 1s standard deviation and include the propagated uncertainties on the measurements of the sample, blank, spike, and standard.'
   - 'i - Total blank-corrected ng of 238U and 235U. Total 238U is measured and 235U is calculated assuming 235U = 238U/137.818 after Hiess et al. (2012).'
@@ -227,12 +227,12 @@
   - 'p - eU is effective uranium concentration. Calculated as U + 0.238*Th + 0.0012*Sm after Appendix A of Cooperdock et al. (2019).'
   - 'q - Uncertainty on eU is estimated at 15% of the eU value.'
   - 'r - Uncorrected (U-Th)/He date is calculated iteratively using the 4He production equation defined as equation 1 in Wolf et al. (1998) modified to include He produced from Sm decay and assuming secular equilibrium.'
-  - 's - Uncertainty on the uncorrected (U-Th)/He date is reported at 2s and includes the propagated total analytical uncertainties (TAU) on the U, Th, Sm and He measurements.'
+  - 's - Uncertainty on the uncorrected (U-Th)/He date is reported at 2s and includes the propagated total analytical uncertainties (TAU) on the U, Th, Sm and He measurements.Uncertainty propagation done using HeCalc (Martin et al., 2023).'
   - 't - The combined alpha-ejection correction for the crystal calculated from the parent isotope-specific FT corrections, the proportion of U and Th contributing to 4He production, and assuming homogeneous parent isotope distributions using equation A4 in Cooperdock et al., (2019). The parent isotope-specific alpha ejection-corrections were computed assuming the reported grain geometry in this table and the equations and alpha-stopping distances in Ketcham et al., (2011).'
   - 'u - The corrected (U-Th)/He date is calculated iteratively using the absolute values of He, U, Th and Sm, the isotope specific FT corrections, and equation 34 in Ketcham at al. (2011) assuming secular equilibrium.'
-  - 'v - Uncertainty on the corrected (U-Th)/He date is reported at 2s and includes the propagated total analytical uncertainties (TAU) on the U, Th, Sm and He measurements. Uncertainty propagation done using HeCalc (Martin et al., in review).'
+  - 'v - Uncertainty on the corrected (U-Th)/He date is reported at 2s and includes the propagated total analytical uncertainties (TAU) on the U, Th, Sm and He measurements. Uncertainty propagation done using HeCalc (Martin et al., 2023).'
   - 'w - The fraction of He that was degassed on the Initial Extraction. For apatites this should be 1.00, lower values may indicate the presence of inclusions. For other minerals this number can vary widely.'
-  - 'x - Durango apatite fragments (or Fish Canyon Tuff zircon crystals) ran in conjunction with these analyses yield an unweighted mean and 2s standard error of XX.X ± X.X Ma (n=X).'
+  - 'Durango apatite fragments (or Fish Canyon Tuff zircon crystals) ran in conjunction with these analyses yield an unweighted mean and 2s standard error of XX.X ± X.X Ma (n=X).'
   - ''
   - 'References cited in footnotes'
   - 'Cooperdock, E.H.G., Ketcham, R.A., and Stockli, D.F., 2019, Resolving the effects of 2D versus 3D grain measurements on (U-Th)/ He age data and reproducibility: Geochronology, 1, p. 17-41, doi: 10.5194/gchron-1-17-2019.'
