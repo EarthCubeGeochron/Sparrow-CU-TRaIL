@@ -13,8 +13,8 @@ fi
 # fusermount: option allow_other only allowed if 'user_allow_other' is set in /etc/fuse.conf
 
 # Clear existing mount configuration, if any
-fusermount -uz $mountpt
+#fusermount -uz $mountpt
 
 # Run the mount daemon
-rclone mount Sparrow_gdrive: $mountpt --allow-other --daemon
+rclone mount Sparrow_gdrive: $mountpt --allow-non-empty --allow-other --daemon
 
