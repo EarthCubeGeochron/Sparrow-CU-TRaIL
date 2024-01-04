@@ -32,3 +32,5 @@ export SPARROW_BACKEND_IMAGE="sparrow_trail_backend:latest"
 # https://stackoverflow.com/questions/15619921/an-attempt-was-made-to-access-a-socket-in-a-way-forbidden-by-its-access-permissi
 export SPARROW_DB_PORT="5433"
 export SPARROW_TEST_DATABASE_PORT="5434"
+
+export SPARROW_LOCAL_FRONTEND=true
