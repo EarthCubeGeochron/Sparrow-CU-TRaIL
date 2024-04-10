@@ -32,36 +32,36 @@
 - 4He blank corrected (±2σ): # Example of column with uncertainty and needing to specify unit
     column: 4He (fmol) [g]
     unit: fmol # Provide unit in cases where the same name is present in Sparrow multiple times
-    round: 2
+    round: 3
     error: True
-    error_round: 2 # How many decimals to round the uncertainty to
+    error_round: 3 # How many decimals to round the uncertainty to
     error_footnote: "[h]" # What to append to the ± in the column header
     width: 8 
     error_width: 8 # width of uncertainty column to save in excel
 - 238U (±2σ):
     column: U (ng) [i]
     unit: ng
-    round: 3
+    round: 6
     error: True
-    error_round: 3
+    error_round: 6
     error_footnote: "[h]"
     width: 8
     error_width: 8
 - 232Th (±2σ):
     column: Th (ng) [j]
     unit: ng
-    round: 3
+    round: 6
     error: True
-    error_round: 3
+    error_round: 6
     error_footnote: "[h]"
     width: 8
     error_width: 8
 - 147Sm (±2σ):
     column: 147Sm (ng) [k]
     unit: ng
-    round: 3
+    round: 6
     error: True
-    error_round: 3
+    error_round: 6
     error_footnote: "[h]"
     width: 8
     error_width: 8
