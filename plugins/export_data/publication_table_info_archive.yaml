@@ -41,27 +41,27 @@
 - U (±2σ):
     column: U (ng) [i]
     unit: ng
-    round: 3
+    round: 6
     error: True
-    error_round: 3
+    error_round: 6
     error_footnote: "[h]"
     width: 8
     error_width: 8
 - Th (±2σ):
     column: Th (ng) [j]
     unit: ng
-    round: 3
+    round: 6
     error: True
-    error_round: 3
+    error_round: 6
     error_footnote: "[h]"
     width: 8
     error_width: 8
 - Sm (±2σ):
     column: 147Sm (ng) [k]
     unit: ng
-    round: 3
+    round: 6
     error: True
-    error_round: 3
+    error_round: 6
     error_footnote: "[h]"
     width: 8
     error_width: 8
