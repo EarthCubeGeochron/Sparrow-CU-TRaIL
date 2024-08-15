@@ -76,16 +76,16 @@ def make_attribute(value, parameter):
 class TRaILpicking(BaseImporter):
     def __init__(self, app, data_dir, **kwargs):
         super().__init__(app)
-        file_list = glob.glob(str(data_dir)+'/PickingData/*.xlsx')
-        
+        file_list = kwargs.get('file_list', glob.glob(str(data_dir)+'/PickingData/*.xlsx'))
+
         # Load the picking specs. This file dictates virtually everything about this import
         spec = relative_path(__file__, 'picking_specs.yaml')
         with open(spec) as f:
             self.picking_specs = load(f)
-        
+
         self.iterfiles(file_list, **kwargs)
-    
-    
+
+
     # Method to generate a lab ID for a new sample based on the date of the analysis
     def make_labID(self, date):
         year = str(date.year)[-2:]
@@ -110,11 +110,11 @@ class TRaILpicking(BaseImporter):
                              header = 0,
                              dtype={self.picking_specs['Metadata']['Date']: str},
                              sheet_name = 'master')
-        
+
         # Find actual data by figuring out where the analyst rows are full
         data = data[(data[self.picking_specs['Metadata']['Researcher']].notnull())&
                     (data['Sample']!='EXAMPLE')]
-                
+
         for d in range(len(data)):
             # Generate a lab ID for each grain
             date = str(data.iloc[d][self.picking_specs['Metadata']['Date']])
@@ -123,7 +123,7 @@ class TRaILpicking(BaseImporter):
             else:
                 date = parse(date)
             lab_id = self.make_labID(date)
-            
+
             # Generate metadata required for every grain
             researcher = str(data.iloc[d][self.picking_specs['Metadata']['Researcher']])
             lab_owner = str(data.iloc[d][self.picking_specs['Metadata']['Lab_owner']])
@@ -132,7 +132,7 @@ class TRaILpicking(BaseImporter):
             grain = data.iloc[d][self.picking_specs['Metadata']['Grain']]
             print('Importing: '+sample+'_'+grain)
             material = self.picking_specs['mineral_key'][data.iloc[d][self.picking_specs['Metadata']['Mineral']]]
-            
+
             # Create necessary data for Fts if not a shard. This info MUST be recorded for whole grains
             shard = data.iloc[d][self.picking_specs['Metadata']['Fragment']]
             if shard != 'Y' and shard != 'y':
@@ -142,7 +142,7 @@ class TRaILpicking(BaseImporter):
                 width2 = data.iloc[d][self.picking_specs['Metadata']['Dimensions']['Width 2']]
                 terminations = data.iloc[d][self.picking_specs['Metadata']['Crystal terminations']]
                 geometry = data.iloc[d][self.picking_specs['Metadata']['Crystal geometry']]
-                
+
                 # Generate Ft and dimensional mass
                 Fts = get_Ft(length1, width1, length2, width2,
                              int(terminations), self.picking_specs['geometry_key'][geometry],
@@ -178,7 +178,7 @@ class TRaILpicking(BaseImporter):
                     'analysis_type': 'Grain dimensions & shape',
                     'attribute': [make_attribute('Crystal shard', 'Shape notes')]
                     }
-            
+
             # create datum and attributes for characteristics analysis
             # Characteristics will always be recorded, even for shards
             chars_attributes = []
@@ -204,7 +204,7 @@ class TRaILpicking(BaseImporter):
                     'analysis_type': 'Grain characteristics',
                     'attribute': [make_attribute(*a) for a in chars_attributes]
                     }
-            
+
             # Create a new sample in the database using the picking sheet metadata
             sample_schema = {
                 'member_of': {'name': sample,
@@ -229,7 +229,7 @@ class TRaILpicking(BaseImporter):
                         ]
                     }]
                     }
-            
+
             # Only incude derived data if not a shard
             if Fts:
                 # Compile Ft data for date calculation session
@@ -244,7 +244,7 @@ class TRaILpicking(BaseImporter):
                     [dimensional_mass, dimensional_mass*dim_mass_err*2, 'Dimensional mass (±2σ)', 'μg'],
                     [Fts['Rs'], Fts['Rs']*Rs_err*2, 'Equivalent spherical radius (±2σ)', 'μm']
                     ]
-                
+
                 sample_schema['session'].append({
                     'technique': {'id': 'Dates and other derived data'},
                     'date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -259,6 +259,6 @@ class TRaILpicking(BaseImporter):
                         'datum': [make_datum(*d) for d in Rs_mass]
                         }]
                         })
-            
+
             print('')
             self.db.load_data('sample', sample_schema, strict=True)

@@ -8,7 +8,11 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 pytest = "^8.3.2"
+sparrow = { path = "../../Software/Sparrow/backend", develop = true }
 
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.8.0"
 
 [build-system]
 requires = ["poetry-core"]
