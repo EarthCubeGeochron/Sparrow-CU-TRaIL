@@ -78,11 +78,7 @@ class TRaILpicking(BaseImporter):
         super().__init__(app)
         file_list = kwargs.get('file_list', glob.glob(str(data_dir)+'/PickingData/*.xlsx'))
 
-        # Load the picking specs. This file dictates virtually everything about this import
-        spec = relative_path(__file__, 'picking_specs.yaml')
-        with open(spec) as f:
-            self.picking_specs = load(f)
-
+        self.picking_specs = get_picking_specs()
         self.iterfiles(file_list, **kwargs)
 
 
@@ -105,12 +101,17 @@ class TRaILpicking(BaseImporter):
         return lab_id
 
     def import_datafile(self, fn, rec, **kwargs):
-        sample_schema = read_picking_data(fn, self.picking_data, **kwargs)
+        sample_schema = read_picking_data(fn, self.picking_data)
         print('')
         self.db.load_data('sample', sample_schema, strict=True)
 
+def get_picking_specs():
+    # Load the picking specs. This file dictates virtually everything about this import
+    spec = relative_path(__file__, 'picking_specs.yaml')
+    with open(spec) as f:
+        return load(f)
 
-def read_picking_data(fn, picking_data, **kwargs):
+def read_picking_data(fn, picking_data):
     data = pd.read_excel(fn,
                          skiprows = 1,
                          header = 0,
