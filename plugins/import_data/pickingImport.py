@@ -101,9 +101,9 @@ class TRaILpicking(BaseImporter):
         return lab_id
 
     def import_datafile(self, fn, rec, **kwargs):
-        sample_schema = read_picking_data(fn, self.picking_specs, self.make_labID)
-        print('')
-        self.db.load_data('sample', sample_schema, strict=True)
+        sample_schemas = read_picking_data(fn, self.picking_specs, self.make_labID)
+        for sample in sample_schemas:
+            self.db.load_data('sample', sample, strict=True)
 
 def get_picking_specs():
     # Load the picking specs. This file dictates virtually everything about this import
@@ -267,4 +267,4 @@ def read_picking_data(fn, picking_specs, make_labID):
                     }]
                     })
 
-    return sample_schema
+        yield sample_schema
