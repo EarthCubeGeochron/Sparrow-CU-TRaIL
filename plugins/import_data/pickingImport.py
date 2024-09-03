@@ -112,15 +112,7 @@ def get_picking_specs():
         return load(f, Loader=SafeLoader)
 
 def read_picking_data(fn, picking_specs, make_labID):
-    data = pd.read_excel(fn,
-                         skiprows = 1,
-                         header = 0,
-                         dtype={picking_specs['Metadata']['Date']: str},
-                         sheet_name = 'master')
-
-    # Find actual data by figuring out where the analyst rows are full
-    data = data[(data[picking_specs['Metadata']['Researcher']].notnull())&
-                (data['Sample']!='EXAMPLE')]
+    data = get_picking_dataframe(fn, picking_specs)
 
     for d in range(len(data)):
         # Generate a lab ID for each grain
@@ -268,3 +260,14 @@ def read_picking_data(fn, picking_specs, make_labID):
                     })
 
         yield sample_schema
+
+def get_picking_dataframe(fn, picking_specs):
+    data = pd.read_excel(fn,
+                         skiprows = 1,
+                         header = 0,
+                         dtype={picking_specs['Metadata']['Date']: str},
+                         sheet_name = 'master')
+
+    # Find actual data by figuring out where the analyst rows are full
+    return data[(data[picking_specs['Metadata']['Researcher']].notnull())&
+                (data['Sample']!='EXAMPLE')]

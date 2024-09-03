@@ -4,7 +4,7 @@ from uuid import uuid4
 from pandas import read_excel
 import numpy as N
 
-from plugins.import_data.pickingImport import read_picking_data, get_picking_specs
+from plugins.import_data.pickingImport import read_picking_data, get_picking_specs, get_picking_dataframe
 
 picking_data = Path(__file__).parent.parent/"test_data"
 
@@ -34,19 +34,47 @@ def test_picking_data():
     # Check that the names are the same
     assert names == new_names
 
+    df = get_picking_dataframe(fn, specs)
+    assert len(df) == 8
+
+
     # Now check that all grain dimensions are the same
     for sample in picking:
-        row = res1[res1.iloc[:,0] == sample["name"]].iloc[0]
+        name = res1.iloc[:,0]
+        row = res1[name == sample["name"]].iloc[0]
         sess = sample["session"][0]
-        for analysis in sess["analysis"]:
-            if analysis["analysis_type"] == "Grain dimensions & shape":
-                for datum in analysis["datum"]:
-                    for param in ["Length 1", "Length 2", "Width 1", "Width 2"]:
-                        if param != datum["type"]["parameter"]: continue
-                        v = param.lower()
-                        assert N.allclose(datum["value"], row[v+" (µm) [c]"], atol=0.1)
+        has_aec = False
+        for sess in sample["session"]:
+            if sess["technique"]["id"] == "Picking info":
+                for analysis in sess["analysis"]:
+                    if analysis["analysis_type"] == "Grain dimensions & shape":
+                        data = {x["type"]["parameter"]: x["value"] for x in analysis["datum"]}
+                        for param in ["Length 1", "Length 2", "Width 1", "Width 2"]:
+                            value = data[param]
+                            assert N.allclose(value, row[param.lower()+" (µm) [c]"], atol=0.01)
+
+            if sess["technique"]["id"] == "Dates and other derived data":
+                for analysis in sess["analysis"]:
+                    if analysis["analysis_type"] == "Alpha ejection correction values":
+                        data = {x["type"]["parameter"]: x["value"] for x in analysis["datum"]}
+
+                        min = "Ap"
+                        if "zirc" in sample["name"].lower():
+                            min = "Z"
+
+                        d1 = df[df["Packet Identifier"] == sample["name"]].iloc[0]
+
+
+                        field = f"{min} ThFt"
+
+                        assert N.allclose(d1[field], data["232Th Ft (±2σ)"], atol=0.01)
+                        has_aec = True
+
+        if not has_aec:
+            raise ValueError("No Alpha Ejection Correction found")
 
         #assert row.iloc[1] == sample["age"]
+
 
 
 
