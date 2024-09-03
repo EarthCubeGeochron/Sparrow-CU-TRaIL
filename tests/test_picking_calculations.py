@@ -2,6 +2,7 @@
 from pathlib import Path
 from uuid import uuid4
 from pandas import read_excel
+import numpy as N
 
 from plugins.import_data.pickingImport import read_picking_data, get_picking_specs
 
@@ -14,10 +15,10 @@ def test_picking_data():
     """Basic test of reading picking data"""
     specs = get_picking_specs()
     fn = picking_data/"PickingData"/"Test_Picking_Sheet.xlsx"
-    res = list(read_picking_data(fn, specs, random_lab_id))
-    assert len(res) == 8
+    picking = list(read_picking_data(fn, specs, random_lab_id))
+    assert len(picking) == 8
 
-    assert len(res[0]["lab_id"]) == 6
+    assert len(picking[0]["lab_id"]) == 6
 
     # Check that the first row is correct
 
@@ -26,19 +27,40 @@ def test_picking_data():
     assert len(res1) == 8
 
     # Get names from picking input
-    names = set([x["name"] for x in res])
+    names = set([x["name"] for x in picking])
     # new names
     new_names = set(res1.iloc[:,0])
 
     # Check that the names are the same
     assert names == new_names
 
+    # Now check that all grain dimensions are the same
+    for sample in picking:
+        row = res1[res1.iloc[:,0] == sample["name"]].iloc[0]
+        sess = sample["session"][0]
+        for analysis in sess["analysis"]:
+            if analysis["analysis_type"] == "Grain dimensions & shape":
+                for datum in analysis["datum"]:
+                    for param in ["Length 1", "Length 2", "Width 1", "Width 2"]:
+                        if param != datum["type"]["parameter"]: continue
+                        v = param.lower()
+                        assert N.allclose(datum["value"], row[v+" (µm) [c]"], atol=0.1)
+
+        #assert row.iloc[1] == sample["age"]
+
+
+
 
 
 def read_pub_table(fn):
+    """
+    Read a publication table, and return it as a DataFrame
+    :param fn:
+    :return:
+    """
     tbl = read_excel(fn, skiprows=1, engine="openpyxl")
 
-    # Remove all rows after the last empty row
+    # Remove all rows after the last empty row (these are comments and instructions generally)
     last_empty = tbl[tbl.iloc[:,0].isna()].index[0]
     tbl = tbl.iloc[:last_empty]
     # Interpret all rows with only one value as sample IDs, and append them to the grain indexes
