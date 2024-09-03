@@ -14,7 +14,7 @@ from sparrow.core.import_helpers import BaseImporter
 from macrostrat.utils import relative_path
 import datetime
 from dateutil.parser import parse
-from yaml import load
+from yaml import load, SafeLoader
 
 # Replicates Ketcham et al., 2011 for Ft calculation
 def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material):
@@ -101,7 +101,7 @@ class TRaILpicking(BaseImporter):
         return lab_id
 
     def import_datafile(self, fn, rec, **kwargs):
-        sample_schema = read_picking_data(fn, self.picking_data)
+        sample_schema = read_picking_data(fn, self.picking_specs, self.make_labID)
         print('')
         self.db.load_data('sample', sample_schema, strict=True)
 
@@ -109,9 +109,9 @@ def get_picking_specs():
     # Load the picking specs. This file dictates virtually everything about this import
     spec = relative_path(__file__, 'picking_specs.yaml')
     with open(spec) as f:
-        return load(f)
+        return load(f, Loader=SafeLoader)
 
-def read_picking_data(fn, picking_data):
+def read_picking_data(fn, picking_specs, make_labID):
     data = pd.read_excel(fn,
                          skiprows = 1,
                          header = 0,
@@ -129,7 +129,7 @@ def read_picking_data(fn, picking_data):
             date = datetime.datetime.now()
         else:
             date = parse(date)
-        lab_id = self.make_labID(date)
+        lab_id = make_labID(date)
 
         # Generate metadata required for every grain
         researcher = str(data.iloc[d][picking_specs['Metadata']['Researcher']])
