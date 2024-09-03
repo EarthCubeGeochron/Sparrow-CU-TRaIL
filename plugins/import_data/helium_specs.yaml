@@ -1,7 +1,7 @@
 # This is a simple yaml file that gives the necessary info for code-efficient helium data import
 # Each entry has the same format, commented inline below
 4He blank corrected (±2σ): # The name to show on the front end
-  - 4He (fmol) # The column name for the value
+  - 4He(fmol) # The column name for the value
   - +/- # The column name for the error
   - fmol # The unit to apply
 Q used (±2σ):

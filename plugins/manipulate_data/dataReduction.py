@@ -3,8 +3,7 @@ import hecalc
 import copy
 from hecalc.main import _sample_loop
 from rich import print
-from sparrow.import_helpers import BaseImporter
-
+from sparrow.core.import_helpers import BaseImporter
 
 def make_datum(val, err, data_dict, unit, TAU):
     return {
@@ -324,7 +323,6 @@ class TRaILdatecalc(BaseImporter):
             Ft232=Ft232,
             Ft147=Ft147,
         )
-
         # Get total uncertainty first
         linear_uncertainty = hecalc.date_uncertainty(
             He4_mol,
@@ -349,7 +347,7 @@ class TRaILdatecalc(BaseImporter):
         precision = 0.01 / 100  # precision in percent
         # Check that precision doesn't require too many or too few cycles
         mc_number = int(
-            (2 * (precision * date["corrected date"]) ** 2 + linear_uncertainty**2)
+            (2 * (precision * date["corrected date"]) ** 2 + linear_uncertainty ** 2)
             / (2 * (precision * date["corrected date"]) ** 2)
         )
         if mc_number < 5:
@@ -393,7 +391,7 @@ class TRaILdatecalc(BaseImporter):
             )
             precision_TAU = 0.001 / 100  # precision in percent
             mc_number_TAU = int(
-                linear_uncertainty_TAU**2
+                linear_uncertainty_TAU ** 2
                 / (precision_TAU * date["corrected date"]) ** 2
             )
             if mc_number_TAU < 5:
