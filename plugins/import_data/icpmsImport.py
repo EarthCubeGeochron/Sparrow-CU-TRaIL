@@ -233,7 +233,7 @@ class TRaILicpms(BaseImporter):
         }
 
     def calc_ESR_Ft(self, material, shape, Ft_comb):
-        # Here we will caluclate ESR_Ft and it's associated uncertainty. It will call upon FT_constants defined in picking_specs.yaml
+        # Here we will calculate ESR_Ft and it's associated uncertainty. It will call upon FT_constants defined in picking_specs.yaml
         # which are material (mineral) and isotope specific. I'll refer to these as S_238, etc, but they will need to vary depending on the mineral.
         Sbar = a_238 * S_238 + a_232 * S_232 + (1 - a_238 - a_235) * S_235
         S_R = 1.681 - 2.428 * FT_comb + 1.153 * (Ft_comb ^ 2) - 0.406 * (Ft_comb ^ 3)

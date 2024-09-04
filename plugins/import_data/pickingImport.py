@@ -15,11 +15,20 @@ from macrostrat.utils import relative_path
 import datetime
 from dateutil.parser import parse
 from yaml import load, SafeLoader
+from enum import Enum
+
+
+class Material(Enum):
+    Zircon = "Zircon"
+    Apatite = "Apatite"
+
 
 # Replicates Ketcham et al., 2011 for Ft calculation
-def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material):
+def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material: Material):
     # We need to make sure that we know the maximum width. I think we should define that here as
     Wmax = max(w1, w2)
+
+    print(material, shape)
 
     Ft_dat = {}
     for iso in ["238U", "235U", "232Th", "147Sm"]:
@@ -109,17 +118,19 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material):
     Ft_dat["Rs"] = Rs
     # return Ft_dat
 
+    Vcorr = V
+    Vcorr_err = float("nan")
     # First correct the Volume (V) values. This depends upon the mineral and the geometry.
     # Right now we have this for apatite and zircon, so if
     # the material is something else then Vcorr should just equal V, and Vcorr_err should be XX.
-    if material == "zircon":
+    if material == "Zircon":
         if shape == "Orthorhombic":
             Vcorr = 0.81 * V
             Vcorr_err = 0.13 * Vcorr
         elif shape == "Ellipsoid":
             Vcorr = 1.04 * V
             Vcorr_err = 0.21 * Vcorr
-    elif material == "apatite":
+    elif material == "Apatite":
         if shape == "Hexagonal":
             Vcorr = 0.83 * V
             Vcorr_err = 0.20 * Vcorr
@@ -127,15 +138,33 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material):
             Vcorr = 0.74 * V
             Vcorr_err = 0.23 * Vcorr
 
+    Ft_dat["V"] = Vcorr
+    Ft_dat["V_err"] = Vcorr_err
+
     # Now correct the Ft. This will depend upon the material, geometry, and maximum width.
-    if material == "zircon":
+    _238Ft = Ft_dat["238U"]
+    _235Ft = Ft_dat["235U"]
+    _232Ft = Ft_dat["232Th"]
+    _147Ft = Ft_dat["147Sm"]
+
+    # Set some default values for Ft errors
+    _238Ftcorr = _238Ft
+    _238Fterr = float("nan")
+    _235Ftcorr = _235Ft
+    _235Fterr = float("nan")
+    _232Ftcorr = _232Ft
+    _232Fterr = float("nan")
+    _147Ftcorr = _147Ft
+    _147Fterr = float("nan")
+
+    if material == "Zircon":
         if shape == "Orthorhombic":
             _238Ftcorr = 0.97 * _238Ft
             _238Fterr = 0.03 * _238Ftcorr if Wmax < 100 else 0.02 * _238Ftcorr
             _235Ftcorr = 0.97 * _235Ft
-            _235Fterr = 0.04 * _235Ftcorr if Wmax < 100 else 0.03 * _235Fterr
+            _235Fterr = 0.04 * _235Ftcorr if Wmax < 100 else 0.03 * _235Ftcorr
             _232Ftcorr = 0.97 * _232Ft
-            _232Fterr = 0.05 * _232Ftcorr if Wmax < 100 else 0.02 * _232Fterr
+            _232Fterr = 0.05 * _232Ftcorr if Wmax < 100 else 0.02 * _232Ftcorr
             _147Ftcorr = 0.96 * _147Ft
             _147Fterr = 0.01 * _147Ftcorr
         elif shape == "Ellipsoid":
@@ -147,7 +176,7 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material):
             _232Fterr = 0.04 * _232Ftcorr
             _147Ftcorr = _147Ft
             _147Fterr = 0.01 * _147Ftcorr
-    if material == "apatite":
+    if material == "Apatite":
         if shape == "Orthorhombic":
             _238Ftcorr = 0.97 * _238Ft
             _238Fterr = 0.03 * _238Ftcorr if Wmax < 100 else 0.02 * _238Ftcorr
@@ -166,6 +195,16 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material):
             _232Fterr = 0.06 * _232Ftcorr
             _147Ftcorr = 0.97 * _147Ft
             _147Fterr = 0.01 * _147Ftcorr
+    Ft_dat["238U"] = _238Ftcorr
+    Ft_dat["238U_err"] = _238Fterr
+    Ft_dat["235U"] = _235Ftcorr
+    Ft_dat["235U_err"] = _235Fterr
+    Ft_dat["232Th"] = _232Ftcorr
+    Ft_dat["232Th_err"] = _232Fterr
+    Ft_dat["147Sm"] = _147Ftcorr
+    Ft_dat["147Sm_err"] = _147Fterr
+
+    return Ft_dat
 
 
 # Function to make datum
@@ -185,198 +224,236 @@ def make_attribute(value, parameter):
 class TRaILpicking(BaseImporter):
     def __init__(self, app, data_dir, **kwargs):
         super().__init__(app)
-        file_list = kwargs.get('file_list', glob.glob(str(data_dir)+'/PickingData/*.xlsx'))
+        file_list = kwargs.get(
+            "file_list", glob.glob(str(data_dir) + "/PickingData/*.xlsx")
+        )
 
         self.picking_specs = get_picking_specs()
         self.iterfiles(file_list, **kwargs)
-
 
     # Method to generate a lab ID for a new sample based on the date of the analysis
     def make_labID(self, date):
         year = str(date.year)[-2:]
         # Query database for all lab IDs
-        all_IDs = [el for tup in self.db.session.query(self.db.model.sample.lab_id).all()
-                   for el in tup if el is not None]
+        all_IDs = [
+            el
+            for tup in self.db.session.query(self.db.model.sample.lab_id).all()
+            for el in tup
+            if el is not None
+        ]
         # Isolate lab IDs from the same year
-        same_year = [i for i in all_IDs if year+'-' in i]
+        same_year = [i for i in all_IDs if year + "-" in i]
         # Get the highest numbered analysis for the year and add 1
         if len(same_year) > 0:
-            max_num = max([int(i.split('-')[1]) for i in same_year])
+            max_num = max([int(i.split("-")[1]) for i in same_year])
         else:
             max_num = 0
-        id_num = max_num+1
+        id_num = max_num + 1
         # Combine year and analysis number to get lab_id
-        lab_id = year+'-'+f'{id_num:05d}'
+        lab_id = year + "-" + f"{id_num:05d}"
         return lab_id
 
     def import_datafile(self, fn, rec, **kwargs):
         sample_schemas = read_picking_data(fn, self.picking_specs, self.make_labID)
         for sample in sample_schemas:
-            self.db.load_data('sample', sample, strict=True)
+            self.db.load_data("sample", sample, strict=True)
+
 
 def get_picking_specs():
     # Load the picking specs. This file dictates virtually everything about this import
-    spec = relative_path(__file__, 'picking_specs.yaml')
+    spec = relative_path(__file__, "picking_specs.yaml")
     with open(spec) as f:
         return load(f, Loader=SafeLoader)
+
 
 def read_picking_data(fn, picking_specs, make_labID):
     data = get_picking_dataframe(fn, picking_specs)
 
     for d in range(len(data)):
         # Generate a lab ID for each grain
-        date = str(data.iloc[d][picking_specs['Metadata']['Date']])
-        if date == 'nan':
+        date = str(data.iloc[d][picking_specs["Metadata"]["Date"]])
+        if date == "nan":
             date = datetime.datetime.now()
         else:
             date = parse(date)
         lab_id = make_labID(date)
 
         # Generate metadata required for every grain
-        researcher = str(data.iloc[d][picking_specs['Metadata']['Researcher']])
-        lab_owner = str(data.iloc[d][picking_specs['Metadata']['Lab_owner']])
-        funding = str(data.iloc[d][picking_specs['Metadata']['Funding']])
-        sample = data.iloc[d][picking_specs['Metadata']['Sample']]
-        grain = data.iloc[d][picking_specs['Metadata']['Grain']]
-        print('Importing: '+sample+'_'+grain)
-        material = picking_specs['mineral_key'][data.iloc[d][picking_specs['Metadata']['Mineral']]]
+        researcher = str(data.iloc[d][picking_specs["Metadata"]["Researcher"]])
+        lab_owner = str(data.iloc[d][picking_specs["Metadata"]["Lab_owner"]])
+        funding = str(data.iloc[d][picking_specs["Metadata"]["Funding"]])
+        sample = data.iloc[d][picking_specs["Metadata"]["Sample"]]
+        grain = data.iloc[d][picking_specs["Metadata"]["Grain"]]
+        print("Importing: " + sample + "_" + grain)
+        material = picking_specs["mineral_key"][
+            data.iloc[d][picking_specs["Metadata"]["Mineral"]]
+        ]
 
         # Create necessary data for Fts if not a shard. This info MUST be recorded for whole grains
-        shard = data.iloc[d][picking_specs['Metadata']['Fragment']]
-        if shard != 'Y' and shard != 'y':
-            length1 = data.iloc[d][picking_specs['Metadata']['Dimensions']['Length 1']]
-            width1 = data.iloc[d][picking_specs['Metadata']['Dimensions']['Width 1']]
-            length2 = data.iloc[d][picking_specs['Metadata']['Dimensions']['Length 2']]
-            width2 = data.iloc[d][picking_specs['Metadata']['Dimensions']['Width 2']]
-            terminations = data.iloc[d][picking_specs['Metadata']['Crystal terminations']]
-            geometry = data.iloc[d][picking_specs['Metadata']['Crystal geometry']]
+        shard = data.iloc[d][picking_specs["Metadata"]["Fragment"]]
+        if shard != "Y" and shard != "y":
+            length1 = data.iloc[d][picking_specs["Metadata"]["Dimensions"]["Length 1"]]
+            width1 = data.iloc[d][picking_specs["Metadata"]["Dimensions"]["Width 1"]]
+            length2 = data.iloc[d][picking_specs["Metadata"]["Dimensions"]["Length 2"]]
+            width2 = data.iloc[d][picking_specs["Metadata"]["Dimensions"]["Width 2"]]
+            terminations = data.iloc[d][
+                picking_specs["Metadata"]["Crystal terminations"]
+            ]
+            geometry = data.iloc[d][picking_specs["Metadata"]["Crystal geometry"]]
 
             # Generate Ft and dimensional mass
-            Fts = get_Ft(length1, width1, length2, width2,
-                         int(terminations), picking_specs['geometry_key'][geometry],
-                         picking_specs['Ft_constants'], material)
-            dimensional_mass = picking_specs['Ft_constants'][material]['density']*Fts['V']/1e6
+            Fts = get_Ft(
+                length1,
+                width1,
+                length2,
+                width2,
+                int(terminations),
+                picking_specs["geometry_key"][geometry],
+                picking_specs["Ft_constants"],
+                material,
+            )
+            dimensional_mass = (
+                picking_specs["Ft_constants"][material]["density"] * Fts["V"] / 1e6
+            )
 
             # create datum and attributes for shape analysis
             shape_data = []
-            for s in picking_specs['Shape']['data']:
+            for s in picking_specs["Shape"]["data"]:
                 col = next(iter(s))
                 value = data.iloc[d][col]
                 error = None
-                shape_data.append([value, error, s[col]['name'], s[col]['unit']])
+                shape_data.append([value, error, s[col]["name"], s[col]["unit"]])
             shape_attributes = []
-            for s in picking_specs['Shape']['attributes']:
+            for s in picking_specs["Shape"]["attributes"]:
                 col = next(iter(s))
                 value = str(data.iloc[d][col])
-                if 'eometry' in col:
-                    sparrow_val = picking_specs['geometry_key'][int(float(value))]
-                if 'Np' in col:
-                    sparrow_val = picking_specs['terminations_key'][int(float(value))]
+                if "eometry" in col:
+                    sparrow_val = picking_specs["geometry_key"][int(float(value))]
+                if "Np" in col:
+                    sparrow_val = picking_specs["terminations_key"][int(float(value))]
                 shape_attributes.append([sparrow_val, s[col]])
             # make analysis dictionary
             shape_dict = {
-                'analysis_type': 'Grain dimensions & shape',
-                'datum': [make_datum(*d) for d in shape_data],
-                'attribute': [make_attribute(*a) for a in shape_attributes]
-                }
+                "analysis_type": "Grain dimensions & shape",
+                "datum": [make_datum(*d) for d in shape_data],
+                "attribute": [make_attribute(*a) for a in shape_attributes],
+            }
         # If a shard, simply add that as a note and don't calculate Ft values
         else:
             Fts = False
             shape_dict = {
-                'analysis_type': 'Grain dimensions & shape',
-                'attribute': [make_attribute('Crystal shard', 'Shape notes')]
-                }
+                "analysis_type": "Grain dimensions & shape",
+                "attribute": [make_attribute("Crystal shard", "Shape notes")],
+            }
 
         # create datum and attributes for characteristics analysis
         # Characteristics will always be recorded, even for shards
         chars_attributes = []
-        for s in picking_specs['Characteristics']['attributes']:
+        for s in picking_specs["Characteristics"]["attributes"]:
             col = next(iter(s))
             value = str(data.iloc[d][col])
             chars_attributes.append([value, s[col]])
         # make analysis dictionary, exclude missing data if shards
-        if shard != 'Y' and shard != 'y':
+        if shard != "Y" and shard != "y":
             # First, get uncertainty for each derived parameter
             for l in chars_attributes:
                 for i in l:
                     # get derived data uncertainties for later
-                    if 'Idealness' in i:
+                    if "Idealness" in i:
                         xtalform = l[0]
                         # THIS IS WHERE DECISION TREES WOULD BE REFERENCED
-                        dim_mass_err = picking_specs['Dim_mass_key'][xtalform]
-                        Rs_err = picking_specs['Rs_err_key'][xtalform]
+                        dim_mass_err = picking_specs["Dim_mass_key"][xtalform]
+                        Rs_err = picking_specs["Rs_err_key"][xtalform]
                         # Right now, Ft_err is a proportion, 1sigma. i.e. 0.2 = 20%
-                        Ft_err = picking_specs['Ft_err_key'][xtalform]
+                        Ft_err = picking_specs["Ft_err_key"][xtalform]
             # Cast attributes (no data for characteristics) for analysis to dictionary
             chars_dict = {
-                'analysis_type': 'Grain characteristics',
-                'attribute': [make_attribute(*a) for a in chars_attributes]
-                }
+                "analysis_type": "Grain characteristics",
+                "attribute": [make_attribute(*a) for a in chars_attributes],
+            }
 
         # Create a new sample in the database using the picking sheet metadata
         sample_schema = {
-            'member_of': {'name': sample,
-                          'material': 'rock',
-                          'embargo_date': '2150-01-01'},
-            'researcher': [{'name': researcher}],
-            'lab_owner': lab_owner,
-            'funding': funding,
-            'name': sample+'_'+grain,
-            'material': material,
-            'lab_id': lab_id,
-            'embargo_date': '2150-01-01',
-            'from_archive': 'false',
-            'session': [
+            "member_of": {
+                "name": sample,
+                "material": "rock",
+                "embargo_date": "2150-01-01",
+            },
+            "researcher": [{"name": researcher}],
+            "lab_owner": lab_owner,
+            "funding": funding,
+            "name": sample + "_" + grain,
+            "material": material,
+            "lab_id": lab_id,
+            "embargo_date": "2150-01-01",
+            "from_archive": "false",
+            "session": [
                 {
-                'technique': {'id': 'Picking information'},
-                'instrument': {'name': 'Leica microscope'},
-                'date': date,
-                'analysis': [
-                    shape_dict,
-                    chars_dict
-                    ]
-                }]
+                    "technique": {"id": "Picking information"},
+                    "instrument": {"name": "Leica microscope"},
+                    "date": date,
+                    "analysis": [shape_dict, chars_dict],
                 }
+            ],
+        }
 
         # Only incude derived data if not a shard
         if Fts:
             # Compile Ft data for date calculation session
             # This is where Ft_errors are calculated
             Ft_data = [
-                [Fts['238U'], Fts['238U']*Ft_err*2, '238U Ft (±2σ)', ''],
-                [Fts['235U'], Fts['235U']*Ft_err*2,'235U Ft (±2σ)', ''],
-                [Fts['232Th'], Fts['232Th']*Ft_err*2,'232Th Ft (±2σ)', ''],
-                [Fts['147Sm'], Fts['147Sm']*Ft_err*2,'147Sm Ft (±2σ)', ''],
-                ]
+                [Fts["238U"], Fts["238U"] * Ft_err * 2, "238U Ft (±2σ)", ""],
+                [Fts["235U"], Fts["235U"] * Ft_err * 2, "235U Ft (±2σ)", ""],
+                [Fts["232Th"], Fts["232Th"] * Ft_err * 2, "232Th Ft (±2σ)", ""],
+                [Fts["147Sm"], Fts["147Sm"] * Ft_err * 2, "147Sm Ft (±2σ)", ""],
+            ]
             Rs_mass = [
-                [dimensional_mass, dimensional_mass*dim_mass_err*2, 'Dimensional mass (±2σ)', 'μg'],
-                [Fts['Rs'], Fts['Rs']*Rs_err*2, 'Equivalent spherical radius (±2σ)', 'μm']
-                ]
+                [
+                    dimensional_mass,
+                    dimensional_mass * dim_mass_err * 2,
+                    "Dimensional mass (±2σ)",
+                    "μg",
+                ],
+                [
+                    Fts["Rs"],
+                    Fts["Rs"] * Rs_err * 2,
+                    "Equivalent spherical radius (±2σ)",
+                    "μm",
+                ],
+            ]
 
-            sample_schema['session'].append({
-                'technique': {'id': 'Dates and other derived data'},
-                'date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                #'date': '1900-01-01 00:00:00+00', # always pass an 'unknown date' value for calculation
-                'analysis': [
-                    {
-                    'analysis_type': 'Alpha ejection correction values',
-                    'datum': [make_datum(*d) for d in Ft_data]
-                    },
-                    {
-                    'analysis_type': 'Rs, mass, concentrations',
-                    'datum': [make_datum(*d) for d in Rs_mass]
-                    }]
-                    })
+            sample_schema["session"].append(
+                {
+                    "technique": {"id": "Dates and other derived data"},
+                    "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    #'date': '1900-01-01 00:00:00+00', # always pass an 'unknown date' value for calculation
+                    "analysis": [
+                        {
+                            "analysis_type": "Alpha ejection correction values",
+                            "datum": [make_datum(*d) for d in Ft_data],
+                        },
+                        {
+                            "analysis_type": "Rs, mass, concentrations",
+                            "datum": [make_datum(*d) for d in Rs_mass],
+                        },
+                    ],
+                }
+            )
 
         yield sample_schema
 
+
 def get_picking_dataframe(fn, picking_specs):
-    data = pd.read_excel(fn,
-                         skiprows = 1,
-                         header = 0,
-                         dtype={picking_specs['Metadata']['Date']: str},
-                         sheet_name = 'master')
+    data = pd.read_excel(
+        fn,
+        skiprows=1,
+        header=0,
+        dtype={picking_specs["Metadata"]["Date"]: str},
+        sheet_name="master",
+    )
 
     # Find actual data by figuring out where the analyst rows are full
-    return data[(data[picking_specs['Metadata']['Researcher']].notnull())&
-                (data['Sample']!='EXAMPLE')]
+    return data[
+        (data[picking_specs["Metadata"]["Researcher"]].notnull())
+        & (data["Sample"] != "EXAMPLE")
+    ]
