@@ -37,6 +37,17 @@ def make_ppm(data, dim_mass_val, dim_mass_err):
     }
 
 
+@dataclass
+class FTCombResult:
+    S_238: float
+    S_235: float
+    S_232: float
+    a_238: float
+    a_235: float
+    a_232: float
+    Ft_comb: float
+
+
 class TRaILicpms(BaseImporter):
     def __init__(self, app, data_dir, **kwargs):
         super().__init__(app)
@@ -74,6 +85,22 @@ class TRaILicpms(BaseImporter):
             .filter(DatumType.parameter == datum_param)
             .first()
         )
+        return res
+
+    def query_attribute(self, lab_id, attribute_name):
+        Session = self.db.model.session
+        Sample = self.db.model.sample
+        Analysis = self.db.model.analysis
+        Attribute = self.db.model.attribute
+        res = (
+            self.db.session.query(Attribute)
+            .join(Analysis)
+            .join(Session)
+            .join(Sample)
+            .filter(Sample.lab_id == lab_id)
+            .filter(Attribute.parameter == attribute_name)
+        )
+
         return res
 
     def import_datafile(self, fn, rec, **kwargs):
@@ -162,8 +189,14 @@ class TRaILicpms(BaseImporter):
                 ppm_full = self.add_ppm(raw_data, dim_mass, ppm_analysis)
                 if ppm_full:
                     # Store the combined Ft value in the database
-                    self.add_Ft_comb(ft_analysis, Fts)
-                    self.add_ESR_Ft(material, shape, Fts)
+                    data = self.calc_Ft_comb(Fts)
+                    self.add_Ft_comb(ft_analysis, data)
+
+                    # Get material and shape from sample
+                    material = sample_obj.material
+                    shape = self.query_attribute(sample_id, "Crystal geometry")
+
+                    self.add_ESR_Ft(ft_analysis, data, material, shape)
                 print("")
             else:
                 print("")
@@ -219,30 +252,41 @@ class TRaILicpms(BaseImporter):
             print("Cannot overwrite existing data. Skipping sample.")
             return False
 
-    def calc_Ft_comb(self, analysis_obj, Fts):
+    def calc_Ft_comb(self, Fts) -> FTCombResult:
+        """Calculate the combined Ft value for the sample."""
+        S_238 = self.ppms["238U (±2σ)"]["value"]
+        S_232 = self.ppms["232Th (±2σ)"]["value"]
 
+        S_235 = self.ppms["235U (±2σ)"]["value"]
 
-    def add_Ft_comb(self, analysis_obj, Fts):
-        a_238 = (
-            1.04
-            + 0.247
-            * (self.ppms["232Th (±2σ)"]["value"] / self.ppms["238U (±2σ)"]["value"])
-        ) ** -1
-        a_232 = (
-            1.0
-            + 4.21
-            * (self.ppms["238U (±2σ)"]["value"] / self.ppms["232Th (±2σ)"]["value"])
-        ) ** -1
+        a_238 = (1.04 + 0.247 * (S_232 / S_238)) ** -1
+        a_232 = (1.0 + 4.21 * (S_238 / S_232)) ** -1
+
+        # Not sure if this is correct
+        a_235 = 1 - a_238 - a_232
+
         Ft_comb = (
             a_238 * float(Fts["238U Ft (±2σ)"].value)
             + a_232 * float(Fts["232Th Ft (±2σ)"].value)
-            + (1 - a_238 - a_232) * float(Fts["235U Ft (±2σ)"].value)
+            + a_235 * float(Fts["235U Ft (±2σ)"].value)
         )
+        return FTCombResult(
+            S_238=S_238,
+            S_235=S_235,
+            S_232=S_232,
+            a_238=a_238,
+            a_235=a_235,
+            a_232=a_232,
+            Ft_comb=Ft_comb,
+        )
+
+    def add_Ft_comb(self, analysis_obj, data: FTCombResult):
+        # Add the combined Ft value to the database
         # Store  Ft_comb in the database
         # and then use the values to calculate ESR_Ft
 
         Ft_comb_dict = {
-            "value": Ft_comb,
+            "value": data.Ft_comb,
             "error": None,
             "type": {"parameter": "Combined Ft", "unit": ""},
             "analysis": analysis_obj,
@@ -250,13 +294,23 @@ class TRaILicpms(BaseImporter):
 
         self.db.load_data("datum", Ft_comb_dict)
 
-    def calc_ESR_Ft(self, analysis_obj, material, shape, Ft_comb):
+    def calc_ESR_Ft(self, analysis_obj, data: FTCombResult, material, shape):
         # Use the values of Ft_comb to calculate ESR_Ft
 
         # Here we will calculate ESR_Ft and it's associated uncertainty. It will call upon FT_constants defined in picking_specs.yaml
         # which are material (mineral) and isotope specific. I'll refer to these as S_238, etc, but they will need to vary depending on the mineral.
-        Sbar = a_238 * S_238 + a_232 * S_232 + (1 - a_238 - a_235) * S_235
-        S_R = 1.681 - 2.428 * FT_comb + 1.153 * (Ft_comb ^ 2) - 0.406 * (Ft_comb ^ 3)
+
+        Sbar = (
+            data.a_238 * data.S_238
+            + data.a_232 * data.S_232
+            + (1 - data.a_238 - data.a_235) * data.S_235
+        )
+        S_R = (
+            1.681
+            - 2.428 * data.FT_comb
+            + 1.153 * (data.Ft_comb ^ 2)
+            - 0.406 * (data.Ft_comb ^ 3)
+        )
         ESR_Ft = Sbar / S_R
         if material == "apatite":
             if shape == "Hexagonal":
@@ -276,17 +330,7 @@ class TRaILicpms(BaseImporter):
             "value": ESR_Ft_Corr,
             "error": ESR_Ft_Corr_err,
             "type": {"parameter": "ESR Ft (±2σ)", "unit": "µm"},
-            analysis: analysis_obj,
+            "analysis": analysis_obj,
         }
 
         self.db.load_data("datum", ESR_Ft_dict)
-
-        self.db.load_data("datum", Ft_comb_dict)
-
-@dataclass
-class FTCombResult:
-    a_238: float
-    a_232: float
-    S_238: float
-    S_232: float
-    Ft_comb: float

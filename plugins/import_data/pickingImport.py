@@ -11,11 +11,62 @@ import pandas as pd
 from rich import print
 from math import sqrt
 from sparrow.core.import_helpers import BaseImporter
+from dataclasses import dataclass
 from macrostrat.utils import relative_path
 import datetime
 from dateutil.parser import parse
 from yaml import load, SafeLoader
 from enum import Enum
+import numpy as N
+
+
+@dataclass
+class Sample:
+    name: str
+    material: str
+    geometry: str
+    terminations: int
+    length1: float
+    width1: float
+    length2: float
+    width2: float
+
+
+@dataclass
+class SampleFt:
+    ft238u: float
+    ft235u: float
+    ft232th: float
+    ft147sm: float
+
+    def __eq__(self, other):
+        return (
+            N.allclose(self.ft238u, other.ft238u)
+            and N.allclose(self.ft235u, other.ft235u)
+            and N.allclose(self.ft232th, other.ft232th)
+            and N.allclose(self.ft147sm, other.ft147sm)
+        )
+
+
+def get_Ft_values(sample: Sample, corrected: bool = True) -> SampleFt:
+
+    Fts = get_Ft_values_internal(
+        sample.length1,
+        sample.width1,
+        sample.length2,
+        sample.width2,
+        sample.material,
+        sample.geometry,
+        sample.terminations,
+        corrected=corrected,
+    )
+
+    return SampleFt(
+        ft238u=Fts["238U"],
+        ft235u=Fts["235U"],
+        ft232th=Fts["232Th"],
+        ft147sm=Fts["147Sm"],
+    )
 
 
 class Material(Enum):
@@ -23,12 +74,24 @@ class Material(Enum):
     Apatite = "Apatite"
 
 
-# Replicates Ketcham et al., 2011 for Ft calculation
-def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material: Material):
-    # We need to make sure that we know the maximum width. I think we should define that here as
-    Wmax = max(w1, w2)
+def get_Ft_values_internal(
+    l1,
+    w1,
+    l2,
+    w2,
+    material: Material,
+    shape,
+    Np,  # Number of terminations
+    *,
+    Ft_constants=None,
+    # Replicates Ketcham et al., 2011 for Ft calculation
+    corrected: bool = True,
+):
+    if Ft_constants is None:
+        Ft_constants = get_picking_specs()["Ft_constants"]
 
-    print(material, shape)
+    # Only used in corrected calculations
+    Wmax = max(w1, w2)
 
     Ft_dat = {}
     for iso in ["238U", "235U", "232Th", "147Sm"]:
@@ -36,7 +99,7 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material: Material):
         R = Ft_constants[material][iso]
         if shape == "Ellipsoid":
             # For zircon, use the two widths and for apatite use the wmax for both
-            if material == "Apatite":
+            if material == "Apatite" and corrected:
                 w1 = Wmax
                 w2 = Wmax
             a = w1 / 2
@@ -84,7 +147,7 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material: Material):
             )
         elif shape == "Hexagonal":
             #  For zircon, use the two widths and for apatite use the wmax for both
-            if material == "Apatite":
+            if material == "Apatite" and corrected:
                 w1 = Wmax
                 w2 = Wmax
             L = w1
@@ -121,7 +184,9 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material: Material):
         Ft_dat[iso] = Ft
     Ft_dat["V"] = V
     Ft_dat["Rs"] = Rs
-    # return Ft_dat
+
+    if not corrected:
+        return Ft_dat
 
     Vcorr = V
     Vcorr_err = float("nan")
@@ -307,15 +372,14 @@ def read_picking_data(fn, picking_specs, make_labID):
             geometry = data.iloc[d][picking_specs["Metadata"]["Crystal geometry"]]
 
             # Generate Ft and dimensional mass
-            Fts = get_Ft(
+            Fts = get_Ft_values_internal(
                 length1,
                 width1,
                 length2,
                 width2,
-                int(terminations),
-                picking_specs["geometry_key"][geometry],
-                picking_specs["Ft_constants"],
                 material,
+                picking_specs["geometry_key"][geometry],
+                int(terminations),
             )
             dimensional_mass = (
                 picking_specs["Ft_constants"][material]["density"] * Fts["V"] / 1e6

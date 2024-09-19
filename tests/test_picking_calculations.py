@@ -1,16 +1,70 @@
 # Add plugins to sys.path
 from pathlib import Path
 from uuid import uuid4
+
+import pytest
+from dataclasses import dataclass
 from pandas import read_excel
 import numpy as N
+from sqlalchemy.dialects.postgresql import MACADDR8
 
 from plugins.import_data.pickingImport import (
     read_picking_data,
     get_picking_specs,
     get_picking_dataframe,
+    get_Ft_values,
+    Sample,
+    SampleFt,
 )
 
 picking_data = Path(__file__).parent.parent / "test_data"
+
+
+picking_tests = [
+    (
+        Sample(
+            name="sampleap",
+            material="Apatite",
+            geometry="Hexagonal",
+            terminations=2,
+            length1=150,
+            width1=90,
+            length2=160,
+            width2=80,
+        ),
+        SampleFt(
+            ft238u=0.713279445,
+            ft235u=0.670587315,
+            ft232th=0.664232629,
+            ft147sm=0.906304307,
+        ),
+    ),
+    (
+        Sample(
+            name="samplezir",
+            material="Zircon",
+            geometry="Orthorhombic",
+            terminations=2,
+            length1=150,
+            width1=90,
+            length2=160,
+            width2=80,
+        ),
+        SampleFt(
+            ft238u=0.770084189,
+            ft235u=0.735554118,
+            ft232th=0.730364575,
+            ft147sm=0.926850425,
+        ),
+    ),
+]
+
+
+@pytest.mark.parametrize("input, result", picking_tests)
+def test_picking_calculations(input, result):
+    """Picking calculations test based on data provided by Jim Metcalf on 2024-09-19"""
+    res = get_Ft_values(input)
+    assert res == result
 
 
 def random_lab_id(date) -> str:
@@ -54,8 +108,6 @@ def test_picking_data():
 
     # Now check that all grain dimensions are the same
     for sample in picking:
-        if sample["material"] != "Zircon":
-            continue
         print(sample["name"])
 
         name = res1.iloc[:, 0]
