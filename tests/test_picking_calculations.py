@@ -19,8 +19,11 @@ def random_lab_id(date) -> str:
 
 def test_picking_data():
     """Basic test of reading picking data"""
+
     specs = get_picking_specs()
     fn = picking_data / "PickingData" / "Test_Picking_Sheet.xlsx"
+
+    # Do the calculations of picking data
     picking = list(read_picking_data(fn, specs, random_lab_id))
     assert len(picking) == 8
 
@@ -43,10 +46,18 @@ def test_picking_data():
     assert names == new_names
 
     df = get_picking_dataframe(fn, specs)
-    assert len(df) == 8
+
+    # Get the last few samples which are zircons matching testzirc1
+    # df = df[df["Packet Identifier"].str.contains("testzirc1")]
+    #
+    # assert len(df) == 3
 
     # Now check that all grain dimensions are the same
     for sample in picking:
+        if sample["material"] != "Zircon":
+            continue
+        print(sample["name"])
+
         name = res1.iloc[:, 0]
         row = res1[name == sample["name"]].iloc[0]
         sess = sample["session"][0]

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from dataclasses import dataclass
+
 from sparrow.core.import_helpers import BaseImporter
 import glob
 from rich import print
@@ -6,6 +8,7 @@ from sqlalchemy import exc
 import pandas as pd
 import re
 from dateutil import parser
+
 
 # Make datum using info in yaml file
 def make_datum(row, isotope):
@@ -158,7 +161,9 @@ class TRaILicpms(BaseImporter):
             if dim_mass:
                 ppm_full = self.add_ppm(raw_data, dim_mass, ppm_analysis)
                 if ppm_full:
+                    # Store the combined Ft value in the database
                     self.add_Ft_comb(ft_analysis, Fts)
+                    self.add_ESR_Ft(material, shape, Fts)
                 print("")
             else:
                 print("")
@@ -176,6 +181,7 @@ class TRaILicpms(BaseImporter):
         self.ppms = {}
 
         try:
+            # Accumulate eU values and squared errors
             for r in radionuclides:
                 if "U" in r["type"]["parameter"]:
                     ppm_dict = make_ppm(r, dim_mass_val, dim_mass_err)
@@ -199,8 +205,12 @@ class TRaILicpms(BaseImporter):
                     eU_err.append((0.0012 * (ppm_dict["error"] / 2)) ** 2)
             eU_dict = {
                 "value": eU,
-                "error": eU * 0.15,  # sum(eU_err)**(1/2),
-                "type": {"parameter": "eU", "unit": "ppm"},  # (±2σ)', 'unit': 'ppm'},
+                # "error": eU * 0.15,
+                "error": sum(eU_err) ** (1 / 2),
+                "type": {
+                    "parameter": "eU (±2σ)",
+                    "unit": "ppm",
+                },  # (±2σ)', 'unit': 'ppm'},
                 "analysis": analysis_obj,
             }
             self.db.load_data("datum", eU_dict)
@@ -208,6 +218,9 @@ class TRaILicpms(BaseImporter):
         except exc.IntegrityError:
             print("Cannot overwrite existing data. Skipping sample.")
             return False
+
+    def calc_Ft_comb(self, analysis_obj, Fts):
+
 
     def add_Ft_comb(self, analysis_obj, Fts):
         a_238 = (
@@ -225,6 +238,9 @@ class TRaILicpms(BaseImporter):
             + a_232 * float(Fts["232Th Ft (±2σ)"].value)
             + (1 - a_238 - a_232) * float(Fts["235U Ft (±2σ)"].value)
         )
+        # Store  Ft_comb in the database
+        # and then use the values to calculate ESR_Ft
+
         Ft_comb_dict = {
             "value": Ft_comb,
             "error": None,
@@ -232,7 +248,11 @@ class TRaILicpms(BaseImporter):
             "analysis": analysis_obj,
         }
 
-    def calc_ESR_Ft(self, material, shape, Ft_comb):
+        self.db.load_data("datum", Ft_comb_dict)
+
+    def calc_ESR_Ft(self, analysis_obj, material, shape, Ft_comb):
+        # Use the values of Ft_comb to calculate ESR_Ft
+
         # Here we will calculate ESR_Ft and it's associated uncertainty. It will call upon FT_constants defined in picking_specs.yaml
         # which are material (mineral) and isotope specific. I'll refer to these as S_238, etc, but they will need to vary depending on the mineral.
         Sbar = a_238 * S_238 + a_232 * S_232 + (1 - a_238 - a_235) * S_235
@@ -252,6 +272,21 @@ class TRaILicpms(BaseImporter):
             elif shape == "ellipsoid":
                 ESR_Ft_Corr = 0.98 * ESR_Ft
                 ESR_Ft_Corr_err = 0.08 * ESR_Ft_Corr
-        ESR_Ft_dict = {"value": ESR_Ft_Corr, "error": ESR_Ft_Corr_err}
+        ESR_Ft_dict = {
+            "value": ESR_Ft_Corr,
+            "error": ESR_Ft_Corr_err,
+            "type": {"parameter": "ESR Ft (±2σ)", "unit": "µm"},
+            analysis: analysis_obj,
+        }
+
+        self.db.load_data("datum", ESR_Ft_dict)
 
         self.db.load_data("datum", Ft_comb_dict)
+
+@dataclass
+class FTCombResult:
+    a_238: float
+    a_232: float
+    S_238: float
+    S_232: float
+    Ft_comb: float

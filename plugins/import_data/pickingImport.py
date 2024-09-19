@@ -32,18 +32,19 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material: Material):
 
     Ft_dat = {}
     for iso in ["238U", "235U", "232Th", "147Sm"]:
+        # Get the Ft_constants for the material and isotope
         R = Ft_constants[material][iso]
         if shape == "Ellipsoid":
+            # For zircon, use the two widths and for apatite use the wmax for both
+            if material == "Apatite":
+                w1 = Wmax
+                w2 = Wmax
             a = w1 / 2
             b = w2 / 2
             c = ((l1 + l2) / 2) / 2
             V = (4 / 3) * np.pi * a * b * c
             p = 1.6075
-            S = (
-                4
-                * np.pi
-                * ((a**p * b**p + b**p * c**p + c**p * a**p) / 3) ** (1 / p)
-            )
+            S = 4 * np.pi * ((a**p * b**p + b**p * c**p + c**p * a**p) / 3) ** (1 / p)
             Rs = 3 * (V / S)
             Ft = (
                 1
@@ -51,6 +52,7 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material: Material):
                 + ((1 / 16) + 0.1686 * (1 - (a / Rs)) ** 2) * (R / Rs) ** 3
             )
         elif shape == "Cylindrical":
+            # This should never be used for apatite
             r = w1 / 2
             h = l1
             V = np.pi * r**2 * h
@@ -62,6 +64,7 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material: Material):
             )
             Rs = (3 * r * h) / (2 * (r + h))
         elif shape == "Orthorhombic":
+            # This should never be used for apatite
             a = min([w1, w2])
             b = max([w1, w2])
             c = (l1 + l2) / 2
@@ -80,6 +83,10 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material: Material):
                 * (R**2 / V)
             )
         elif shape == "Hexagonal":
+            #  For zircon, use the two widths and for apatite use the wmax for both
+            if material == "Apatite":
+                w1 = Wmax
+                w2 = Wmax
             L = w1
             W = w2
             H = (l1 + l2) / 2
@@ -88,9 +95,7 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material: Material):
                 if L > (sqrt(3) / 2) * W
                 else 0
             )
-            V = H * L * (W - (L / (2 * sqrt(3)))) - Np * (
-                (sqrt(3) / 8) * L * W**2 - dV
-            )
+            V = H * L * (W - (L / (2 * sqrt(3)))) - Np * ((sqrt(3) / 8) * L * W**2 - dV)
             S = (
                 2 * H * (W + (L / sqrt(3)))
                 + 2 * L * (W - (L / (2 * sqrt(3))))
@@ -138,8 +143,8 @@ def get_Ft(l1, w1, l2, w2, Np, shape, Ft_constants, material: Material):
             Vcorr = 0.74 * V
             Vcorr_err = 0.23 * Vcorr
 
-    Ft_dat["V"] = Vcorr
-    Ft_dat["V_err"] = Vcorr_err
+    Ft_dat["V_corr"] = Vcorr
+    Ft_dat["V_corr_err"] = Vcorr_err
 
     # Now correct the Ft. This will depend upon the material, geometry, and maximum width.
     _238Ft = Ft_dat["238U"]
@@ -334,7 +339,7 @@ def read_picking_data(fn, picking_specs, make_labID):
                 shape_attributes.append([sparrow_val, s[col]])
             # make analysis dictionary
             shape_dict = {
-                "analysis_type": "Grain dimensions & shape",
+                "analysis_type": "Grain dimensions & shape (geometric corrected)",
                 "datum": [make_datum(*d) for d in shape_data],
                 "attribute": [make_attribute(*a) for a in shape_attributes],
             }
@@ -342,7 +347,7 @@ def read_picking_data(fn, picking_specs, make_labID):
         else:
             Fts = False
             shape_dict = {
-                "analysis_type": "Grain dimensions & shape",
+                "analysis_type": "Grain dimensions & shape (geometric corrected)",
                 "attribute": [make_attribute("Crystal shard", "Shape notes")],
             }
 
