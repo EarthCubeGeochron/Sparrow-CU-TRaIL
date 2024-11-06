@@ -3,10 +3,8 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
-from dataclasses import dataclass
 from pandas import read_excel
 import numpy as N
-from sqlalchemy.dialects.postgresql import MACADDR8
 
 from plugins.import_data.pickingImport import (
     read_picking_data,
@@ -61,7 +59,7 @@ picking_tests = [
 
 
 @pytest.mark.parametrize("input, result", picking_tests)
-def test_picking_calculations(input, result):
+def test_picking_calcs(input, result):
     """Picking calculations test based on data provided by Jim Metcalf on 2024-09-19"""
     res = get_Ft_values(input)
     assert res == result
