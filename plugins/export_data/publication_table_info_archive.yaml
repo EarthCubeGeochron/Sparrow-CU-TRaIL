@@ -32,9 +32,9 @@
 - 4He blank corrected (±2σ): # Example of column with uncertainty and needing to specify unit
     column: 4He (ncc) [g]
     unit: ncc # Provide unit in cases where the same name is present in Sparrow multiple times
-    round: 3
+    round: 6
     error: True
-    error_round: 3 # How many decimals to round the uncertainty to
+    error_round: 6 # How many decimals to round the uncertainty to
     error_footnote: "[h]" # What to append to the ± in the column header
     width: 8 
     error_width: 8 # width of uncertainty column to save in excel
