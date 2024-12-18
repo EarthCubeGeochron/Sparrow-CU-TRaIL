@@ -235,7 +235,7 @@ def get_Ft_values_internal(
             _235Fterr = 0.04 * _235Ftcorr if Wmax < 100 else 0.03 * _235Ftcorr
             _232Ftcorr = 0.97 * _232Ft
             _232Fterr = 0.05 * _232Ftcorr if Wmax < 100 else 0.02 * _232Ftcorr
-            _147Ftcorr = 0.96 * _147Ft
+            _147Ftcorr = 0.99 * _147Ft
             _147Fterr = 0.01 * _147Ftcorr
         elif shape == "Ellipsoid":
             _238Ftcorr = _238Ft
