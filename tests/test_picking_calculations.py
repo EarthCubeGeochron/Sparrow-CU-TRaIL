@@ -132,7 +132,10 @@ def test_picking_data():
 
             if sess["technique"]["id"] == "Dates and other derived data":
                 for analysis in sess["analysis"]:
-                    if analysis["analysis_type"] == "Alpha ejection correction values":
+                    if (
+                        analysis["analysis_type"]
+                        == "Alpha ejection correction values (new geometric correction)"
+                    ):
                         data = {
                             x["type"]["parameter"]: x["value"]
                             for x in analysis["datum"]
@@ -146,7 +149,11 @@ def test_picking_data():
 
                         field = f"{min} ThFt"
 
-                        assert N.allclose(d1[field], data["232Th Ft (±2σ)"], atol=0.01)
+                        assert N.allclose(
+                            d1[field],
+                            data["232Th Ft (±2σ), new geometric correction"],
+                            atol=0.01,
+                        )
                         has_aec = True
 
         if not has_aec:
