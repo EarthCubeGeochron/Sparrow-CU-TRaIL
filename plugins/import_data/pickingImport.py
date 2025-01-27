@@ -382,7 +382,7 @@ def read_picking_data(fn, picking_specs, make_labID):
                 int(terminations),
             )
             dimensional_mass = (
-                picking_specs["Ft_constants"][material]["density"] * Fts["V"] / 1e6
+                picking_specs["Ft_constants"][material]["density"] * Fts["V_corr"] / 1e6
             )
 
             # create datum and attributes for shape analysis
@@ -471,16 +471,36 @@ def read_picking_data(fn, picking_specs, make_labID):
             # Compile Ft data for date calculation session
             # This is where Ft_errors are calculated
             Ft_data = [
-                [Fts["238U"], Fts["238U"] * Ft_err * 2, "238U Ft (±2σ)", ""],
-                [Fts["235U"], Fts["235U"] * Ft_err * 2, "235U Ft (±2σ)", ""],
-                [Fts["232Th"], Fts["232Th"] * Ft_err * 2, "232Th Ft (±2σ)", ""],
-                [Fts["147Sm"], Fts["147Sm"] * Ft_err * 2, "147Sm Ft (±2σ)", ""],
+                [
+                    Fts["238U"],
+                    Fts["238U"] * Ft_err * 2,
+                    "238U Ft (±2σ), new geometric correction",
+                    "",
+                ],
+                [
+                    Fts["235U"],
+                    Fts["235U"] * Ft_err * 2,
+                    "235U Ft (±2σ), new geometric correction",
+                    "",
+                ],
+                [
+                    Fts["232Th"],
+                    Fts["232Th"] * Ft_err * 2,
+                    "232Th Ft (±2σ), new geometric correction",
+                    "",
+                ],
+                [
+                    Fts["147Sm"],
+                    Fts["147Sm"] * Ft_err * 2,
+                    "147Sm Ft (±2σ), new geometric correction",
+                    "",
+                ],
             ]
             Rs_mass = [
                 [
                     dimensional_mass,
                     dimensional_mass * dim_mass_err * 2,
-                    "Dimensional mass (±2σ)",
+                    "Dimensional mass (±2σ), new geometric correction",
                     "μg",
                 ],
                 [
@@ -498,11 +518,11 @@ def read_picking_data(fn, picking_specs, make_labID):
                     #'date': '1900-01-01 00:00:00+00', # always pass an 'unknown date' value for calculation
                     "analysis": [
                         {
-                            "analysis_type": "Alpha ejection correction values",
+                            "analysis_type": "Alpha ejection correction values (new geometric correction)",
                             "datum": [make_datum(*d) for d in Ft_data],
                         },
                         {
-                            "analysis_type": "Rs, mass, concentrations",
+                            "analysis_type": "Rs, mass, concentrations (new geometric correction)",
                             "datum": [make_datum(*d) for d in Rs_mass],
                         },
                     ],

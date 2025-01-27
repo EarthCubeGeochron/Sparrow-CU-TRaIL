@@ -172,8 +172,12 @@ class TRaILicpms(BaseImporter):
             self.db.load_data("session", session_dict)
 
             # look for whether a dimensional mass is recorded in Sparrow to permit ppm conversion
-            ppm_analysis = self.query_analysis(sample_id, "Rs, mass, concentrations")
-            dim_mass = self.query_datum(sample_id, "Dimensional mass (±2σ)")
+            ppm_analysis = self.query_analysis(
+                sample_id, "Rs, mass, concentrations (new geometric correction)"
+            )
+            dim_mass = self.query_datum(
+                sample_id, "Dimensional mass (±2σ), new geometric correction"
+            )
             ft_analysis = self.query_analysis(
                 sample_id, "Alpha ejection correction values"
             )
@@ -184,7 +188,8 @@ class TRaILicpms(BaseImporter):
                 "147Sm Ft (±2σ)": None,
             }
             for Ft in Fts:
-                Fts[Ft] = self.query_datum(sample_id, Ft)
+                # Load the Ft values from the database, using only those with the new geometric correction applied
+                Fts[Ft] = self.query_datum(sample_id, Ft + ", new geometric correction")
             if dim_mass:
                 ppm_full = self.add_ppm(raw_data, dim_mass, ppm_analysis)
                 if ppm_full:
@@ -196,6 +201,7 @@ class TRaILicpms(BaseImporter):
                     material = sample_obj.material
                     shape = self.query_attribute(sample_id, "Crystal geometry")
 
+                    # Note: should separate calculation and addition to Sparrow
                     self.add_ESR_Ft(ft_analysis, data, material, shape)
                 print("")
             else:
@@ -294,7 +300,7 @@ class TRaILicpms(BaseImporter):
 
         self.db.load_data("datum", Ft_comb_dict)
 
-    def calc_ESR_Ft(self, analysis_obj, data: FTCombResult, material, shape):
+    def add_ESR_Ft(self, analysis_obj, data: FTCombResult, material, shape):
         # Use the values of Ft_comb to calculate ESR_Ft
 
         # Here we will calculate ESR_Ft and it's associated uncertainty. It will call upon FT_constants defined in picking_specs.yaml
@@ -312,6 +318,8 @@ class TRaILicpms(BaseImporter):
             - 0.406 * (data.Ft_comb ^ 3)
         )
         ESR_Ft = Sbar / S_R
+        ESR_Ft_Corr = float("nan")
+        ESR_Ft_Corr_err = float("nan")
         if material == "apatite":
             if shape == "Hexagonal":
                 ESR_Ft_Corr = 0.93 * ESR_Ft
@@ -329,7 +337,10 @@ class TRaILicpms(BaseImporter):
         ESR_Ft_dict = {
             "value": ESR_Ft_Corr,
             "error": ESR_Ft_Corr_err,
-            "type": {"parameter": "ESR Ft (±2σ)", "unit": "µm"},
+            "type": {
+                "parameter": "ESR Ft (±2σ), new geometric correction",
+                "unit": "µm",
+            },
             "analysis": analysis_obj,
         }
 
