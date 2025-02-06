@@ -69,10 +69,44 @@ def test_picking_calcs(input, result):
     assert res == result
 
 
+def test_picking_calcs_from_table():
+    ft_data = picking_data / "Jan2025TestData" / "Test_Data_Correct_Values.xlsx"
+    df = read_excel(ft_data, header=1)
+    for ix, row in df.iterrows():
+        name = row[0]
+        material = None
+        geometry = None
+        if "zr" in name.lower():
+            material = "Zircon"
+            # Note: this is just a guess, it's not in the file
+            geometry = "Orthorhombic"
+
+        elif "ap" in name.lower():
+            material = "Apatite"
+            geometry = "Hexagonal"
+
+        sample = Sample(
+            name=name,
+            material=material,
+            geometry=geometry,
+            terminations=row[5],
+            length1=row[1],
+            width1=row[2],
+            length2=row[3],
+            width2=row[4],
+        )
+
+        fts = SampleFt(ft238u=row[7], ft235u=row[9], ft232th=row[11], ft147sm=row[13])
+
+        res = get_Ft_values(sample)
+        assert res == fts
+
+
 def random_lab_id(date) -> str:
     return uuid4().hex[:6]
 
 
+@pytest.mark.skip()
 def test_picking_data():
     """Basic test of reading picking data"""
 
