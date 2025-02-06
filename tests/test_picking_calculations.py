@@ -73,7 +73,7 @@ def test_picking_calcs_from_table():
     ft_data = picking_data / "Jan2025TestData" / "Test_Data_Correct_Values.xlsx"
     df = read_excel(ft_data, header=1)
     for ix, row in df.iterrows():
-        name = row[0]
+        name = row.iloc[0]
         material = None
         geometry = None
         if "zr" in name.lower():
@@ -85,18 +85,26 @@ def test_picking_calcs_from_table():
             material = "Apatite"
             geometry = "Hexagonal"
 
+        if material is None or geometry is None:
+            assert False
+
         sample = Sample(
             name=name,
             material=material,
             geometry=geometry,
-            terminations=row[5],
-            length1=row[1],
-            width1=row[2],
-            length2=row[3],
-            width2=row[4],
+            terminations=row.iloc[5],
+            length1=row.iloc[1],
+            width1=row.iloc[2],
+            length2=row.iloc[3],
+            width2=row.iloc[4],
         )
 
-        fts = SampleFt(ft238u=row[7], ft235u=row[9], ft232th=row[11], ft147sm=row[13])
+        fts = SampleFt(
+            ft238u=row.iloc[7],
+            ft235u=row.iloc[9],
+            ft232th=row.iloc[11],
+            ft147sm=row.iloc[13],
+        )
 
         res = get_Ft_values(sample)
         assert res == fts
