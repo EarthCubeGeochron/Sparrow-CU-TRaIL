@@ -7,6 +7,7 @@ import glob
 from dateutil import parser
 from yaml import load
 
+
 # Make datum using info in yaml file
 def make_datum(row, name, data_info):
     if data_info[1] == None:
@@ -170,7 +171,7 @@ class TRaILhelium(BaseImporter):
             self.add_nmol_g(derived_session_obj[0], session_dict)
         # Print an empty line to keep the command line clean
         print("")
-        # Upload session-- this has the sample info attached, so the sample will be updated as well
+        # Upload session -- this has the sample info attached, so the sample will be updated as well
         self.db.load_data("session", session_dict)
 
     # Get dimensionsal mass for a given sample based on session pulled above

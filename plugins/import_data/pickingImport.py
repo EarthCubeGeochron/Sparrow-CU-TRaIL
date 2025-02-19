@@ -49,7 +49,7 @@ class SampleFt:
 
 
 def get_Ft_values(sample: Sample, corrected: bool = True) -> SampleFt:
-
+    print(sample.name)
     Fts = get_Ft_values_internal(
         sample.length1,
         sample.width1,
@@ -116,6 +116,9 @@ def get_Ft_values_internal(
             )
         elif shape == "Cylindrical":
             # This should never be used for apatite
+            # Note: unlike the calculations for Orthorhombic, we don't use
+            #
+
             r = w1 / 2
             h = l1
             V = np.pi * r**2 * h
@@ -145,6 +148,7 @@ def get_Ft_values_internal(
                 )
                 * (R**2 / V)
             )
+            print("Ft (uncorrected)", iso, Ft)
         elif shape == "Hexagonal":
             #  For zircon, use the two widths and for apatite use the wmax for both
             if material == "Apatite" and corrected:
@@ -247,7 +251,7 @@ def get_Ft_values_internal(
             _147Ftcorr = _147Ft
             _147Fterr = 0.01 * _147Ftcorr
     if material == "Apatite":
-        if shape == "Orthorhombic":
+        if shape == "Hexagonal":
             _238Ftcorr = 0.97 * _238Ft
             _238Fterr = 0.03 * _238Ftcorr if Wmax < 100 else 0.02 * _238Ftcorr
             _235Ftcorr = 0.96 * _235Ft
