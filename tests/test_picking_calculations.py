@@ -18,56 +18,56 @@ from plugins.import_data.pickingImport import (
 picking_data = Path(__file__).parent.parent / "test_data"
 
 
-picking_tests = [
-    (
-        Sample(
-            name="sampleap",
-            material="Apatite",
-            geometry="Hexagonal",
-            terminations=2,
-            length1=150,
-            width1=90,
-            length2=160,
-            width2=80,
-        ),
-        SampleFt(
-            ft238u=0.713279445,
-            ft235u=0.670587315,
-            ft232th=0.664232629,
-            ft147sm=0.906304307,
-        ),
-    ),
-    (
-        Sample(
-            name="samplezir",
-            material="Zircon",
-            geometry="Orthorhombic",
-            terminations=2,
-            length1=150,
-            width1=90,
-            length2=160,
-            width2=80,
-        ),
-        SampleFt(
-            ft238u=0.746981664,
-            ft235u=0.713487494,
-            ft232th=0.708453638,
-            ft147sm=0.9175819211,
-        ),
-    ),
-]
+# picking_tests = [
+#     (
+#         Sample(
+#             name="sampleap",
+#             material="Apatite",
+#             geometry="Hexagonal",
+#             terminations=2,
+#             length1=150,
+#             width1=90,
+#             length2=160,
+#             width2=80,
+#         ),
+#         SampleFt(
+#             ft238u=0.713279445,
+#             ft235u=0.670587315,
+#             ft232th=0.664232629,
+#             ft147sm=0.906304307,
+#         ),
+#     ),
+#     (
+#         Sample(
+#             name="samplezir",
+#             material="Zircon",
+#             geometry="Orthorhombic",
+#             terminations=2,
+#             length1=150,
+#             width1=90,
+#             length2=160,
+#             width2=80,
+#         ),
+#         SampleFt(
+#             ft238u=0.746981664,
+#             ft235u=0.713487494,
+#             ft232th=0.708453638,
+#             ft147sm=0.9175819211,
+#         ),
+#     ),
+# ]
 
 # Other corrections to test
 # - Volume corrections
 # - R_ft correction
 
 
-@pytest.mark.skip("Has an error for one sample")
-@pytest.mark.parametrize("input, result", picking_tests)
-def test_picking_calcs(input, result):
-    """Picking calculations test based on data provided by Jim Metcalf on 2024-09-19"""
-    res = get_Ft_values(input)
-    assert res == result
+# @pytest.mark.skip("Has an error for one sample")
+# @pytest.mark.parametrize("input, result", picking_tests)
+# def test_picking_calcs(input, result):
+#     """Picking calculations test based on data provided by Jim Metcalf on 2024-09-19"""
+#     res = get_Ft_values(input)
+#     assert res == result
 
 
 geometry_key = {1: "Ellipsoid", 2: "Cylindrical", 3: "Orthorhombic", 4: "Hexagonal"}
@@ -80,7 +80,8 @@ names = [r.iloc[0] for i, r in df.iterrows() if not r.isna().all()]
 
 
 @pytest.mark.parametrize("name", names)
-def test_picking_calcs_from_table(name):
+@pytest.mark.parametrize("corrected", [False, True])
+def test_picking_calcs_from_table(name, corrected):
     """Picking calculations test based on data provided by Jim Metcalf on 2024-09-19"""
     row = df[df.iloc[:, 0] == name].iloc[0]
     material = None
@@ -110,25 +111,22 @@ def test_picking_calcs_from_table(name):
         width2=row.iloc[4],
     )
 
+    start_ix = 7
+    if corrected:
+        start_ix = 14
+
     # Geometric uncorrected FTs
-    tbl_fts_uncorr = SampleFt(
-        ft238u=row.iloc[8],
-        ft235u=row.iloc[9],
-        ft232th=row.iloc[10],
-        ft147sm=row.iloc[11],
+    tbl_fts = SampleFt(
+        ft238u=row.iloc[start_ix + 1],
+        ft235u=row.iloc[start_ix + 2],
+        ft232th=row.iloc[start_ix + 3],
+        ft147sm=row.iloc[start_ix + 4],
+        volume=row.iloc[start_ix + 5],
+        RFt=row.iloc[start_ix + 6],
     )
 
-    # Geometric corrected FTs
-    tbl_fts_corr = SampleFt(
-        ft238u=row.iloc[15],
-        ft235u=row.iloc[16],
-        ft232th=row.iloc[17],
-        ft147sm=row.iloc[18],
-    )
-    res_uncorr = get_Ft_values(sample, corrected=False)
-    res_corr = get_Ft_values(sample, corrected=True)
-    assert res_uncorr == tbl_fts_uncorr
-    assert res_corr == tbl_fts_corr
+    res = get_Ft_values(sample, corrected=corrected)
+    assert res == tbl_fts
 
 
 def random_lab_id(date) -> str:

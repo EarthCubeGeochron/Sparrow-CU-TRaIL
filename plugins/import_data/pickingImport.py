@@ -38,6 +38,8 @@ class SampleFt:
     ft235u: float
     ft232th: float
     ft147sm: float
+    volume: float
+    RFt: float = float("nan")
 
     def __eq__(self, other):
         return (
@@ -45,6 +47,7 @@ class SampleFt:
             and N.allclose(self.ft235u, other.ft235u)
             and N.allclose(self.ft232th, other.ft232th)
             and N.allclose(self.ft147sm, other.ft147sm)
+            and N.allclose(self.volume, other.volume)
         )
 
 
@@ -66,6 +69,7 @@ def get_Ft_values(sample: Sample, corrected: bool = True) -> SampleFt:
         ft235u=Fts["235U"],
         ft232th=Fts["232Th"],
         ft147sm=Fts["147Sm"],
+        volume=Fts["V"],
     )
 
 
@@ -89,6 +93,10 @@ def get_Ft_values_internal(
 ):
     if Ft_constants is None:
         Ft_constants = get_picking_specs()["Ft_constants"]
+
+    # Make sure that l1 and w1 are the greater values
+    w2, w1 = sorted([w2, w1])
+    l2, l1 = sorted([l2, l1])
 
     # Only used in corrected calculations
     Wmax = max(w1, w2)
@@ -192,6 +200,12 @@ def get_Ft_values_internal(
     if not corrected:
         return Ft_dat
 
+    # Now correct the Ft. This will depend upon the material, geometry, and maximum width.
+    _238Ft = Ft_dat["238U"]
+    _235Ft = Ft_dat["235U"]
+    _232Ft = Ft_dat["232Th"]
+    _147Ft = Ft_dat["147Sm"]
+
     Vcorr = V
     Vcorr_err = float("nan")
     # First correct the Volume (V) values. This depends upon the mineral and the geometry.
@@ -212,14 +226,8 @@ def get_Ft_values_internal(
             Vcorr = 0.74 * V
             Vcorr_err = 0.23 * Vcorr
 
-    Ft_dat["V_corr"] = Vcorr
-    Ft_dat["V_corr_err"] = Vcorr_err
-
-    # Now correct the Ft. This will depend upon the material, geometry, and maximum width.
-    _238Ft = Ft_dat["238U"]
-    _235Ft = Ft_dat["235U"]
-    _232Ft = Ft_dat["232Th"]
-    _147Ft = Ft_dat["147Sm"]
+    Ft_dat["V"] = Vcorr
+    Ft_dat["V_err"] = Vcorr_err
 
     # Set some default values for Ft errors
     _238Ftcorr = _238Ft
