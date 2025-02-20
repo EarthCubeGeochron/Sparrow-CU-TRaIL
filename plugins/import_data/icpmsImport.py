@@ -301,7 +301,7 @@ class TRaILicpms(BaseImporter):
         self.db.load_data("datum", Ft_comb_dict)
 
     def add_ESR_Ft(self, analysis_obj, data: FTCombResult, material, shape):
-        # Use the values of Ft_comb to calculate ESR_Ft
+        # Use the values of Ft_comb to calculate ESR_Ft (R_Ft)
 
         # Here we will calculate ESR_Ft and it's associated uncertainty. It will call upon FT_constants defined in picking_specs.yaml
         # which are material (mineral) and isotope specific. I'll refer to these as S_238, etc, but they will need to vary depending on the mineral.
