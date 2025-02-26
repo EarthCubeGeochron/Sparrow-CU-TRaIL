@@ -159,7 +159,11 @@ def get_Ft_values_internal(
             print("Ft (uncorrected)", iso, Ft)
         elif shape == "Hexagonal":
             #  For zircon, use the two widths and for apatite use the wmax for both
-            if material == "Apatite" and corrected:
+            # Note: to get tests to pass, I had to remove the following -
+            # if material == "Apatite" and corrected:
+            # Not sure whether that is intended, but it doesn't appear to be the same
+            # as the original calculations
+            if material == "Apatite":
                 w1 = Wmax
                 w2 = Wmax
             L = w1

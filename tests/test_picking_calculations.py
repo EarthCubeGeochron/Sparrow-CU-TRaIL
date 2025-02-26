@@ -72,7 +72,7 @@ picking_data = Path(__file__).parent.parent / "test_data"
 
 geometry_key = {1: "Ellipsoid", 2: "Cylindrical", 3: "Orthorhombic", 4: "Hexagonal"}
 
-ft_data = picking_data / "Jan2025TestData" / "Test_Data_2025_02_21.xlsx"
+ft_data = picking_data / "Jan2025TestData" / "Test_Data_2025_02_24.xlsx"
 df = read_excel(ft_data, header=1)
 names = [r.iloc[0] for i, r in df.iterrows() if not r.isna().all()]
 
