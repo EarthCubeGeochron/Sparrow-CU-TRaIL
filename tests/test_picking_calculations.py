@@ -18,58 +18,6 @@ from plugins.import_data.pickingImport import (
 picking_data = Path(__file__).parent.parent / "test_data"
 
 
-# picking_tests = [
-#     (
-#         Sample(
-#             name="sampleap",
-#             material="Apatite",
-#             geometry="Hexagonal",
-#             terminations=2,
-#             length1=150,
-#             width1=90,
-#             length2=160,
-#             width2=80,
-#         ),
-#         SampleFt(
-#             ft238u=0.713279445,
-#             ft235u=0.670587315,
-#             ft232th=0.664232629,
-#             ft147sm=0.906304307,
-#         ),
-#     ),
-#     (
-#         Sample(
-#             name="samplezir",
-#             material="Zircon",
-#             geometry="Orthorhombic",
-#             terminations=2,
-#             length1=150,
-#             width1=90,
-#             length2=160,
-#             width2=80,
-#         ),
-#         SampleFt(
-#             ft238u=0.746981664,
-#             ft235u=0.713487494,
-#             ft232th=0.708453638,
-#             ft147sm=0.9175819211,
-#         ),
-#     ),
-# ]
-
-# Other corrections to test
-# - Volume corrections
-# - R_ft correction
-
-
-# @pytest.mark.skip("Has an error for one sample")
-# @pytest.mark.parametrize("input, result", picking_tests)
-# def test_picking_calcs(input, result):
-#     """Picking calculations test based on data provided by Jim Metcalf on 2024-09-19"""
-#     res = get_Ft_values(input)
-#     assert res == result
-
-
 geometry_key = {1: "Ellipsoid", 2: "Cylindrical", 3: "Orthorhombic", 4: "Hexagonal"}
 
 ft_data = picking_data / "Jan2025TestData" / "Test_Data_2025_02_24.xlsx"
