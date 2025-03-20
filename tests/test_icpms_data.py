@@ -29,12 +29,15 @@ def test_picking_data_ingestion():
     df = df.iloc[4:, :]
     df = df[df["Lab/Owner"].notna()]
 
+    df.set_index("Packet Identifier", inplace=True)
+
     assert len(df) == 31
 
 
 def test_icpms_data_ingestion():
     icpms_sheet = picking_data / "icpms_test" / "ICPMS_Data_Test.txt"
     df = read_csv(icpms_sheet, delimiter="\t")
+    df.set_index("Sample Name", inplace=True)
 
     assert len(df) == 31
 
@@ -42,6 +45,7 @@ def test_icpms_data_ingestion():
 def test_he_data_ingestion():
     he_sheet = picking_data / "icpms_test" / "He_Data_Test.txt"
     df = read_csv(he_sheet, delimiter="\t")
+    df.set_index("SampleName", inplace=True)
 
     assert len(df) == 31
 
@@ -50,5 +54,7 @@ def test_load_results():
     results_sheet = picking_data / "icpms_test" / "Test_Data_Results.xlsx"
     df = read_excel(results_sheet)
     df = df[df.iloc[:, 0].notna()]
+
+    df.set_index("Sample Name", inplace=True)
 
     assert len(df) == 31
