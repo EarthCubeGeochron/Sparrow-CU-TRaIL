@@ -33,6 +33,14 @@ class Sample:
 
 
 @dataclass
+class SampleFtErrors:
+    ft238u: float
+    ft235u: float
+    ft232th: float
+    ft147sm: float
+
+
+@dataclass
 class SampleFt:
     ft238u: float
     ft235u: float
@@ -40,6 +48,7 @@ class SampleFt:
     ft147sm: float
     volume: float
     RFt: float = float("nan")
+    errors: SampleFtErrors = None
 
     def __eq__(self, other):
         return (
@@ -70,6 +79,13 @@ def get_Ft_values(sample: Sample, corrected: bool = True) -> SampleFt:
         ft232th=Fts["232Th"],
         ft147sm=Fts["147Sm"],
         volume=Fts["V"],
+        RFt=Fts["Rs"],
+        errors=SampleFtErrors(
+            ft238u=Fts["238U_err"],
+            ft235u=Fts["235U_err"],
+            ft232th=Fts["232Th_err"],
+            ft147sm=Fts["147Sm_err"],
+        ),
     )
 
 
