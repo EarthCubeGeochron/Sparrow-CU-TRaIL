@@ -70,3 +70,20 @@ def test_he_data_ingestion():
 def test_load_results():
     df = _create_results_data_frame()
     assert len(df) == 31
+
+
+def test_correlate_data_frame():
+    # Ensure that all data frames have the same samples
+    dfs = [
+        _create_picking_data_frame(),
+        _create_icpms_data_frame(),
+        _create_he_data_frame(),
+        _create_results_data_frame(),
+    ]
+
+    # merge all data frames
+    df = dfs[0]
+    for i, d in enumerate(dfs[1:]):
+        df = df.join(d, how="inner", rsuffix=f"_{i+1}")
+
+    assert len(df) == 31
