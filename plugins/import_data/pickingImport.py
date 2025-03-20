@@ -89,7 +89,7 @@ def get_Ft_values(sample: Sample, corrected: bool = True) -> SampleFt:
         ft147sm=Fts["147Sm"],
         volume=Fts["V"],
         RFt=Fts["Rs"],
-        errors=errors
+        errors=errors,
     )
 
 

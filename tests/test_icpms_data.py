@@ -5,7 +5,7 @@ Integrated tests of ICP-MS and picking calculations
 # Add plugins to sys.path
 from pathlib import Path
 import re
-from unittest.mock import inplace
+from pytest import mark
 
 from pandas import read_excel, read_csv
 import numpy as N
@@ -95,49 +95,57 @@ def clean_column_name(name):
     return n2.replace("+/-", "err").replace("±", "err")
 
 
-def test_picking_data_ingestion():
-    df = _create_picking_data_frame()
-    assert len(df) == 31
+_test_data_frames = {
+    "Picking": _create_picking_data_frame(),
+    "ICPMS": _create_icpms_data_frame(),
+    "He": _create_he_data_frame(),
+    "Results": _create_results_data_frame(),
+}
 
 
-def test_icpms_data_ingestion():
-    df = _create_icpms_data_frame()
-    assert len(df) == 31
-
-
-def test_he_data_ingestion():
-    df = _create_he_data_frame()
-    assert len(df) == 31
-
-
-def test_load_results():
-    df = _create_results_data_frame()
-    assert len(df) == 31
-
-
-def test_correlate_data_frame():
-    # Ensure that all data frames have the same samples
-    dfs = {
-        "Picking": _create_picking_data_frame(),
-        "ICPMS": _create_icpms_data_frame(),
-        "He": _create_he_data_frame(),
-    }
-
-    # merge all data frames
+def _merge_input_data_frames():
     df = None
-    for key, frame in dfs.items():
+    for key in ["Picking", "ICPMS", "He"]:
+        frame = _test_data_frames[key]
         if df is None:
             df = frame
         else:
             df = df.join(frame, how="inner", rsuffix=f" ({key})")
 
+    return df
+
+
+@mark.parametrize("frame", _test_data_frames.keys())
+def test_data_frames_are_standardized(frame):
+    df = _test_data_frames[frame]
     assert len(df) == 31
 
-    res_df = _create_results_data_frame()
+
+def test_correlate_data_frame():
+    """Test that we can create a correlated (merged) data frame from the three input data frames"""
+
+    # merge all data frames
+    df = _merge_input_data_frames()
+    assert len(df) == 31
+
+    res_df = _test_data_frames["Results"]
     assert len(res_df) == 31
 
     # Ensure that there are the same index values in the results and the merged data frame
     assert N.all(df.index == res_df.index)
+
+
+input_df = _merge_input_data_frames()
+grain_ids = input_df.index
+res_df = _test_data_frames["Results"]
+
+
+@mark.parametrize("grain_id", grain_ids)
+def test_calculate_date(grain_id):
+
+    # Get the row from the input data frame
+    d = input_df.loc[grain_id]
+    res = res_df.loc[grain_id]
 
     # Input cols
     # ['Lab/Owner', 'Analyst', 'Funding', 'Sample', 'Aliquot', 'Mineral',
@@ -157,46 +165,41 @@ def test_correlate_data_frame():
         "z": "Zircon",
     }
 
-    for (ix, d), (ix1, res) in zip(df.iterrows(), res_df.iterrows()):
-        assert ix == ix1
+    sample = Sample(
+        name=grain_id,
+        material=min_index[d["Mineral"]],
+        geometry=geometry_key[d["Geometry"]],
+        terminations=d["Np"],
+        length1=d["L1"],
+        width1=d["W1"],
+        length2=d["L2"],
+        width2=d["W2"],
+    )
 
-        sample = Sample(
-            name=ix,
-            material=min_index[d["Mineral"]],
-            geometry=geometry_key[d["Geometry"]],
-            terminations=d["Np"],
-            length1=d["L1"],
-            width1=d["W1"],
-            length2=d["L2"],
-            width2=d["W2"],
-        )
+    ft_vals = get_Ft_values(sample, corrected=False)
 
-        ft_vals = get_Ft_values(sample, corrected=False)
+    date, tau_date = calculate_date(
+        d["4He"],
+        d["4He err"],
+        d["238U"],
+        d["238U err"],
+        d["232Th"],
+        d["232Th err"],
+        d["147Sm"],
+        d["147Sm err"],
+        ft_vals.ft238u,
+        0,  # ft_vals.errors.ft238u,
+        ft_vals.ft235u,
+        0,  # ft_vals.errors.ft235u,
+        ft_vals.ft232th,
+        0,  # ft_vals.errors.ft232th,
+        ft_vals.ft147sm,
+        0,  # ft_vals.errors.ft147sm,
+        False,
+    )
 
-        date, tau_date = calculate_date(
-            d["4He"],
-            d["4He err"],
-            d["238U"],
-            d["238U err"],
-            d["232Th"],
-            d["232Th err"],
-            d["147Sm"],
-            d["147Sm err"],
-            ft_vals.ft238u,
-            0,  # ft_vals.errors.ft238u,
-            ft_vals.ft235u,
-            0,  # ft_vals.errors.ft235u,
-            ft_vals.ft232th,
-            0,  # ft_vals.errors.ft232th,
-            ft_vals.ft147sm,
-            0,  # ft_vals.errors.ft147sm,
-            False,
-        )
+    raw_date = date["Raw date"][0]
+    corrected_date = date["Corrected date"][0]
 
-        raw_date = date["Raw date"][0]
-        corrected_date = date["Corrected date"][0]
-
-        assert raw_date == res["Uncorr Date"]
-        assert corrected_date == res["Corrected date"]
-
-    assert False
+    assert raw_date == res["Uncorr Date"]
+    assert corrected_date == res["Corrected date"]
