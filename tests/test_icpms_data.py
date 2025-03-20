@@ -160,6 +160,46 @@ res_df = _test_data_frames["Results"]
 
 
 @mark.parametrize("grain_id", grain_ids)
+@mark.parametrize("corrected", [False, True])
+def test_correct_ft_values(grain_id, corrected):
+    """Ensure that calculated FT values from Picking data match the expected values"""
+
+    # Get the row from the input data frame
+    d = input_df.loc[grain_id]
+    res = res_df.loc[grain_id]
+
+    min_index = {
+        "a": "Apatite",
+        "z": "Zircon",
+    }
+
+    sample = Sample(
+        name=grain_id,
+        material=min_index[d["Mineral"]],
+        geometry=geometry_key[d["Geometry"]],
+        terminations=d["Np"],
+        length1=d["L1"],
+        width1=d["W1"],
+        length2=d["L2"],
+        width2=d["W2"],
+    )
+
+    # Basic sanity checks
+    assert sample.material in ["Apatite", "Zircon"]
+    ft_vals = get_Ft_values(sample, corrected=corrected)
+    _check_ft_vals(ft_vals, res, corrected=corrected)
+
+
+def _check_ft_vals(ft_vals, res, corrected=False, tolerance=1e-6):
+    prefix = "GeoCorr" if corrected else "UnCorr"
+    # Test that we have the right FT values
+    assert N.allclose(ft_vals.ft238u, res[f"{prefix} Ft 238U"], rtol=tolerance)
+    assert N.allclose(ft_vals.ft235u, res[f"{prefix} Ft 235U"], rtol=tolerance)
+    assert N.allclose(ft_vals.ft232th, res[f"{prefix} Ft 232Th"], rtol=tolerance)
+    assert N.allclose(ft_vals.ft147sm, res[f"{prefix} Ft 147Sm"], rtol=tolerance)
+
+
+@mark.parametrize("grain_id", grain_ids)
 def test_calculate_date(grain_id):
 
     # Get the row from the input data frame
@@ -188,10 +228,10 @@ def test_calculate_date(grain_id):
     # Get FT values based on geometry and picking data
     ft_vals = get_Ft_values(sample, corrected=False)
 
-    # Do I need to use the ESR_Ft values here?
-    # ....
+    # Do I need to use the ESR_Ft values here to calculate the date?
+    # ...
 
-    # This calculates date without Monte Carlo errors at this point
+    # This calculates date without Monte Carlo or errors at this point
     date, tau_date = calculate_date(
         d["4He"],
         d["4He err"],
