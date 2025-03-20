@@ -6,6 +6,7 @@ Integrated tests of ICP-MS and picking calculations
 from pathlib import Path
 import re
 from pytest import mark
+import hecalc
 
 from pandas import read_excel, read_csv
 import numpy as N
@@ -104,6 +105,23 @@ _test_data_frames = {
 
 
 def _merge_input_data_frames():
+    """
+    Merge all input/standardized data frames together
+
+    Cols in the merged input data frame:
+    ['Lab/Owner', 'Analyst', 'Funding', 'Sample', 'Aliquot', 'Mineral',
+           'Color', 'Surface Color or Staining', 'Surface Roughness',
+           'Idealness of xtal form', 'Geometry', 'Shard ?', 'Mineral Inclusions?',
+           'Fluid Inclusions?', 'Additional descriptive notes', 'L1', 'W1', 'L2',
+           'W2', 'Np', 'Special Analytical Instructions', 'Priority?',
+           'Date Packed', 'Apatite Ft', 'Zircon Ft', 'Definitions', 'Bap', 'Bz',
+           'Lavg', 'R', 'Ap Uft', 'Ap ThFt', 'Z Uft', 'Z ThFt', 'Date', '238U',
+           '238U err', '238U blank', '238U blank err', '235U', '235U err', '232Th',
+           '232Th err', '232Th blank', '232Th blank err', '147Sm', '147Sm err',
+           'HeNumber', 'PickingInfo', 'Mineral (He)', 'Date (He)', '4He',
+           '4He err', 'IE', 'Q', 'Q err', 'Blank', 'Blank err']
+    """
+
     df = None
     for key in ["Picking", "ICPMS", "He"]:
         frame = _test_data_frames[key]
@@ -136,6 +154,7 @@ def test_correlate_data_frame():
 
 
 input_df = _merge_input_data_frames()
+
 grain_ids = input_df.index
 res_df = _test_data_frames["Results"]
 
@@ -146,19 +165,6 @@ def test_calculate_date(grain_id):
     # Get the row from the input data frame
     d = input_df.loc[grain_id]
     res = res_df.loc[grain_id]
-
-    # Input cols
-    # ['Lab/Owner', 'Analyst', 'Funding', 'Sample', 'Aliquot', 'Mineral',
-    #        'Color', 'Surface Color or Staining', 'Surface Roughness',
-    #        'Idealness of xtal form', 'Geometry', 'Shard ?', 'Mineral Inclusions?',
-    #        'Fluid Inclusions?', 'Additional descriptive notes', 'L1', 'W1', 'L2',
-    #        'W2', 'Np', 'Special Analytical Instructions', 'Priority?',
-    #        'Date Packed', 'Apatite Ft', 'Zircon Ft', 'Definitions', 'Bap', 'Bz',
-    #        'Lavg', 'R', 'Ap Uft', 'Ap ThFt', 'Z Uft', 'Z ThFt', 'Date', '238U',
-    #        '238U err', '238U blank', '238U blank err', '235U', '235U err', '232Th',
-    #        '232Th err', '232Th blank', '232Th blank err', '147Sm', '147Sm err',
-    #        'HeNumber', 'PickingInfo', 'Mineral (He)', 'Date (He)', '4He',
-    #        '4He err', 'IE', 'Q', 'Q err', 'Blank', 'Blank err']
 
     min_index = {
         "a": "Apatite",
@@ -176,8 +182,16 @@ def test_calculate_date(grain_id):
         width2=d["W2"],
     )
 
+    # Basic sanity checks
+    assert sample.material in ["Apatite", "Zircon"]
+
+    # Get FT values based on geometry and picking data
     ft_vals = get_Ft_values(sample, corrected=False)
 
+    # Do I need to use the ESR_Ft values here?
+    # ....
+
+    # This calculates date without Monte Carlo errors at this point
     date, tau_date = calculate_date(
         d["4He"],
         d["4He err"],
@@ -196,6 +210,7 @@ def test_calculate_date(grain_id):
         ft_vals.ft147sm,
         0,  # ft_vals.errors.ft147sm,
         False,
+        do_monte_carlo=False,
     )
 
     raw_date = date["Raw date"][0]

@@ -381,6 +381,7 @@ def calculate_date(
     Ft147,
     Ft147_s,
     get_corrected,
+    do_monte_carlo=True,
 ):
     # This is a typo, but I don't know if it matters. Should be U238_mol_per_ng not 328
     U328_mol_per_ng = 1 / (238.03 * 1e9)
@@ -458,7 +459,7 @@ def calculate_date(
         "232Ft-147Ft": Ft232_s * Ft147_s,
     }
 
-    # These also need to be referencing the corrected valyes and proper uncertainties
+    # These also need to be referencing the corrected values and proper uncertainties
     date = hecalc.get_date(
         He4_mol,
         U238=U238_mol,
@@ -470,6 +471,18 @@ def calculate_date(
         Ft232=Ft232,
         Ft147=Ft147,
     )
+
+    # if not do_monte_carlo:
+    #     # Early return if we aren't interested in error calculations
+    #     assert False
+    #     return (
+    #         {
+    #             "Raw date": [date["raw date"]],
+    #             "Corrected date": [date["corrected date"]],
+    #             "Number of Monte Carlo simulations": [0],
+    #         },
+    #         None,
+    #     )
 
     # Get total uncertainty first
     linear_uncertainty = hecalc.date_uncertainty(
@@ -555,7 +568,7 @@ def calculate_date(
 
     measured_U235 = False
     linear = True
-    monteCarlo = True
+    monteCarlo = do_monte_carlo
     histograms = False
     parameterize = False
     decimals = 2
@@ -577,9 +590,12 @@ def calculate_date(
         precision,
     )
     for dat in reduced_data:
-        if reduced_data["Number of Monte Carlo simulations"][0] == "NaN":
-            reduced_data["Number of Monte Carlo simulations"][0] = 0
-        elif reduced_data[dat][0] == "NaN":
+        if (
+            len(reduced_data["Number of Monte Carlo simulations"]) > 0
+            and reduced_data["Number of Monte Carlo simulations"][0] == "NaN"
+        ):
+            reduced_data["Number of Monte Carlo simulations"] = [0]
+        elif (len(reduced_data[dat]) > 0 and reduced_data[dat][0] == "NaN"):
             reduced_data[dat][0] = None
 
     if get_corrected:
