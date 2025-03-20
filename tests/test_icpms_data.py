@@ -11,12 +11,8 @@ from pandas import read_excel, read_csv
 import numpy as N
 
 from plugins.import_data.pickingImport import (
-    read_picking_data,
-    get_picking_specs,
-    get_picking_dataframe,
     get_Ft_values,
     Sample,
-    SampleFt,
 )
 from plugins.manipulate_data.dataReduction import calculate_date
 
@@ -165,7 +161,7 @@ def test_correlate_data_frame():
         assert ix == ix1
 
         sample = Sample(
-            name=d.index,
+            name=ix,
             material=min_index[d["Mineral"]],
             geometry=geometry_key[d["Geometry"]],
             terminations=d["Np"],
@@ -175,9 +171,9 @@ def test_correlate_data_frame():
             width2=d["W2"],
         )
 
-        ft_vals = get_Ft_values(sample, corrected=True)
+        ft_vals = get_Ft_values(sample, corrected=False)
 
-        date = calculate_date(
+        date, tau_date = calculate_date(
             d["4He"],
             d["4He err"],
             d["238U"],
@@ -187,14 +183,20 @@ def test_correlate_data_frame():
             d["147Sm"],
             d["147Sm err"],
             ft_vals.ft238u,
-            ft_vals.errors.ft238u,
+            0,  # ft_vals.errors.ft238u,
             ft_vals.ft235u,
-            ft_vals.errors.ft235u,
+            0,  # ft_vals.errors.ft235u,
             ft_vals.ft232th,
-            ft_vals.errors.ft232th,
+            0,  # ft_vals.errors.ft232th,
             ft_vals.ft147sm,
-            ft_vals.errors.ft147sm,
-            True
+            0,  # ft_vals.errors.ft147sm,
+            False,
         )
+
+        raw_date = date["Raw date"][0]
+        corrected_date = date["Corrected date"][0]
+
+        assert raw_date == res["Uncorr Date"]
+        assert corrected_date == res["Corrected date"]
 
     assert False

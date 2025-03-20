@@ -457,6 +457,7 @@ def calculate_date(
         "235Ft-147Ft": Ft235_s * Ft147_s,
         "232Ft-147Ft": Ft232_s * Ft147_s,
     }
+
     # These also need to be referencing the corrected valyes and proper uncertainties
     date = hecalc.get_date(
         He4_mol,
@@ -469,6 +470,7 @@ def calculate_date(
         Ft232=Ft232,
         Ft147=Ft147,
     )
+
     # Get total uncertainty first
     linear_uncertainty = hecalc.date_uncertainty(
         He4_mol,

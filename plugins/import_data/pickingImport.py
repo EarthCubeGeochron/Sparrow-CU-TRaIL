@@ -73,6 +73,15 @@ def get_Ft_values(sample: Sample, corrected: bool = True) -> SampleFt:
         corrected=corrected,
     )
 
+    errors = None
+    if corrected:
+        errors = SampleFtErrors(
+            ft238u=Fts["238U_err"],
+            ft235u=Fts["235U_err"],
+            ft232th=Fts["232Th_err"],
+            ft147sm=Fts["147Sm_err"],
+        )
+
     return SampleFt(
         ft238u=Fts["238U"],
         ft235u=Fts["235U"],
@@ -80,12 +89,7 @@ def get_Ft_values(sample: Sample, corrected: bool = True) -> SampleFt:
         ft147sm=Fts["147Sm"],
         volume=Fts["V"],
         RFt=Fts["Rs"],
-        errors=SampleFtErrors(
-            ft238u=Fts["238U_err"],
-            ft235u=Fts["235U_err"],
-            ft232th=Fts["232Th_err"],
-            ft147sm=Fts["147Sm_err"],
-        ),
+        errors=errors
     )
 
 
