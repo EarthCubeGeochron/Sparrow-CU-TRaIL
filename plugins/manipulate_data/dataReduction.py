@@ -384,13 +384,13 @@ def calculate_date(
     do_monte_carlo=True,
 ):
     # This is a typo, but I don't know if it matters. Should be U238_mol_per_ng not 328
-    U328_mol_per_ng = 1 / (238.03 * 1e9)
+    U238_mol_per_ng = 1 / (238.03 * 1e9)
     Th232_mol_per_ng = 1 / (232 * 1e9)
     Sm147_mol_per_ng = 1 / (157 * 1e9)
     He_mol_per_fmol = 1 / (1e15)
 
-    U238_mol = U238 * U328_mol_per_ng
-    U238_mol_s = U238_s * U328_mol_per_ng
+    U238_mol = U238 * U238_mol_per_ng
+    U238_mol_s = U238_s * U238_mol_per_ng
     Th232_mol = Th232 * Th232_mol_per_ng
     Th232_mol_s = Th232_s * Th232_mol_per_ng
     Sm147_mol = Sm147 * Sm147_mol_per_ng
