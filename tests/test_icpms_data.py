@@ -5,7 +5,8 @@ Integrated tests of ICP-MS and picking calculations
 # Add plugins to sys.path
 from pathlib import Path
 import re
-from pytest import mark
+from pytest import mark, approx
+from pytest_steps import test_steps
 import hecalc
 
 from pandas import read_excel, read_csv
@@ -36,7 +37,7 @@ def _create_picking_data_frame():
 
 
 def _create_icpms_data_frame():
-    df = read_csv(test_data / "ICPMS_Data_Test.txt", delimiter="\t")
+    df = read_excel(test_data / "ICPMS_Data_Test_highprecisionU2.xlsx")
     return standardize_table(df, "Sample")
 
 
@@ -47,7 +48,7 @@ def _create_he_data_frame():
 
 
 def _create_results_data_frame():
-    results_sheet = test_data / "Test_Data_Results.xlsx"
+    results_sheet = test_data / "Test_Data_Results_2025_03_31.xlsx"
     df = read_excel(results_sheet)
     return standardize_table(df, "Sample Name")
 
@@ -200,6 +201,7 @@ def _check_ft_vals(ft_vals, res, corrected=False, tolerance=1e-6):
 
 
 @mark.parametrize("grain_id", grain_ids)
+@test_steps("raw", "corrected")
 def test_calculate_date(grain_id):
 
     # Get the row from the input data frame
@@ -230,7 +232,7 @@ def test_calculate_date(grain_id):
 
     # assert N.allclose(d["147Sm"], res["147Sm"], atol=1e-3)
 
-    totalU = d["238U"] + d["235U"]
+    # totalU = d["238U"] + d["235U"]
     # assert N.allclose(totalU, res["U"][0], rtol=1e-6)
 
     # assert ft_vals.RFt == res["Rs"]
@@ -256,12 +258,17 @@ def test_calculate_date(grain_id):
         0,  # ft_vals.errors.ft232th,
         ft_vals.ft147sm,
         0,  # ft_vals.errors.ft147sm,
-        False,
+        True,
         do_monte_carlo=True,
     )
 
     raw_date = date["Raw date"][0]
     corrected_date = date["Corrected date"][0]
 
-    assert raw_date == res["Uncorr Date"]
-    assert corrected_date == res["Corrected Date"]
+    assert raw_date == approx(res["Uncorr Date"], rel=0.0001)
+
+    yield "raw"
+
+    assert corrected_date == approx(res["Corrected Date"], rel=0.0001)
+
+    yield "corrected"

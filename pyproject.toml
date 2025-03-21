@@ -15,6 +15,7 @@ sparrow = { path = "../../Software/Sparrow/backend", develop = true }
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.8.0"
+pytest-steps = "^1.8.0"
 
 [build-system]
 requires = ["poetry-core"]
