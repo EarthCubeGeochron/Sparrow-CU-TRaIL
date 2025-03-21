@@ -226,7 +226,14 @@ def test_calculate_date(grain_id):
     assert sample.material in ["Apatite", "Zircon"]
 
     # Get FT values based on geometry and picking data
-    ft_vals = get_Ft_values(sample, corrected=False)
+    ft_vals = get_Ft_values(sample, corrected=True)
+
+    # assert N.allclose(d["147Sm"], res["147Sm"], atol=1e-3)
+
+    totalU = d["238U"] + d["235U"]
+    # assert N.allclose(totalU, res["U"][0], rtol=1e-6)
+
+    # assert ft_vals.RFt == res["Rs"]
 
     # Do I need to use the ESR_Ft values here to calculate the date?
     # ...
@@ -250,11 +257,11 @@ def test_calculate_date(grain_id):
         ft_vals.ft147sm,
         0,  # ft_vals.errors.ft147sm,
         False,
-        do_monte_carlo=False,
+        do_monte_carlo=True,
     )
 
     raw_date = date["Raw date"][0]
     corrected_date = date["Corrected date"][0]
 
     assert raw_date == res["Uncorr Date"]
-    assert corrected_date == res["Corrected date"]
+    assert corrected_date == res["Corrected Date"]

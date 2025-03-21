@@ -595,7 +595,7 @@ def calculate_date(
             and reduced_data["Number of Monte Carlo simulations"][0] == "NaN"
         ):
             reduced_data["Number of Monte Carlo simulations"] = [0]
-        elif (len(reduced_data[dat]) > 0 and reduced_data[dat][0] == "NaN"):
+        elif len(reduced_data[dat]) > 0 and reduced_data[dat][0] == "NaN":
             reduced_data[dat][0] = None
 
     if get_corrected:
