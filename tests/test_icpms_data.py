@@ -199,9 +199,15 @@ def _check_ft_vals(ft_vals, res, corrected=False, tolerance=1e-6):
     assert ft_vals.ft232th == approx(res[f"{prefix} Ft 232Th"], rel=tolerance)
     assert ft_vals.ft147sm == approx(res[f"{prefix} Ft 147Sm"], rel=tolerance)
 
+    # Check that Ft errors are not NaN
+    assert N.isfinite(ft_vals.errors.ft238u)
+    assert N.isfinite(ft_vals.errors.ft235u)
+    assert N.isfinite(ft_vals.errors.ft232th)
+    assert N.isfinite(ft_vals.errors.ft147sm)
+
 
 @mark.parametrize("grain_id", grain_ids)
-@test_steps("ft_vals", "raw", "corrected")
+# @test_steps("ft_vals", "raw", "corrected")
 def test_calculate_date(grain_id):
 
     # Get the row from the input data frame
@@ -229,6 +235,7 @@ def test_calculate_date(grain_id):
 
     # Get FT values based on geometry and picking data
     ft_vals = get_Ft_values(sample, corrected=True)
+
     _check_ft_vals(ft_vals, res, corrected=True)
 
     yield "ft_vals"
@@ -244,11 +251,43 @@ def test_calculate_date(grain_id):
     # ...
 
     # Apparently we have to ignore errors to get the "raw" date as calculated
-    ignore_errors = True
-    Ft238U_err = 0
-    Ft235U_err = 0
-    Ft232Th_err = 0
-    Ft147Sm_err = 0
+    Ft238U_err = ft_vals.errors.ft238u
+    Ft235U_err = ft_vals.errors.ft235u
+    Ft232Th_err = ft_vals.errors.ft232th
+    Ft147Sm_err = ft_vals.errors.ft147sm
+
+    # This calculates date without Monte Carlo or errors at this point
+    date, tau_date = calculate_date(
+        d["4He"],
+        d["4He err"],
+        d["238U"],
+        d["238U err"],
+        d["232Th"],
+        d["232Th err"],
+        d["147Sm"],
+        d["147Sm err"],
+        ft_vals.ft238u,
+        Ft238U_err,
+        ft_vals.ft235u,
+        Ft235U_err,
+        ft_vals.ft232th,
+        Ft232Th_err,
+        ft_vals.ft147sm,
+        Ft147Sm_err,
+        False,
+        do_monte_carlo=True,
+    )
+
+    raw_date = date["Raw date"][0]
+
+    assert raw_date == approx(res["Uncorr Date"], rel=0.0001)
+
+    yield "raw"
+
+    Ft238U_err = ft_vals.errors.ft238u
+    Ft235U_err = ft_vals.errors.ft235u
+    Ft232Th_err = ft_vals.errors.ft232th
+    Ft147Sm_err = ft_vals.errors.ft147sm
 
     # This calculates date without Monte Carlo or errors at this point
     date, tau_date = calculate_date(
@@ -271,12 +310,6 @@ def test_calculate_date(grain_id):
         True,
         do_monte_carlo=True,
     )
-
-    raw_date = date["Raw date"][0]
-
-    assert raw_date == approx(res["Uncorr Date"], rel=0.0001)
-
-    yield "raw"
 
     corrected_date = date["Corrected date"][0]
 

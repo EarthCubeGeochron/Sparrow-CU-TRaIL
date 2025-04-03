@@ -287,9 +287,9 @@ def get_Ft_values_internal(
             _238Ftcorr = 0.97 * _238Ft
             _238Fterr = 0.03 * _238Ftcorr if Wmax < 100 else 0.02 * _238Ftcorr
             _235Ftcorr = 0.96 * _235Ft
-            _235Fterr = 0.04 * _235Ftcorr if Wmax < 100 else 0.02 * _235Fterr
+            _235Fterr = 0.04 * _235Ftcorr if Wmax < 100 else 0.02 * _235Ftcorr
             _232Ftcorr = 0.96 * _232Ft
-            _232Fterr = 0.04 * _232Ftcorr if Wmax < 100 else 0.02 * _232Fterr
+            _232Fterr = 0.04 * _232Ftcorr if Wmax < 100 else 0.02 * _232Ftcorr
             _147Ftcorr = 0.99 * _147Ft
             _147Fterr = 0.01 * _147Ftcorr
         if shape == "Ellipsoid":
@@ -301,6 +301,7 @@ def get_Ft_values_internal(
             _232Fterr = 0.06 * _232Ftcorr
             _147Ftcorr = 0.97 * _147Ft
             _147Fterr = 0.01 * _147Ftcorr
+
     Ft_dat["238U"] = _238Ftcorr
     Ft_dat["238U_err"] = _238Fterr
     Ft_dat["235U"] = _235Ftcorr
