@@ -195,7 +195,7 @@ def test_correct_ft_values(grain_id, corrected):
     _check_ft_vals(ft_vals, res, corrected=corrected)
 
 
-def _check_ft_vals(ft_vals, res, corrected=False, tolerance=1e-6):
+def _check_ft_vals(ft_vals, res, corrected=False, tolerance=1e-8):
     prefix = "GeoCorr" if corrected else "UnCorr"
     # Test that we have the right FT values
     assert ft_vals.ft238u == approx(res[f"{prefix} Ft 238U"], rel=tolerance)
