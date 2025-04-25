@@ -217,7 +217,7 @@ def test_calculate_date(grain_id):
         Ft147Sm_err,
         True,
         do_monte_carlo=True,
-        mols=True
+        mols=True,
     )
 
     corrected_date = date["Corrected date"][0]

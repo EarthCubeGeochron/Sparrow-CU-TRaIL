@@ -156,7 +156,7 @@ def test_correlate_data_frame():
 
 input_df = _merge_input_data_frames()
 
-# Omit TestZirc_04, which seems to fail tests because
+# Omit TestZir_04, which seems to fail tests because
 # it has some sort of calculation error
 input_df = input_df.loc[input_df.index != "TestZir_04"]
 
