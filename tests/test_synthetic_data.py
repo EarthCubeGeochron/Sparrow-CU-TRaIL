@@ -179,10 +179,10 @@ def test_calculate_date(grain_id):
         material=min_index[d["Mineral"]],
         geometry=geometry_key[d["Geometry"]],
         terminations=d["Np"],
-        length1=d["L1"],
-        width1=d["W1"],
-        length2=d["L2"],
-        width2=d["W2"],
+        length1=d["Length 1"],
+        width1=d["Width 1"],
+        length2=d["Length 2"],
+        width2=d["Width 2"],
     )
 
     # Basic sanity checks
@@ -235,7 +235,7 @@ def test_calculate_date(grain_id):
 
     raw_date = date["Raw date"][0]
 
-    assert raw_date == approx(res["Uncorr Date"], rel=0.0001)
+    assert raw_date == approx(res["Raw date"], rel=0.0001)
 
     yield "raw"
 
@@ -268,6 +268,6 @@ def test_calculate_date(grain_id):
 
     corrected_date = date["Corrected date"][0]
 
-    assert corrected_date == approx(res["Corrected Date"], rel=0.0001)
+    assert corrected_date == approx(res["Corrected date"], rel=0.0001)
 
     yield "corrected"
