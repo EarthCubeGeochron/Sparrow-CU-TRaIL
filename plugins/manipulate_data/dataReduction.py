@@ -381,7 +381,9 @@ def calculate_date(
     Ft147,
     Ft147_s,
     get_corrected,
+    *,
     do_monte_carlo=True,
+    mols=False,
 ):
     # This is a typo, but I don't know if it matters. Should be U238_mol_per_ng not 328
     U238_mol_per_ng = 1 / (238.03 * 1e9)
@@ -389,14 +391,27 @@ def calculate_date(
     Sm147_mol_per_ng = 1 / (157 * 1e9)
     He_mol_per_fmol = 1 / (1e15)
 
-    U238_mol = U238 * U238_mol_per_ng
-    U238_mol_s = U238_s * U238_mol_per_ng
-    Th232_mol = Th232 * Th232_mol_per_ng
-    Th232_mol_s = Th232_s * Th232_mol_per_ng
-    Sm147_mol = Sm147 * Sm147_mol_per_ng
-    Sm147_mol_s = Sm147_s * Sm147_mol_per_ng
-    He4_mol = He4 * He_mol_per_fmol
-    He4_mol_s = He4_s * He_mol_per_fmol
+    if mols:
+        # Data is provided in mos
+        U238_mol = U238
+        U238_mol_s = U238_s
+        Th232_mol = Th232
+        Th232_mol_s = Th232_s
+        Sm147_mol = Sm147
+        Sm147_mol_s = Sm147_s
+        He4_mol = He4
+        He4_mol_s = He4_s
+
+    else:
+        # Data is provided in ng (fmol for He)
+        U238_mol = U238 * U238_mol_per_ng
+        U238_mol_s = U238_s * U238_mol_per_ng
+        Th232_mol = Th232 * Th232_mol_per_ng
+        Th232_mol_s = Th232_s * Th232_mol_per_ng
+        Sm147_mol = Sm147 * Sm147_mol_per_ng
+        Sm147_mol_s = Sm147_s * Sm147_mol_per_ng
+        He4_mol = He4 * He_mol_per_fmol
+        He4_mol_s = He4_s * He_mol_per_fmol
 
     # Use the _sample_loop helper function from HeCalc to more
     # smoothly take care of the date calculation aspects

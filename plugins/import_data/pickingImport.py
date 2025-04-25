@@ -127,7 +127,7 @@ def get_Ft_values_internal(
         R = Ft_constants[material][iso]
         if shape == "Ellipsoid":
             # For zircon, use the two widths and for apatite use the wmax for both
-            if material == "Apatite" and corrected:
+            if material == "Apatite":
                 w1 = Wmax
                 w2 = Wmax
             a = w1 / 2
