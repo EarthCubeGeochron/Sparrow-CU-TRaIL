@@ -18,20 +18,21 @@ from plugins.import_data.pickingImport import (
 )
 from plugins.manipulate_data.dataReduction import calculate_date
 
-test_data = (
-    Path(__file__).parent.parent
-    / "test_data"
-    / "icpms_test"
-    / "synthetic_data_2025_04_21_values.xlsx"
-)
+test_data = Path(__file__).parent.parent / "test_data" / "icpms_test"
 
 geometry_key = {1: "Ellipsoid", 2: "Cylindrical", 3: "Orthorhombic", 4: "Hexagonal"}
 
 
 def _create_picking_data_frame():
-    df = read_excel(test_data, header=1)
-    df = df.iloc[:9, :]
+    picking_sheet = test_data / "Picking_Test.xlsx"
+    df = read_excel(picking_sheet, header=1)
+    df = df.iloc[4:, :]
+    # Remove "Sample" integer index
+    df.drop("Sample", axis=1, inplace=True)
+    df.rename(columns={"Sample.1": "Sample"}, inplace=True)
+
     df = standardize_table(df, "Packet Identifier")
+
     return df
 
 
@@ -153,7 +154,7 @@ def test_correlate_data_frame():
     assert N.all(df.index == res_df.index)
 
 
-input_df = test_data
+input_df = _merge_input_data_frames()
 
 grain_ids = input_df.index
 res_df = _test_data_frames["Results"]
