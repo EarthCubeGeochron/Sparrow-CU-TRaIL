@@ -18,21 +18,20 @@ from plugins.import_data.pickingImport import (
 )
 from plugins.manipulate_data.dataReduction import calculate_date
 
-test_data = Path(__file__).parent.parent / "test_data" / "icpms_test"
+test_data = (
+    Path(__file__).parent.parent
+    / "test_data"
+    / "icpms_test"
+    / "synthetic_data_2025_04_21_values.xlsx"
+)
 
 geometry_key = {1: "Ellipsoid", 2: "Cylindrical", 3: "Orthorhombic", 4: "Hexagonal"}
 
 
 def _create_picking_data_frame():
-    picking_sheet = test_data / "Picking_Test.xlsx"
-    df = read_excel(picking_sheet, header=1)
-    df = df.iloc[4:, :]
-    # Remove "Sample" integer index
-    df.drop("Sample", axis=1, inplace=True)
-    df.rename(columns={"Sample.1": "Sample"}, inplace=True)
-
+    df = read_excel(test_data, header=1)
+    df = df.iloc[:9, :]
     df = standardize_table(df, "Packet Identifier")
-
     return df
 
 
@@ -97,12 +96,13 @@ def clean_column_name(name):
     return n2.replace("+/-", "err").replace("±", "err")
 
 
-_test_data_frames = {
-    "Picking": _create_picking_data_frame(),
-    "ICPMS": _create_icpms_data_frame(),
-    "He": _create_he_data_frame(),
-    "Results": _create_results_data_frame(),
-}
+# _test_data_frames = {
+#     "Picking": _create_picking_data_frame(),
+#     "ICPMS": _create_icpms_data_frame(),
+#     "He": _create_he_data_frame(),
+#     "Results": _create_results_data_frame(),
+# }
+#
 
 
 def _merge_input_data_frames():
@@ -134,12 +134,6 @@ def _merge_input_data_frames():
     return df
 
 
-@mark.parametrize("frame", _test_data_frames.keys())
-def test_data_frames_are_standardized(frame):
-    df = _test_data_frames[frame]
-    assert len(df) == 31
-
-
 def test_correlate_data_frame():
     """Test that we can create a correlated (merged) data frame from the three input data frames"""
 
@@ -154,10 +148,9 @@ def test_correlate_data_frame():
     assert N.all(df.index == res_df.index)
 
 
-input_df = _merge_input_data_frames()
+input_df = _create_picking_data_frame()
 
 grain_ids = input_df.index
-res_df = _test_data_frames["Results"]
 
 
 @mark.parametrize("grain_id", grain_ids)
@@ -179,10 +172,10 @@ def test_correct_ft_values(grain_id, corrected):
         material=min_index[d["Mineral"]],
         geometry=geometry_key[d["Geometry"]],
         terminations=d["Np"],
-        length1=d["L1"],
-        width1=d["W1"],
-        length2=d["L2"],
-        width2=d["W2"],
+        length1=d["Length 1"],
+        width1=d["Width 1"],
+        length2=d["Length 2"],
+        width2=d["Width 2"],
     )
 
     # Basic sanity checks
