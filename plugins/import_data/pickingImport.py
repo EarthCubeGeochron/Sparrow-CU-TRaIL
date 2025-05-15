@@ -507,6 +507,7 @@ def read_picking_data(fn, picking_specs, make_labID):
         }
 
         # TODO: duplicate this so that both corrected and uncorrected data are saved in the database.
+        # Change errors to 1sigma...
 
         # Only incude derived data if not a shard
         if Fts:
@@ -545,10 +546,12 @@ def read_picking_data(fn, picking_specs, make_labID):
                     "Dimensional mass (±2σ), new geometric correction",
                     "μg",
                 ],
+                # Rs should only be included in the uncorrected output,
+                # as it is superseded by the ESR_Ft, which requires ICP_Ms
                 [
                     Fts["Rs"],
                     Fts["Rs"] * Rs_err * 2,
-                    "Equivalent spherical radius (±2σ), new geometric correction",
+                    "Equivalent spherical radius (±2σ)",
                     "μm",
                 ],
             ]

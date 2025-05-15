@@ -168,6 +168,8 @@ class TRaILhelium(BaseImporter):
             .all()
         )
         if len(derived_session_obj) > 0:
+            # TODO: this add_nmol_g function contains the only place where
+            # the data should change depending on geometric correction.
             self.add_nmol_g(derived_session_obj[0], session_dict)
         # Print an empty line to keep the command line clean
         print("")
@@ -176,6 +178,7 @@ class TRaILhelium(BaseImporter):
 
     # Get dimensionsal mass for a given sample based on session pulled above
     def query_shard(self, session_obj):
+        # This will need to be done for both corrected and uncorrected values of dimensional mass
         Session = self.db.model.session
         Analysis = self.db.model.analysis
         Datum = self.db.model.datum
@@ -193,6 +196,8 @@ class TRaILhelium(BaseImporter):
 
     # TODO add method to add ng/mol He to the derived data session if not a shard
     def add_nmol_g(self, derived_session_obj, session_dict):
+        # This value isn't actually nano-ccs
+        # This should get exactly the value that is labeled "fmols He/g" in the database...
         ncc_he = session_dict["analysis"][0]["datum"][0]["value"]
         ncc_he_s = session_dict["analysis"][0]["datum"][0]["error"]
         nmol_he = ncc_he / 22413.6
@@ -210,6 +215,7 @@ class TRaILhelium(BaseImporter):
         except TypeError:
             nmol_g_s = None
 
+        # Calculate/save both corrected and uncorrected values here.
         analysis_obj = (
             self.db.session.query(self.db.model.analysis)
             .filter_by(
