@@ -409,6 +409,7 @@ def read_picking_data(fn, picking_specs, make_labID):
             geometry = data.iloc[d][picking_specs["Metadata"]["Crystal geometry"]]
 
             # Generate Ft and dimensional mass
+            # This can either be uncorrected or corrected
             Fts = get_Ft_values_internal(
                 length1,
                 width1,
@@ -417,6 +418,8 @@ def read_picking_data(fn, picking_specs, make_labID):
                 material,
                 picking_specs["geometry_key"][geometry],
                 int(terminations),
+                Ft_constants=None,
+                corrected=False,
             )
             dimensional_mass = (
                 picking_specs["Ft_constants"][material]["density"] * Fts["V_corr"] / 1e6
@@ -503,6 +506,8 @@ def read_picking_data(fn, picking_specs, make_labID):
             ],
         }
 
+        # TODO: duplicate this so that both corrected and uncorrected data are saved in the database.
+
         # Only incude derived data if not a shard
         if Fts:
             # Compile Ft data for date calculation session
@@ -543,7 +548,7 @@ def read_picking_data(fn, picking_specs, make_labID):
                 [
                     Fts["Rs"],
                     Fts["Rs"] * Rs_err * 2,
-                    "Equivalent spherical radius (±2σ)",
+                    "Equivalent spherical radius (±2σ), new geometric correction",
                     "μm",
                 ],
             ]

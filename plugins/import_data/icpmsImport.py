@@ -127,7 +127,7 @@ class TRaILicpms(BaseImporter):
                 # Check that the sample name in the database matches the sample name in the data file
                 if sample_obj.name != row["Sample"].split(" ")[1]:
                     print(
-                        "Mimatched name:\n",
+                        "Mismatched name:\n",
                         sample_obj.name,
                         "in database, but\n",
                         row["Sample"].split(" ")[1],
