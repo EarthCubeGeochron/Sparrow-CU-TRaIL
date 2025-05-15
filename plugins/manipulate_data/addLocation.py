@@ -26,7 +26,7 @@ class AddLocation(BaseImporter):
                 print("No sample with Lab ID", row["Sample ID"])
             else:
                 # define variables with data
-                lat = row["Lattitude (decimal degrees)"]
+                lat = row["Latitude (decimal degrees)"]
                 long = row["Longitude (decimal degrees)"]
                 elevation = row["Elevation (m)"]
                 depth = row["Depth (m)"]

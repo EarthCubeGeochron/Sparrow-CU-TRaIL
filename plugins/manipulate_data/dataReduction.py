@@ -172,6 +172,8 @@ class TRaILdatecalc(BaseImporter):
             .filter_by(sample_id=d, technique="Dates and other derived data")
             .all()
         )
+        # The Ft values and uncertainties below should reference Ft_Corr and Ft_corr_err for each isotope now if the mineral is apatite or zircon. If the mineral is
+        # something else, then we need to note that we aren't using corrected values. The values we calculated earlier though are 1s.
         if len(Ft_session) > 0:
             get_corrected = True
             Ft238_datum = self.query_ID(sample_obj.lab_id, "238U Ft (±2σ)")
@@ -235,225 +237,29 @@ class TRaILdatecalc(BaseImporter):
         d,
         sample_obj,
     ):
-        U328_mol_per_ng = 1 / (238.03 * 1e9)
-        Th232_mol_per_ng = 1 / (232 * 1e9)
-        Sm147_mol_per_ng = 1 / (157 * 1e9)
-        He_mol_per_fmol = 1 / (1e15)
 
-        U238_mol = U238 * U328_mol_per_ng
-        U238_mol_s = U238_s * U328_mol_per_ng
-        Th232_mol = Th232 * Th232_mol_per_ng
-        Th232_mol_s = Th232_s * Th232_mol_per_ng
-        Sm147_mol = Sm147 * Sm147_mol_per_ng
-        Sm147_mol_s = Sm147_s * Sm147_mol_per_ng
-        He4_mol = He4 * He_mol_per_fmol
-        He4_mol_s = He4_s * He_mol_per_fmol
-
-        # Use the _sample_loop helper function from HeCalc to more
-        # smoothly take care of the date calculation aspects
-        # Use necessary data structure for _sample_loop. Keeping
-        # This in-line here to make it simpler to trace dictionary keys to use
-        save_out = {
-            "Sample": ["_"],
-            "Raw date": [],
-            "Linear raw 1σ uncertainty": [],
-            "MC average 68% CI, raw": [],
-            "MC +68% CI, raw": [],
-            "MC -68% CI, raw": [],
-            "Linear raw 2σ uncertainty": [],
-            "MC average 95% CI, raw": [],
-            "MC +95% CI, raw": [],
-            "MC -95% CI, raw": [],
-            "Corrected date": [],
-            "Linear corrected 1σ uncertainty": [],
-            "MC average 68% CI, corrected": [],
-            "MC +68% CI, corrected": [],
-            "MC -68% CI, corrected": [],
-            "Linear corrected 2σ uncertainty": [],
-            "MC average 95% CI, corrected": [],
-            "MC +95% CI, corrected": [],
-            "MC -95% CI, corrected": [],
-            "Number of Monte Carlo simulations": [],
-        }
-
-        # Set up actual data with some defaults in place; these can change later
-        sample_data = {
-            "Sample": "_",
-            "238U": U238_mol,
-            "± 238U": U238_mol_s,
-            "232Th": Th232_mol,
-            "± 232Th": Th232_mol_s,
-            "147Sm": Sm147_mol,
-            "± 147Sm": Sm147_mol_s,
-            "4He": He4_mol,
-            "± 4He": He4_mol_s,
-            "238Ft": Ft238,
-            "± 238Ft": Ft238_s,
-            "235Ft": Ft235,
-            "± 235Ft": Ft235_s,
-            "232Ft": Ft232,
-            "± 232Ft": Ft232_s,
-            "147Ft": Ft147,
-            "± 147Ft": Ft147_s,
-            "238U-235U": 0,
-            "238U-232Th": 0,
-            "238U-147Sm": 0,
-            "235U-232Th": 0,
-            "235U-147Sm": 0,
-            "232Th-147Sm": 0,
-            # default to correlation of 1
-            "238Ft-235Ft": Ft238_s * Ft235_s,
-            "238Ft-232Ft": Ft238_s * Ft232_s,
-            "238Ft-147Ft": Ft238_s * Ft147_s,
-            "235Ft-232Ft": Ft235_s * Ft232_s,
-            "235Ft-147Ft": Ft235_s * Ft147_s,
-            "232Ft-147Ft": Ft232_s * Ft147_s,
-        }
-
-        date = hecalc.get_date(
-            He4_mol,
-            U238=U238_mol,
-            U235=None,
-            Th232=Th232_mol,
-            Sm147=Sm147_mol,
-            Ft238=Ft238,
-            Ft235=Ft235,
-            Ft232=Ft232,
-            Ft147=Ft147,
+        reduced_data, reduced_data_TAU = calculate_date(
+            He4,
+            He4_s,
+            U238,
+            U238_s,
+            Th232,
+            Th232_s,
+            Sm147,
+            Sm147_s,
+            Ft238,
+            Ft238_s,
+            Ft235,
+            Ft235_s,
+            Ft232,
+            Ft232_s,
+            Ft147,
+            Ft147_s,
+            get_corrected,
         )
-
-        # Get total uncertainty first
-        linear_uncertainty = hecalc.date_uncertainty(
-            He4_mol,
-            t=date["corrected date"],
-            He_s=He4_mol_s,
-            U238=U238_mol,
-            U235=None,
-            Th232=Th232_mol,
-            Sm147=Sm147_mol,
-            Ft238=Ft238,
-            Ft235=Ft235,
-            Ft232=Ft232,
-            Ft147=Ft147,
-            U238_s=U238_mol_s,
-            Th232_s=Th232_mol_s,
-            Sm147_s=Sm147_mol_s,
-            Ft238_s=Ft238_s,
-            Ft235_s=Ft235_s,
-            Ft232_s=Ft232_s,
-            Ft147_s=Ft147_s,
-        )
-        precision = 0.01 / 100  # precision in percent
-        # Check that precision doesn't require too many or too few cycles
-        mc_number = int(
-            (2 * (precision * date["corrected date"]) ** 2 + linear_uncertainty ** 2)
-            / (2 * (precision * date["corrected date"]) ** 2)
-        )
-        if mc_number < 5:
-            mc_number = 5
-            precision = linear_uncertainty / (
-                ((mc_number) ** (1 / 2)) * date["corrected date"]
-            )
-        # set uppper limit of ten million cycles in case of extremely imprecise data
-        elif mc_number > 1e7:
-            mc_number = int(1e7)
-            precision = linear_uncertainty / (
-                ((mc_number) ** (1 / 2)) * date["corrected date"]
-            )
-
-        # Then repeat for TAU ("total analytical uncertainty") -- no Ft uncertainty
-        if get_corrected:
-            save_out_TAU = copy.deepcopy(save_out)
-            linear_uncertainty_TAU = hecalc.date_uncertainty(
-                He4_mol,
-                t=date["corrected date"],
-                He_s=He4_mol_s,
-                U238=U238_mol,
-                U235=None,
-                Th232=Th232_mol,
-                Sm147=Sm147_mol,
-                Ft238=Ft238,
-                Ft235=Ft235,
-                Ft232=Ft232,
-                Ft147=Ft147,
-                U238_s=U238_mol_s,
-                Th232_s=Th232_mol_s,
-                Sm147_s=Sm147_mol_s,
-                Ft238_s=0,
-                Ft235_s=0,
-                Ft232_s=0,
-                Ft147_s=0,
-            )
-            sample_data_TAU = copy.deepcopy(sample_data)
-            sample_data_TAU.update(
-                {"± 238Ft": 0, "± 235Ft": 0, "± 232Ft": 0, "± 147Ft": 0}
-            )
-            precision_TAU = 0.001 / 100  # precision in percent
-            mc_number_TAU = int(
-                linear_uncertainty_TAU ** 2
-                / (precision_TAU * date["corrected date"]) ** 2
-            )
-            if mc_number_TAU < 5:
-                mc_number_TAU = 5
-                precision_TAU = linear_uncertainty_TAU / (
-                    ((mc_number_TAU) ** (1 / 2)) * date["corrected date"]
-                )
-            # set uppper limit of ten million cycles in case of extremely imprecise data
-            elif mc_number_TAU > 1e7:
-                mc_number_TAU = int(1e7)
-                precision_TAU = linear_uncertainty_TAU / (
-                    ((mc_number_TAU) ** (1 / 2)) * date["corrected date"]
-                )
-        else:
-            mc_number_TAU = 0
-
-        measured_U235 = False
-        linear = True
-        monteCarlo = True
-        histograms = False
-        parameterize = False
-        decimals = 2
-        print(
-            "Number of MC cycles: "
-            + str(mc_number + mc_number_TAU)
-            + "\nStarting Monte Carlo\n"
-        )
-
-        reduced_data = _sample_loop(
-            save_out,
-            sample_data,
-            measured_U235,
-            linear,
-            monteCarlo,
-            histograms,
-            parameterize,
-            decimals,
-            precision,
-        )
-        for dat in reduced_data:
-            if reduced_data["Number of Monte Carlo simulations"][0] == "NaN":
-                reduced_data["Number of Monte Carlo simulations"][0] = 0
-            elif reduced_data[dat][0] == "NaN":
-                reduced_data[dat][0] = None
 
         if get_corrected:
-            reduced_data_TAU = _sample_loop(
-                save_out_TAU,
-                sample_data_TAU,
-                measured_U235,
-                linear,
-                monteCarlo,
-                histograms,
-                parameterize,
-                decimals,
-                precision_TAU,
-            )
-
-            for dat in reduced_data_TAU:
-                if reduced_data_TAU["Number of Monte Carlo simulations"][0] == "NaN":
-                    reduced_data_TAU["Number of Monte Carlo simulations"][0] = 0
-                elif reduced_data_TAU[dat][0] == "NaN":
-                    reduced_data_TAU[dat][0] = None
+            assert reduced_data_TAU is not None
 
             session_obj = (
                 self.db.session.query(self.db.model.session)
@@ -555,3 +361,277 @@ class TRaILdatecalc(BaseImporter):
             }
             session_dict["sample"] = sample_obj
             self.db.load_data("session", session_dict)
+
+
+def calculate_date(
+    He4,
+    He4_s,
+    U238,
+    U238_s,
+    Th232,
+    Th232_s,
+    Sm147,
+    Sm147_s,
+    Ft238,
+    Ft238_s,
+    Ft235,
+    Ft235_s,
+    Ft232,
+    Ft232_s,
+    Ft147,
+    Ft147_s,
+    get_corrected,
+    *,
+    do_monte_carlo=True,
+    mols=False,
+):
+    # This is a typo, but I don't know if it matters. Should be U238_mol_per_ng not 328
+    U238_mol_per_ng = 1 / (238.03 * 1e9)
+    Th232_mol_per_ng = 1 / (232 * 1e9)
+    Sm147_mol_per_ng = 1 / (157 * 1e9)
+    He_mol_per_fmol = 1 / (1e15)
+
+    if mols:
+        # Data is provided in mos
+        U238_mol = U238
+        U238_mol_s = U238_s
+        Th232_mol = Th232
+        Th232_mol_s = Th232_s
+        Sm147_mol = Sm147
+        Sm147_mol_s = Sm147_s
+        He4_mol = He4
+        He4_mol_s = He4_s
+
+    else:
+        # Data is provided in ng (fmol for He)
+        U238_mol = U238 * U238_mol_per_ng
+        U238_mol_s = U238_s * U238_mol_per_ng
+        Th232_mol = Th232 * Th232_mol_per_ng
+        Th232_mol_s = Th232_s * Th232_mol_per_ng
+        Sm147_mol = Sm147 * Sm147_mol_per_ng
+        Sm147_mol_s = Sm147_s * Sm147_mol_per_ng
+        He4_mol = He4 * He_mol_per_fmol
+        He4_mol_s = He4_s * He_mol_per_fmol
+
+    # Use the _sample_loop helper function from HeCalc to more
+    # smoothly take care of the date calculation aspects
+    # Use necessary data structure for _sample_loop. Keeping
+    # This in-line here to make it simpler to trace dictionary keys to use
+    save_out = {
+        "Sample": ["_"],
+        "Raw date": [],
+        "Linear raw 1σ uncertainty": [],
+        "MC average 68% CI, raw": [],
+        "MC +68% CI, raw": [],
+        "MC -68% CI, raw": [],
+        "Linear raw 2σ uncertainty": [],
+        "MC average 95% CI, raw": [],
+        "MC +95% CI, raw": [],
+        "MC -95% CI, raw": [],
+        "Corrected date": [],
+        "Linear corrected 1σ uncertainty": [],
+        "MC average 68% CI, corrected": [],
+        "MC +68% CI, corrected": [],
+        "MC -68% CI, corrected": [],
+        "Linear corrected 2σ uncertainty": [],
+        "MC average 95% CI, corrected": [],
+        "MC +95% CI, corrected": [],
+        "MC -95% CI, corrected": [],
+        "Number of Monte Carlo simulations": [],
+    }
+
+    # Set up actual data with some defaults in place; these can change later
+    sample_data = {
+        "Sample": "_",
+        "238U": U238_mol,
+        "± 238U": U238_mol_s,
+        "232Th": Th232_mol,
+        "± 232Th": Th232_mol_s,
+        "147Sm": Sm147_mol,
+        "± 147Sm": Sm147_mol_s,
+        "4He": He4_mol,
+        "± 4He": He4_mol_s,
+        "238Ft": Ft238,
+        "± 238Ft": Ft238_s,
+        "235Ft": Ft235,
+        "± 235Ft": Ft235_s,
+        "232Ft": Ft232,
+        "± 232Ft": Ft232_s,
+        "147Ft": Ft147,
+        "± 147Ft": Ft147_s,
+        "238U-235U": 0,
+        "238U-232Th": 0,
+        "238U-147Sm": 0,
+        "235U-232Th": 0,
+        "235U-147Sm": 0,
+        "232Th-147Sm": 0,
+        # default to correlation of 1
+        "238Ft-235Ft": Ft238_s * Ft235_s,
+        "238Ft-232Ft": Ft238_s * Ft232_s,
+        "238Ft-147Ft": Ft238_s * Ft147_s,
+        "235Ft-232Ft": Ft235_s * Ft232_s,
+        "235Ft-147Ft": Ft235_s * Ft147_s,
+        "232Ft-147Ft": Ft232_s * Ft147_s,
+    }
+
+    # These also need to be referencing the corrected values and proper uncertainties
+    date = hecalc.get_date(
+        He4_mol,
+        U238=U238_mol,
+        U235=None,
+        Th232=Th232_mol,
+        Sm147=Sm147_mol,
+        Ft238=Ft238,
+        Ft235=Ft235,
+        Ft232=Ft232,
+        Ft147=Ft147,
+    )
+
+    # if not do_monte_carlo:
+    #     # Early return if we aren't interested in error calculations
+    #     assert False
+    #     return (
+    #         {
+    #             "Raw date": [date["raw date"]],
+    #             "Corrected date": [date["corrected date"]],
+    #             "Number of Monte Carlo simulations": [0],
+    #         },
+    #         None,
+    #     )
+
+    # Get total uncertainty first
+    linear_uncertainty = hecalc.date_uncertainty(
+        He4_mol,
+        t=date["corrected date"],
+        He_s=He4_mol_s,
+        U238=U238_mol,
+        U235=None,
+        Th232=Th232_mol,
+        Sm147=Sm147_mol,
+        Ft238=Ft238,
+        Ft235=Ft235,
+        Ft232=Ft232,
+        Ft147=Ft147,
+        U238_s=U238_mol_s,
+        Th232_s=Th232_mol_s,
+        Sm147_s=Sm147_mol_s,
+        Ft238_s=Ft238_s,
+        Ft235_s=Ft235_s,
+        Ft232_s=Ft232_s,
+        Ft147_s=Ft147_s,
+    )
+    precision = 0.01 / 100  # precision in percent
+    # Check that precision doesn't require too many or too few cycles
+    mc_number = int(
+        (2 * (precision * date["corrected date"]) ** 2 + linear_uncertainty**2)
+        / (2 * (precision * date["corrected date"]) ** 2)
+    )
+    if mc_number < 5:
+        mc_number = 5
+        precision = linear_uncertainty / (
+            ((mc_number) ** (1 / 2)) * date["corrected date"]
+        )
+    # set uppper limit of ten million cycles in case of extremely imprecise data
+    elif mc_number > 1e7:
+        mc_number = int(1e7)
+        precision = linear_uncertainty / (
+            ((mc_number) ** (1 / 2)) * date["corrected date"]
+        )
+
+    # Then repeat for TAU ("total analytical uncertainty") -- no Ft uncertainty
+    if get_corrected:
+        save_out_TAU = copy.deepcopy(save_out)
+        linear_uncertainty_TAU = hecalc.date_uncertainty(
+            He4_mol,
+            t=date["corrected date"],
+            He_s=He4_mol_s,
+            U238=U238_mol,
+            U235=None,
+            Th232=Th232_mol,
+            Sm147=Sm147_mol,
+            Ft238=Ft238,
+            Ft235=Ft235,
+            Ft232=Ft232,
+            Ft147=Ft147,
+            U238_s=U238_mol_s,
+            Th232_s=Th232_mol_s,
+            Sm147_s=Sm147_mol_s,
+            Ft238_s=0,
+            Ft235_s=0,
+            Ft232_s=0,
+            Ft147_s=0,
+        )
+        sample_data_TAU = copy.deepcopy(sample_data)
+        sample_data_TAU.update({"± 238Ft": 0, "± 235Ft": 0, "± 232Ft": 0, "± 147Ft": 0})
+        precision_TAU = 0.001 / 100  # precision in percent
+        mc_number_TAU = int(
+            linear_uncertainty_TAU**2 / (precision_TAU * date["corrected date"]) ** 2
+        )
+        if mc_number_TAU < 5:
+            mc_number_TAU = 5
+            precision_TAU = linear_uncertainty_TAU / (
+                ((mc_number_TAU) ** (1 / 2)) * date["corrected date"]
+            )
+        # set uppper limit of ten million cycles in case of extremely imprecise data
+        elif mc_number_TAU > 1e7:
+            mc_number_TAU = int(1e7)
+            precision_TAU = linear_uncertainty_TAU / (
+                ((mc_number_TAU) ** (1 / 2)) * date["corrected date"]
+            )
+    else:
+        mc_number_TAU = 0
+
+    measured_U235 = False
+    linear = True
+    monteCarlo = do_monte_carlo
+    histograms = False
+    parameterize = False
+    decimals = 2
+    print(
+        "Number of MC cycles: "
+        + str(mc_number + mc_number_TAU)
+        + "\nStarting Monte Carlo\n"
+    )
+
+    reduced_data = _sample_loop(
+        save_out,
+        sample_data,
+        measured_U235,
+        linear,
+        monteCarlo,
+        histograms,
+        parameterize,
+        decimals,
+        precision,
+    )
+    for dat in reduced_data:
+        if (
+            len(reduced_data["Number of Monte Carlo simulations"]) > 0
+            and reduced_data["Number of Monte Carlo simulations"][0] == "NaN"
+        ):
+            reduced_data["Number of Monte Carlo simulations"] = [0]
+        elif len(reduced_data[dat]) > 0 and reduced_data[dat][0] == "NaN":
+            reduced_data[dat][0] = None
+
+    if get_corrected:
+        reduced_data_TAU = _sample_loop(
+            save_out_TAU,
+            sample_data_TAU,
+            measured_U235,
+            linear,
+            monteCarlo,
+            histograms,
+            parameterize,
+            decimals,
+            precision_TAU,
+        )
+
+        for dat in reduced_data_TAU:
+            if reduced_data_TAU["Number of Monte Carlo simulations"][0] == "NaN":
+                reduced_data_TAU["Number of Monte Carlo simulations"][0] = 0
+            elif reduced_data_TAU[dat][0] == "NaN":
+                reduced_data_TAU[dat][0] = None
+
+        return reduced_data, reduced_data_TAU
+    else:
+        return reduced_data, None

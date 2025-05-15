@@ -1,6 +1,4 @@
-import { Markdown } from "@macrostrat/ui-components";
 import aboutText from "./about.md";
-import h from "@macrostrat/hyper";
 import {
   PageGrainThumbnail,
   SampleCard,
@@ -12,7 +10,7 @@ import {
 export default {
   siteTitle: "CU TRaIL",
   shortSiteTitle: "TRaIL",
-  landingText: h(Markdown, { src: aboutText }),
+  landingText: aboutText,
   sampleHeaderExt: PageGrainThumbnail,
   dataFileHeaderExt: PageGrainThumbnail,
   sampleCardContent: SampleCard,
