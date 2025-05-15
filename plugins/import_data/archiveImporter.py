@@ -1,3 +1,4 @@
+from plugins.import_data.utils import construct_lab_id
 from rich import print
 from click import secho
 from sparrow.core.import_helpers import BaseImporter
@@ -279,11 +280,11 @@ class TRaILarchive(BaseImporter):
 
     def make_labID(self, date):
         init_digits = date[2:4]
-        max_num = 1
+        max_num = 0
         for i in self.lab_IDs:
             if i[:2] == init_digits:
                 max_num += 1
-        lab_id = str(init_digits + "-" + f"{max_num:05d}")
+        lab_id = construct_lab_id(init_digits, max_num)
         self.lab_IDs.append(lab_id)
         return lab_id
 
