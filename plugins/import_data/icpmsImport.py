@@ -171,6 +171,7 @@ class TRaILicpms(BaseImporter):
             session_dict["sample"] = sample_obj
             self.db.load_data("session", session_dict)
 
+            # TODO: This entire calculation will be re-done for corrected and uncorrected values
             # look for whether a dimensional mass is recorded in Sparrow to permit ppm conversion
             ppm_analysis = self.query_analysis(
                 sample_id, "Rs, mass, concentrations (new geometric correction)"
@@ -221,6 +222,7 @@ class TRaILicpms(BaseImporter):
 
         try:
             # Accumulate eU values and squared errors
+            # Do calculation for both corrected and uncorrected values
             for r in radionuclides:
                 if "U" in r["type"]["parameter"]:
                     ppm_dict = make_ppm(r, dim_mass_val, dim_mass_err)
@@ -290,7 +292,7 @@ class TRaILicpms(BaseImporter):
         # Add the combined Ft value to the database
         # Store  Ft_comb in the database
         # and then use the values to calculate ESR_Ft
-
+        # TODO: do this for both corrected and uncorrected. We can do this by adding a suffix...
         Ft_comb_dict = {
             "value": data.Ft_comb,
             "error": None,
@@ -306,6 +308,7 @@ class TRaILicpms(BaseImporter):
         # Here we will calculate ESR_Ft and it's associated uncertainty. It will call upon FT_constants defined in picking_specs.yaml
         # which are material (mineral) and isotope specific. I'll refer to these as S_238, etc, but they will need to vary depending on the mineral.
 
+        # This should only be added for the new geometric correction
         Sbar = (
             data.a_238 * data.S_238
             + data.a_232 * data.S_232
