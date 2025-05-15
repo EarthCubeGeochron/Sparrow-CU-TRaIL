@@ -19,6 +19,8 @@ from yaml import load, SafeLoader
 from enum import Enum
 import numpy as N
 
+from .utils import make_labID
+
 
 @dataclass
 class Sample:
@@ -338,30 +340,11 @@ class TRaILpicking(BaseImporter):
         self.picking_specs = get_picking_specs()
         self.iterfiles(file_list, **kwargs)
 
-    # Method to generate a lab ID for a new sample based on the date of the analysis
-    def make_labID(self, date):
-        year = str(date.year)[-2:]
-        # Query database for all lab IDs
-        all_IDs = [
-            el
-            for tup in self.db.session.query(self.db.model.sample.lab_id).all()
-            for el in tup
-            if el is not None
-        ]
-        # Isolate lab IDs from the same year
-        same_year = [i for i in all_IDs if year + "-" in i]
-        # Get the highest numbered analysis for the year and add 1
-        if len(same_year) > 0:
-            max_num = max([int(i.split("-")[1]) for i in same_year])
-        else:
-            max_num = 0
-        id_num = max_num + 1
-        # Combine year and analysis number to get lab_id
-        lab_id = year + "-" + f"{id_num:05d}"
-        return lab_id
-
     def import_datafile(self, fn, rec, **kwargs):
-        sample_schemas = read_picking_data(fn, self.picking_specs, self.make_labID)
+        _create_lab_id = lambda date: make_labID(db, date)
+        sample_schemas = read_picking_data(
+            fn, self.picking_specs, _create_lab_id
+        )
         for sample in sample_schemas:
             self.db.load_data("sample", sample, strict=True)
 
@@ -373,40 +356,39 @@ def get_picking_specs():
         return load(f, Loader=SafeLoader)
 
 
-def read_picking_data(fn, picking_specs, make_labID):
+def read_picking_data(fn, picking_specs, create_lab_id):
     data = get_picking_dataframe(fn, picking_specs)
 
     for d in range(len(data)):
         # Generate a lab ID for each grain
-        date = str(data.iloc[d][picking_specs["Metadata"]["Date"]])
+        row = data.iloc[d]
+        meta = picking_specs["Metadata"]
+
+        date = str(row[meta["Date"]])
         if date == "nan":
             date = datetime.datetime.now()
         else:
             date = parse(date)
-        lab_id = make_labID(date)
+        lab_id = create_lab_id(date)
 
         # Generate metadata required for every grain
-        researcher = str(data.iloc[d][picking_specs["Metadata"]["Researcher"]])
-        lab_owner = str(data.iloc[d][picking_specs["Metadata"]["Lab_owner"]])
-        funding = str(data.iloc[d][picking_specs["Metadata"]["Funding"]])
-        sample = data.iloc[d][picking_specs["Metadata"]["Sample"]]
-        grain = data.iloc[d][picking_specs["Metadata"]["Grain"]]
+        researcher = str(row[meta["Researcher"]])
+        lab_owner = str(row[meta["Lab_owner"]])
+        funding = str(row[meta["Funding"]])
+        sample = row[meta["Sample"]]
+        grain = row[meta["Grain"]]
         print("Importing: " + sample + "_" + grain)
-        material = picking_specs["mineral_key"][
-            data.iloc[d][picking_specs["Metadata"]["Mineral"]]
-        ]
+        material = picking_specs["mineral_key"][row[meta["Mineral"]]]
 
         # Create necessary data for Fts if not a shard. This info MUST be recorded for whole grains
-        shard = data.iloc[d][picking_specs["Metadata"]["Fragment"]]
+        shard = row[meta["Fragment"]]
         if shard != "Y" and shard != "y":
-            length1 = data.iloc[d][picking_specs["Metadata"]["Dimensions"]["Length 1"]]
-            width1 = data.iloc[d][picking_specs["Metadata"]["Dimensions"]["Width 1"]]
-            length2 = data.iloc[d][picking_specs["Metadata"]["Dimensions"]["Length 2"]]
-            width2 = data.iloc[d][picking_specs["Metadata"]["Dimensions"]["Width 2"]]
-            terminations = data.iloc[d][
-                picking_specs["Metadata"]["Crystal terminations"]
-            ]
-            geometry = data.iloc[d][picking_specs["Metadata"]["Crystal geometry"]]
+            length1 = row[meta["Dimensions"]["Length 1"]]
+            width1 = row[meta["Dimensions"]["Width 1"]]
+            length2 = row[meta["Dimensions"]["Length 2"]]
+            width2 = row[meta["Dimensions"]["Width 2"]]
+            terminations = row[meta["Crystal terminations"]]
+            geometry = row[meta["Crystal geometry"]]
 
             # Generate Ft and dimensional mass
             # This can either be uncorrected or corrected
@@ -429,13 +411,13 @@ def read_picking_data(fn, picking_specs, make_labID):
             shape_data = []
             for s in picking_specs["Shape"]["data"]:
                 col = next(iter(s))
-                value = data.iloc[d][col]
+                value = row[col]
                 error = None
                 shape_data.append([value, error, s[col]["name"], s[col]["unit"]])
             shape_attributes = []
             for s in picking_specs["Shape"]["attributes"]:
                 col = next(iter(s))
-                value = str(data.iloc[d][col])
+                value = str(row[col])
                 if "eometry" in col:
                     sparrow_val = picking_specs["geometry_key"][int(float(value))]
                 if "Np" in col:
@@ -460,7 +442,7 @@ def read_picking_data(fn, picking_specs, make_labID):
         chars_attributes = []
         for s in picking_specs["Characteristics"]["attributes"]:
             col = next(iter(s))
-            value = str(data.iloc[d][col])
+            value = str(row[col])
             chars_attributes.append([value, s[col]])
         # make analysis dictionary, exclude missing data if shards
         if shard != "Y" and shard != "y":

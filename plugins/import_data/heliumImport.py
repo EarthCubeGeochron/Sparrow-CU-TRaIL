@@ -7,6 +7,8 @@ import glob
 from dateutil import parser
 from yaml import load
 
+from .utils import make_labID
+
 
 # Make datum using info in yaml file
 def make_datum(row, name, data_info):
@@ -33,28 +35,6 @@ class TRaILhelium(BaseImporter):
         super().__init__(app)
         file_list = glob.glob(str(data_dir) + "/HeliumData/*.txt")
         self.iterfiles(file_list, **kwargs)
-
-    # Method to generate a lab ID for a new sample based on the date of the analysis
-    def make_labID(self, row):
-        date = str(parser.parse(row["Date"][:-5]).year)[-2:]
-        # Query database for all lab IDs
-        all_IDs = [
-            el
-            for tup in self.db.session.query(self.db.model.sample.lab_id).all()
-            for el in tup
-            if el is not None
-        ]
-        # Isolate lab IDs from the same year
-        same_year = [i for i in all_IDs if date + "-" in i]
-        # Get the highest numbered analysis for the year and add 1
-        if len(same_year) > 0:
-            max_num = max([int(i.split("-")[1]) for i in same_year])
-        else:
-            max_num = 0
-        id_num = max_num + 1
-        # Combine year and analysis number to get lab_id
-        lab_id = date + "-" + f"{id_num:05d}"
-        return lab_id
 
     def import_datafile(self, fn, rec, **kwargs):
         data = pd.read_csv(fn, delimiter="\t")
@@ -109,7 +89,8 @@ class TRaILhelium(BaseImporter):
     # For samples without picking info, make a new sample
     def create_sample(self, row):
         # Generate the lab ID
-        lab_id = self.make_labID(row)
+        date = parser.parse(row["Date"][:-5])
+        lab_id = make_labID(self.db, date)
         # create the session dictionary
         session_dict = self.make_session_dict(row)
         # Create the barebones sample to add the session to
