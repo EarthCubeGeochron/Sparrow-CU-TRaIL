@@ -178,7 +178,7 @@ def get_Ft_values_internal(
                 )
                 * (R**2 / V)
             )
-            print("Ft (uncorrected)", iso, Ft)
+
         elif shape == "Hexagonal":
             #  For zircon, use the two widths and for apatite use the wmax for both
             # Note: to get tests to pass, I had to remove the following -
@@ -465,6 +465,8 @@ def read_picking_data(fn, picking_specs, create_lab_id):
         # make analysis dictionary, exclude missing data if shards
         if not is_shard:
             # First, get uncertainty for each derived parameter
+
+            # Issue with adding grain data
             for l in chars_attributes:
                 for i in l:
                     # get derived data uncertainties for later
@@ -516,7 +518,7 @@ def read_picking_data(fn, picking_specs, create_lab_id):
             # Generate Ft and dimensional mass
             # This can either be uncorrected or corrected
 
-            uncorr_analysis = create_ft_analysis(
+            uncorr_analyses = create_ft_analyses(
                 length1,
                 width1,
                 length2,
@@ -532,7 +534,7 @@ def read_picking_data(fn, picking_specs, create_lab_id):
                 corrected=False,
             )
 
-            corr_analysis = create_ft_analysis(
+            corr_analyses = create_ft_analyses(
                 length1,
                 width1,
                 length2,
@@ -548,12 +550,22 @@ def read_picking_data(fn, picking_specs, create_lab_id):
                 corrected=True,
             )
 
-            sample_schema["session"].append(uncorr_analysis)
-            sample_schema["session"].append(corr_analysis)
+            analyses = []
+            analyses += uncorr_analyses
+            analyses += corr_analyses
+
+            ft_session =  {
+                "technique": {"id": "Dates and other derived data" },
+                "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                #'date': '1900-01-01 00:00:00+00', # always pass an 'unknown date' value for calculation
+                "analysis": analyses
+            }
+
+            sample_schema["session"].append(ft_session)
 
         yield sample_schema
 
-def create_ft_analysis(
+def create_ft_analyses(
         length1, width1, length2, width2, material, Rs_err, Ft_err, dim_mass_err, picking_specs, geometry, terminations, Ft_constants=None, corrected=False
 ):
     # Generate Ft and dimensional mass
@@ -618,20 +630,12 @@ def create_ft_analysis(
         [
             Fts["Rs"],
             Fts["Rs"] * Rs_err,
-            "Equivalent spherical radius (±1σ)" + suffix,
+            "Rs (±1σ)" + suffix,
             "μm",
         ],
     ]
 
-    analysis_suffix = ""
-    if corrected:
-        analysis_suffix = " (new geometric correction)"
-
-    return {
-        "technique": {"id": "Dates and other derived data" + suffix },
-        "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        #'date': '1900-01-01 00:00:00+00', # always pass an 'unknown date' value for calculation
-        "analysis": [
+    return  [
             {
                 "analysis_type": "Alpha ejection correction values" + analysis_suffix,
                 "datum": [make_datum(*d) for d in Ft_data],
@@ -640,8 +644,7 @@ def create_ft_analysis(
                 "analysis_type": "Rs, mass, concentrations" + analysis_suffix,
                 "datum": [make_datum(*d) for d in Rs_mass],
             },
-        ],
-    }
+        ]
 
 
 def get_picking_dataframe(fn, picking_specs):
