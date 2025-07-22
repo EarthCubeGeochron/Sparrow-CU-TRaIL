@@ -27,7 +27,7 @@ class TRaILhelium(BaseImporter):
         # Load the column specs; structure is {parameter: [value col, error col, unit str]}
         spec = relative_path(__file__, "helium_specs.yaml")
         with open(spec) as f:
-            self.picking_specs = load(f)
+            self.helium_specs = load(f)
 
         # Split data according to whether each sample has picking information
         # the column PickingInfo is read in as a boolean, so pandas slicing can happen implicitly.
@@ -54,12 +54,12 @@ class TRaILhelium(BaseImporter):
                     # Here we call the make datum and make_attribute functions
                     "datum": [
                         make_datum(row, k, v)
-                        for k, v in self.picking_specs.items()
+                        for k, v in self.helium_specs.items()
                         if v[2]
                     ],
                     "attribute": [
                         make_attribute(row, k, v)
-                        for k, v in self.picking_specs.items()
+                        for k, v in self.helium_specs.items()
                         if not v[2]
                     ],
                 }
@@ -144,6 +144,8 @@ class TRaILhelium(BaseImporter):
         ncc_he = session_dict["analysis"][0]["datum"][0]["value"]
         ncc_he_s = session_dict["analysis"][0]["datum"][0]["error"]
         nmol_he = ncc_he / 22413.6
+        
+        # This depends on picking import
         ug_mass = get_dimensional_mass(self.db, derived_session_obj)
         nmol_g = (nmol_he * 1e6) / float(ug_mass.value)
         # Upload None to database if NaN in uncertainty column
