@@ -149,46 +149,51 @@ class TRaILhelium(BaseImporter):
 
         # This depends on picking import, which will be either corrected or
         # uncorrected
-        ug_mass = get_dimensional_mass(self.db, derived_session_obj)
+        for geo_corr in [False, True]:
+            ug_mass = get_dimensional_mass(self.db, derived_session_obj, corrected=geo_corr)
 
-        g_mass = float(ug_mass.value) / 1e6
-        nmol_g = nmol_he / g_mass
-        # Upload None to database if NaN in uncertainty column
-        try:
-            nmol_g_s = (
-                (
-                    (float(ug_mass.error) / float(ug_mass.value)) ** 2
-                    + (nmol_he_s / nmol_he) ** 2
+            if ug_mass is None:
+                _corr = "corrected" if geo_corr else "uncorrected"
+                print(f"Could not find {_corr} dimensional mass in picking data sheet")
+
+            g_mass = float(ug_mass.value) / 1e6
+            nmol_g = nmol_he / g_mass
+            # Upload None to database if NaN in uncertainty column
+            try:
+                nmol_g_s = (
+                    (
+                        (float(ug_mass.error) / float(ug_mass.value)) ** 2
+                        + (nmol_he_s / nmol_he) ** 2
+                    )
+                    ** (1 / 2)
+                ) * nmol_g
+            except TypeError:
+                nmol_g_s = None
+
+            # Calculate/save both corrected and uncorrected values here.
+            analysis_obj = (
+                self.db.session.query(self.db.model.analysis)
+                .filter_by(
+                    session_id=derived_session_obj.id,
+                    analysis_type="Rs, mass, concentrations",
                 )
-                ** (1 / 2)
-            ) * nmol_g
-        except TypeError:
-            nmol_g_s = None
-
-        # Calculate/save both corrected and uncorrected values here.
-        analysis_obj = (
-            self.db.session.query(self.db.model.analysis)
-            .filter_by(
-                session_id=derived_session_obj.id,
-                analysis_type="Rs, mass, concentrations",
+                .first()
             )
-            .first()
-        )
 
-        name = "4He (±2σ)"
-        if geo_corr:
-            name += ", new geometric correction"
+            name = "4He (±2σ)"
+            if geo_corr:
+                name += ", new geometric correction"
 
-        datum_dict = {
-            "value": nmol_g,
-            "error": nmol_g_s,
-            "type": {"parameter": "4He (±2σ)", "unit": "nmol/g"},
-            "analysis": analysis_obj,
-        }
-        self.db.load_data("datum", datum_dict)
+            datum_dict = {
+                "value": nmol_g,
+                "error": nmol_g_s,
+                "type": {"parameter": name, "unit": "nmol/g"},
+                "analysis": analysis_obj,
+            }
+            self.db.load_data("datum", datum_dict)
 
 
-def get_dimensional_mass(db, session_obj):
+def get_dimensional_mass(db, session_obj, corrected=False):
     """
     Get dimensionsal mass for a given sample based on session pulled above
     """
@@ -196,13 +201,18 @@ def get_dimensional_mass(db, session_obj):
     Analysis = db.model.analysis
     Datum = db.model.datum
     DatumType = db.model.datum_type
+
+    suffix = ""
+    if corrected:
+        suffix = ", new geometric correction"
+
     return (
         db.session.query(Datum)
         .join(Analysis)
         .join(Session)
         .join(DatumType)
         .filter(Session.id == session_obj.id)
-        .filter(DatumType.parameter == "Dimensional mass (±2σ)")
+        .filter(DatumType.parameter == "Dimensional mass (±2σ)"+suffix)
         .first()
     )
 

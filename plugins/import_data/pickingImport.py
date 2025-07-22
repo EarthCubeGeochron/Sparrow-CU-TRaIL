@@ -590,30 +590,42 @@ def create_ft_analyses(
     if corrected:
         suffix = ", new geometric correction"
 
+    Ft238U = Fts["238U"]
+    Ft235U = Fts["235U"]
+    Ft232Th = Fts["232Th"]
+    Ft147Sm = Fts["147Sm"]
+
+    if not corrected:
+        Fts["238U_err"] = Fts["238U"] * Ft_err
+        Fts["235U_err"] = Fts["238U"] * Ft_err
+        Fts["232Th_err"] = Fts["232Th"] * Ft_err
+        Fts["147Sm_err"] = Fts["147Sm"] * Ft_err
+
+
     # Compile Ft data for date calculation session
     # This is where Ft_errors are calculated
     Ft_data = [
         [
             Fts["238U"],
-            Fts["238U"] * Ft_err * 2,
+            Fts["238U_err"] * 2,
             "238U Ft (±2σ)" + suffix,
             "",
         ],
         [
             Fts["235U"],
-            Fts["235U"] * Ft_err * 2,
+            Fts["235U_err"] * 2,
             "235U Ft (±2σ)" + suffix,
             "",
         ],
         [
             Fts["232Th"],
-            Fts["232Th"] * Ft_err * 2,
+            Fts["232Th_err"] * 2,
             "232Th Ft (±2σ)" + suffix,
             "",
         ],
         [
             Fts["147Sm"],
-            Fts["147Sm"] * Ft_err,
+            Fts["147Sm_err"] * 2,
             "147Sm Ft (±2σ)" + suffix,
             "",
         ],
@@ -635,13 +647,18 @@ def create_ft_analyses(
         ],
     ]
 
+    corr_txt = "Corrected" if corrected else "Uncorrected"
+
+    # Print whether values are corrected or not
+    print(corr_txt, Fts)
+
     return  [
             {
-                "analysis_type": "Alpha ejection correction values" + analysis_suffix,
+                "analysis_type": "Alpha ejection correction values",
                 "datum": [make_datum(*d) for d in Ft_data],
             },
             {
-                "analysis_type": "Rs, mass, concentrations" + analysis_suffix,
+                "analysis_type": "Rs, mass, concentrations",
                 "datum": [make_datum(*d) for d in Rs_mass],
             },
         ]
