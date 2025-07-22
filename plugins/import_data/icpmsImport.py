@@ -174,7 +174,7 @@ class TRaILicpms(BaseImporter):
             # TODO: This entire calculation will be re-done for corrected and uncorrected values
             # look for whether a dimensional mass is recorded in Sparrow to permit ppm conversion
             ppm_analysis = self.query_analysis(
-                sample_id, "Rs, mass, concentrations (new geometric correction)"
+                sample_id, "Rs, mass, concentrations"
             )
             dim_mass = self.query_datum(
                 sample_id, "Dimensional mass (±2σ), new geometric correction"
@@ -199,7 +199,7 @@ class TRaILicpms(BaseImporter):
                     self.add_Ft_comb(ft_analysis, data)
 
                     # Get material and shape from sample
-                    material = sample_obj.material
+                    material = str(sample_obj.material)
                     shape = self.query_attribute(sample_id, "Crystal geometry")
 
                     # Note: should separate calculation and addition to Sparrow
@@ -210,6 +210,7 @@ class TRaILicpms(BaseImporter):
 
     # Generate ppm values and add to existing derived data session
     def add_ppm(self, raw_data, dim_mass, analysis_obj):
+        # analysis_obj = Rs, mass, concentrations
         dim_mass_val = float(dim_mass.value)
         dim_mass_err = float(dim_mass.error)
 
@@ -273,6 +274,8 @@ class TRaILicpms(BaseImporter):
         # Not sure if this is correct
         a_235 = 1 - a_238 - a_232
 
+        #suffix = ", new geometric correction"
+
         Ft_comb = (
             a_238 * float(Fts["238U Ft (±2σ)"].value)
             + a_232 * float(Fts["232Th Ft (±2σ)"].value)
@@ -296,7 +299,7 @@ class TRaILicpms(BaseImporter):
         Ft_comb_dict = {
             "value": data.Ft_comb,
             "error": None,
-            "type": {"parameter": "Combined Ft", "unit": ""},
+            "type": {"parameter": "Combined Ft, new geometric correction", "unit": ""},
             "analysis": analysis_obj,
         }
 
@@ -309,6 +312,8 @@ class TRaILicpms(BaseImporter):
         # which are material (mineral) and isotope specific. I'll refer to these as S_238, etc, but they will need to vary depending on the mineral.
 
         # This should only be added for the new geometric correction
+        print(material, shape)
+
         Sbar = (
             data.a_238 * data.S_238
             + data.a_232 * data.S_232
@@ -316,9 +321,9 @@ class TRaILicpms(BaseImporter):
         )
         S_R = (
             1.681
-            - 2.428 * data.FT_comb
-            + 1.153 * (data.Ft_comb ^ 2)
-            - 0.406 * (data.Ft_comb ^ 3)
+            - 2.428 * data.Ft_comb
+            + 1.153 * (data.Ft_comb ** 2)
+            - 0.406 * (data.Ft_comb ** 3)
         )
         ESR_Ft = Sbar / S_R
         ESR_Ft_Corr = float("nan")
@@ -331,12 +336,17 @@ class TRaILicpms(BaseImporter):
                 ESR_Ft_Corr = 0.85 * ESR_Ft
                 ESR_Ft_Corr_err = 0.10 * ESR_Ft_Corr
         elif material == "zircon":
-            if shape == "Hexagonal":
+            if shape == "Tetragonal":
                 ESR_Ft_Corr = 0.92 * ESR_Ft
                 ESR_Ft_Corr_err = 0.08 * ESR_Ft_Corr
-            elif shape == "ellipsoid":
+            elif shape == "Ellipsoid":
                 ESR_Ft_Corr = 0.98 * ESR_Ft
                 ESR_Ft_Corr_err = 0.08 * ESR_Ft_Corr
+        else:
+            print(f"Invalid material {material} or shape {shape}")
+            return
+
+        print(ESR_Ft_Corr, ESR_Ft_Corr_err)
         ESR_Ft_dict = {
             "value": ESR_Ft_Corr,
             "error": ESR_Ft_Corr_err,
