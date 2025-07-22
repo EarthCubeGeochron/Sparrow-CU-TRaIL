@@ -2,6 +2,7 @@
 
 export SPARROW_BACKUP_DIR="$SPARROW_CONFIG_DIR/backups"
 export SPARROW_LAB_NAME="TRaIL"
+export COMPOSE_PROJECT_NAME="trail"
 export SPARROW_VERSION=">=3.0.0"
 
 #export SPARROW_SITE_CONTENT="$PROJECT_DIR/site-content"
@@ -31,4 +32,4 @@ export SPARROW_BACKEND_IMAGE="sparrow_trail_backend:latest"
 export SPARROW_DB_PORT="5438"
 export SPARROW_TEST_DATABASE_PORT="5434"
 
-export SPARROW_LOCAL_FRONTEND=true
+export SPARROW_LOCAL_FRONTEND=0
