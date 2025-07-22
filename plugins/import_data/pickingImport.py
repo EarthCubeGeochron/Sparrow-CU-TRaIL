@@ -342,9 +342,13 @@ class TRaILpicking(BaseImporter):
 
     def import_datafile(self, fn, rec, **kwargs):
         _create_lab_id = lambda date: make_labID(db, date)
+
+        # First, import uncorrected data
         sample_schemas = read_picking_data(fn, self.picking_specs, _create_lab_id)
         for sample in sample_schemas:
             self.db.load_data("sample", sample, strict=True)
+
+        # Then, import corrected data
 
 
 def get_picking_specs():
@@ -380,30 +384,22 @@ def read_picking_data(fn, picking_specs, create_lab_id):
 
         # Create necessary data for Fts if not a shard. This info MUST be recorded for whole grains
         shard = row[meta["Fragment"]]
-        if shard != "Y" and shard != "y":
+
+        is_shard = not (shard != "Y" and shard != "y")
+
+        if is_shard:
+            Fts = False
+            shape_dict = {
+                "analysis_type": "Grain dimensions & shape (geometric corrected)",
+                "attribute": [make_attribute("Crystal shard", "Shape notes")],
+            }
+        else:
             length1 = row[meta["Dimensions"]["Length 1"]]
             width1 = row[meta["Dimensions"]["Width 1"]]
             length2 = row[meta["Dimensions"]["Length 2"]]
             width2 = row[meta["Dimensions"]["Width 2"]]
             terminations = row[meta["Crystal terminations"]]
             geometry = row[meta["Crystal geometry"]]
-
-            # Generate Ft and dimensional mass
-            # This can either be uncorrected or corrected
-            Fts = get_Ft_values_internal(
-                length1,
-                width1,
-                length2,
-                width2,
-                material,
-                picking_specs["geometry_key"][geometry],
-                int(terminations),
-                Ft_constants=None,
-                corrected=False,
-            )
-            dimensional_mass = (
-                picking_specs["Ft_constants"][material]["density"] * Fts["V_corr"] / 1e6
-            )
 
             # create datum and attributes for shape analysis
             shape_data = []
@@ -428,12 +424,7 @@ def read_picking_data(fn, picking_specs, create_lab_id):
                 "attribute": [make_attribute(*a) for a in shape_attributes],
             }
         # If a shard, simply add that as a note and don't calculate Ft values
-        else:
-            Fts = False
-            shape_dict = {
-                "analysis_type": "Grain dimensions & shape (geometric corrected)",
-                "attribute": [make_attribute("Crystal shard", "Shape notes")],
-            }
+
 
         # create datum and attributes for characteristics analysis
         # Characteristics will always be recorded, even for shards
@@ -442,8 +433,9 @@ def read_picking_data(fn, picking_specs, create_lab_id):
             col = next(iter(s))
             value = str(row[col])
             chars_attributes.append([value, s[col]])
+
         # make analysis dictionary, exclude missing data if shards
-        if shard != "Y" and shard != "y":
+        if not shard:
             # First, get uncertainty for each derived parameter
             for l in chars_attributes:
                 for i in l:
@@ -490,71 +482,132 @@ def read_picking_data(fn, picking_specs, create_lab_id):
         # Change errors to 1sigma...
 
         # Only incude derived data if not a shard
-        if Fts:
-            # Compile Ft data for date calculation session
-            # This is where Ft_errors are calculated
-            Ft_data = [
-                [
-                    Fts["238U"],
-                    Fts["238U"] * Ft_err * 2,
-                    "238U Ft (±2σ), new geometric correction",
-                    "",
-                ],
-                [
-                    Fts["235U"],
-                    Fts["235U"] * Ft_err * 2,
-                    "235U Ft (±2σ), new geometric correction",
-                    "",
-                ],
-                [
-                    Fts["232Th"],
-                    Fts["232Th"] * Ft_err * 2,
-                    "232Th Ft (±2σ), new geometric correction",
-                    "",
-                ],
-                [
-                    Fts["147Sm"],
-                    Fts["147Sm"] * Ft_err * 2,
-                    "147Sm Ft (±2σ), new geometric correction",
-                    "",
-                ],
-            ]
-            Rs_mass = [
-                [
-                    dimensional_mass,
-                    dimensional_mass * dim_mass_err * 2,
-                    "Dimensional mass (±2σ), new geometric correction",
-                    "μg",
-                ],
-                # Rs should only be included in the uncorrected output,
-                # as it is superseded by the ESR_Ft, which requires ICP_Ms
-                [
-                    Fts["Rs"],
-                    Fts["Rs"] * Rs_err * 2,
-                    "Equivalent spherical radius (±2σ)",
-                    "μm",
-                ],
-            ]
+        if not is_shard:
+            # Generate Ft and dimensional mass
+            # This can either be uncorrected or corrected
 
-            sample_schema["session"].append(
-                {
-                    "technique": {"id": "Dates and other derived data"},
-                    "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    #'date': '1900-01-01 00:00:00+00', # always pass an 'unknown date' value for calculation
-                    "analysis": [
-                        {
-                            "analysis_type": "Alpha ejection correction values (new geometric correction)",
-                            "datum": [make_datum(*d) for d in Ft_data],
-                        },
-                        {
-                            "analysis_type": "Rs, mass, concentrations (new geometric correction)",
-                            "datum": [make_datum(*d) for d in Rs_mass],
-                        },
-                    ],
-                }
+            uncorr_analysis = create_ft_analysis(
+                length1,
+                width1,
+                length2,
+                width2,
+                material,
+                Rs_err,
+                Ft_err,
+                picking_specs["geometry_key"][geometry],
+                int(terminations),
+                Ft_constants=None,
+                corrected=False,
             )
 
+            corr_analysis = create_ft_analysis(
+                length1,
+                width1,
+                length2,
+                width2,
+                material,
+                Rs_err,
+                Ft_err,
+                picking_specs["geometry_key"][geometry],
+                int(terminations),
+                Ft_constants=None,
+                corrected=True,
+            )
+
+            sample_schema["session"].append(uncorr_analysis)
+            sample_schema["session"].append(corr_analysis)
+
         yield sample_schema
+
+def create_ft_analysis(
+        length1, width1, length2, width2, material, Rs_err, Ft_err, picking_specs, terminations, Ft_constants=None, corrected=False
+):
+    # Generate Ft and dimensional mass
+    # This can either be uncorrected or corrected
+    Fts = get_Ft_values_internal(
+        length1,
+        width1,
+        length2,
+        width2,
+        material,
+        picking_specs["geometry_key"][geometry],
+        int(terminations),
+        Ft_constants=None,
+        corrected=corrected,
+    )
+
+    dimensional_mass = (
+            picking_specs["Ft_constants"][material]["density"] * Fts["V_corr"] / 1e6
+    )
+
+    suffix = ""
+    if corrected:
+        suffix = ", new geometric correction"
+
+    # Compile Ft data for date calculation session
+    # This is where Ft_errors are calculated
+    Ft_data = [
+        [
+            Fts["238U"],
+            Fts["238U"] * Ft_err,
+            "238U Ft (±1σ)" + suffix,
+            "",
+        ],
+        [
+            Fts["235U"],
+            Fts["235U"] * Ft_err,
+            "235U Ft (±1σ)" + suffix,
+            "",
+        ],
+        [
+            Fts["232Th"],
+            Fts["232Th"] * Ft_err,
+            "232Th Ft (±1σ)" + suffix,
+            "",
+        ],
+        [
+            Fts["147Sm"],
+            Fts["147Sm"] * Ft_err,
+            "147Sm Ft (±1σ)" + suffix,
+            "",
+        ],
+    ]
+    Rs_mass = [
+        [
+            dimensional_mass,
+            dimensional_mass * dim_mass_err,
+            "Dimensional mass (±1σ)" + suffix,
+            "μg",
+            ],
+        # Rs should only be included in the uncorrected output,
+        # as it is superseded by the ESR_Ft, which requires ICP_Ms
+        [
+            Fts["Rs"],
+            Fts["Rs"] * Rs_err,
+            "Equivalent spherical radius (±1σ)" + suffix,
+            "μm",
+        ],
+    ]
+
+    analysis_suffix = ""
+    if corrected:
+        analysis_suffix = " (new geometric correction)"
+
+    return {
+        "technique": {"id": "Dates and other derived data" + suffix },
+        "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        #'date': '1900-01-01 00:00:00+00', # always pass an 'unknown date' value for calculation
+        "analysis": [
+            {
+                "analysis_type": "Alpha ejection correction values" + analysis_suffix,
+                "datum": [make_datum(*d) for d in Ft_data],
+            },
+            {
+                "analysis_type": "Rs, mass, concentrations" + analysis_suffix,
+                "datum": [make_datum(*d) for d in Rs_mass],
+            },
+        ],
+    }
 
 
 def get_picking_dataframe(fn, picking_specs):
