@@ -21,7 +21,6 @@ import numpy as N
 
 from .utils import make_labID
 
-
 @dataclass
 class Sample:
     name: str
@@ -550,9 +549,18 @@ def read_picking_data(fn, picking_specs, create_lab_id):
                 corrected=True,
             )
 
-            analyses = []
-            analyses += uncorr_analyses
-            analyses += corr_analyses
+            # Merge the two datasets into one
+            analyses = [
+                {
+                    "analysis_type": "Alpha ejection correction values",
+                    "datum": uncorr_analyses[0]["datum"] + corr_analyses[0]["datum"],
+                },
+                {
+                    "analysis_type": "Rs, mass, concentrations",
+                    "datum": uncorr_analyses[1]["datum"] + corr_analyses[1]["datum"],
+                }
+            ]
+
 
             ft_session =  {
                 "technique": {"id": "Dates and other derived data" },
@@ -662,7 +670,6 @@ def create_ft_analyses(
                 "datum": [make_datum(*d) for d in Rs_mass],
             },
         ]
-
 
 def get_picking_dataframe(fn, picking_specs):
     data = pd.read_excel(
