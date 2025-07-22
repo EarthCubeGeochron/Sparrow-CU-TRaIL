@@ -26,6 +26,7 @@ def construct_lab_id(year, max_num):
     Generate a lab ID for a new sample based on the date of the analysis
     """
     lab_id = year + "-" + f"{max_num:05d}"
+    print(lab_id)
     return lab_id
 
 

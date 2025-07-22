@@ -141,19 +141,24 @@ class TRaILhelium(BaseImporter):
     def add_nmol_g(self, derived_session_obj, session_dict):
         # This value isn't actually nano-ccs
         # This should get exactly the value that is labeled "fmols He/g" in the database...
-        ncc_he = session_dict["analysis"][0]["datum"][0]["value"]
-        ncc_he_s = session_dict["analysis"][0]["datum"][0]["error"]
-        nmol_he = ncc_he / 22413.6
-        
-        # This depends on picking import
+        fmol_he = session_dict["analysis"][0]["datum"][0]["value"]
+        fmol_he_s = session_dict["analysis"][0]["datum"][0]["error"]
+
+        nmol_he = fmol_he / 1e6
+        nmol_he_s = fmol_he_s / 1e6
+
+        # This depends on picking import, which will be either corrected or
+        # uncorrected
         ug_mass = get_dimensional_mass(self.db, derived_session_obj)
-        nmol_g = (nmol_he * 1e6) / float(ug_mass.value)
+
+        g_mass = float(ug_mass.value) / 1e6
+        nmol_g = nmol_he / g_mass
         # Upload None to database if NaN in uncertainty column
         try:
             nmol_g_s = (
                 (
                     (float(ug_mass.error) / float(ug_mass.value)) ** 2
-                    + (ncc_he_s / ncc_he) ** 2
+                    + (nmol_he_s / nmol_he) ** 2
                 )
                 ** (1 / 2)
             ) * nmol_g
@@ -169,6 +174,11 @@ class TRaILhelium(BaseImporter):
             )
             .first()
         )
+
+        name = "4He (±2σ)"
+        if geo_corr:
+            name += ", new geometric correction"
+
         datum_dict = {
             "value": nmol_g,
             "error": nmol_g_s,

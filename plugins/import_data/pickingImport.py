@@ -595,42 +595,42 @@ def create_ft_analyses(
     Ft_data = [
         [
             Fts["238U"],
-            Fts["238U"] * Ft_err,
-            "238U Ft (±1σ)" + suffix,
+            Fts["238U"] * Ft_err * 2,
+            "238U Ft (±2σ)" + suffix,
             "",
         ],
         [
             Fts["235U"],
-            Fts["235U"] * Ft_err,
-            "235U Ft (±1σ)" + suffix,
+            Fts["235U"] * Ft_err * 2,
+            "235U Ft (±2σ)" + suffix,
             "",
         ],
         [
             Fts["232Th"],
-            Fts["232Th"] * Ft_err,
-            "232Th Ft (±1σ)" + suffix,
+            Fts["232Th"] * Ft_err * 2,
+            "232Th Ft (±2σ)" + suffix,
             "",
         ],
         [
             Fts["147Sm"],
             Fts["147Sm"] * Ft_err,
-            "147Sm Ft (±1σ)" + suffix,
+            "147Sm Ft (±2σ)" + suffix,
             "",
         ],
     ]
     Rs_mass = [
         [
             dimensional_mass,
-            dimensional_mass * dim_mass_err,
-            "Dimensional mass (±1σ)" + suffix,
+            dimensional_mass * dim_mass_err * 2,
+            "Dimensional mass (±2σ)" + suffix,
             "μg",
             ],
         # Rs should only be included in the uncorrected output,
         # as it is superseded by the ESR_Ft, which requires ICP_Ms
         [
             Fts["Rs"],
-            Fts["Rs"] * Rs_err,
-            "Rs (±1σ)" + suffix,
+            Fts["Rs"] * Rs_err * 2,
+            "Rs (±2σ)" + suffix,
             "μm",
         ],
     ]
