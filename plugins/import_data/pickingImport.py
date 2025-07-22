@@ -340,11 +340,33 @@ class TRaILpicking(BaseImporter):
         self.picking_specs = get_picking_specs()
         self.iterfiles(file_list, **kwargs)
 
+    # Method to generate a lab ID for a new sample based on the date of the analysis
+    def make_labID(self, date):
+        year = str(date.year)[-2:]
+        # Query database for all lab IDs
+        all_IDs = [
+            el
+            for tup in self.db.session.query(self.db.model.sample.lab_id).all()
+            for el in tup
+            if el is not None
+        ]
+        # Isolate lab IDs from the same year
+        same_year = [i for i in all_IDs if year + "-" in i]
+        # Get the highest numbered analysis for the year and add 1
+        if len(same_year) > 0:
+            max_num = max([int(i.split("-")[1]) for i in same_year])
+        else:
+            max_num = 0
+        id_num = max_num + 1
+        # Combine year and analysis number to get lab_id
+        lab_id = year + "-" + f"{id_num:05d}"
+        return lab_id
+
     def import_datafile(self, fn, rec, **kwargs):
-        _create_lab_id = lambda date: make_labID(db, date)
+        _create_lab_id = lambda date: make_labID(self.db, date)
 
         # First, import uncorrected data
-        sample_schemas = read_picking_data(fn, self.picking_specs, _create_lab_id)
+        sample_schemas = read_picking_data(fn, self.picking_specs, self.make_labID)
         for sample in sample_schemas:
             self.db.load_data("sample", sample, strict=True)
 
@@ -434,8 +456,14 @@ def read_picking_data(fn, picking_specs, create_lab_id):
             value = str(row[col])
             chars_attributes.append([value, s[col]])
 
+        analyses = [shape_dict]
+
+        Ft_err = None
+        Rs_err = None
+        dim_mass_err = None
+
         # make analysis dictionary, exclude missing data if shards
-        if not shard:
+        if not is_shard:
             # First, get uncertainty for each derived parameter
             for l in chars_attributes:
                 for i in l:
@@ -452,6 +480,8 @@ def read_picking_data(fn, picking_specs, create_lab_id):
                 "analysis_type": "Grain characteristics",
                 "attribute": [make_attribute(*a) for a in chars_attributes],
             }
+            analyses.append(chars_dict)
+
 
         # Create a new sample in the database using the picking sheet metadata
         sample_schema = {
@@ -473,7 +503,7 @@ def read_picking_data(fn, picking_specs, create_lab_id):
                     "technique": {"id": "Picking information"},
                     "instrument": {"name": "Leica microscope"},
                     "date": date,
-                    "analysis": [shape_dict, chars_dict],
+                    "analysis": analyses,
                 }
             ],
         }
@@ -494,7 +524,9 @@ def read_picking_data(fn, picking_specs, create_lab_id):
                 material,
                 Rs_err,
                 Ft_err,
-                picking_specs["geometry_key"][geometry],
+                dim_mass_err,
+                picking_specs,
+                geometry,
                 int(terminations),
                 Ft_constants=None,
                 corrected=False,
@@ -508,7 +540,9 @@ def read_picking_data(fn, picking_specs, create_lab_id):
                 material,
                 Rs_err,
                 Ft_err,
-                picking_specs["geometry_key"][geometry],
+                dim_mass_err,
+                picking_specs,
+                geometry,
                 int(terminations),
                 Ft_constants=None,
                 corrected=True,
@@ -520,7 +554,7 @@ def read_picking_data(fn, picking_specs, create_lab_id):
         yield sample_schema
 
 def create_ft_analysis(
-        length1, width1, length2, width2, material, Rs_err, Ft_err, picking_specs, terminations, Ft_constants=None, corrected=False
+        length1, width1, length2, width2, material, Rs_err, Ft_err, dim_mass_err, picking_specs, geometry, terminations, Ft_constants=None, corrected=False
 ):
     # Generate Ft and dimensional mass
     # This can either be uncorrected or corrected
@@ -537,7 +571,7 @@ def create_ft_analysis(
     )
 
     dimensional_mass = (
-            picking_specs["Ft_constants"][material]["density"] * Fts["V_corr"] / 1e6
+            picking_specs["Ft_constants"][material]["density"] * Fts["V"] / 1e6
     )
 
     suffix = ""
