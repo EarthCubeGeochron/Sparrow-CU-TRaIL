@@ -1,4 +1,3 @@
-from plugins.import_data.utils import construct_lab_id
 from rich import print
 from click import secho
 from sparrow.core.import_helpers import BaseImporter
@@ -10,6 +9,8 @@ from dateutil.parser import parse
 import numpy as np
 import glob
 import os
+
+from .utils import construct_lab_id
 
 
 def split_unit(name):
@@ -47,6 +48,7 @@ datum_type_fields = [
     "description",
 ]
 attribute_fields = ["parameter", "value"]
+
 
 # Make dict with Datum1 schema. Requires value, uncertainty, and 'type' which gives
 # parameter measured as str, unit as str, and other type fields listed above if included

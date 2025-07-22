@@ -20,12 +20,14 @@ def make_labID(db, date) -> str:
     # Combine year and analysis number to get lab_id
     return construct_lab_id(year, max_num)
 
+
 def construct_lab_id(year, max_num):
     """
     Generate a lab ID for a new sample based on the date of the analysis
     """
     lab_id = year + "-" + f"{max_num:05d}"
     return lab_id
+
 
 def get_existing_lab_ids(db):
     return [

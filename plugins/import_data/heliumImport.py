@@ -10,26 +10,6 @@ from yaml import load
 from .utils import make_labID
 
 
-# Make datum using info in yaml file
-def make_datum(row, name, data_info):
-    if data_info[1] == None:
-        error = None
-    elif pd.isna(row[data_info[1]]):
-        error = None
-    else:
-        error = row[data_info[1]]
-    return {
-        "value": row[data_info[0]],
-        "error": error,
-        "type": {"parameter": name, "unit": data_info[2]},
-    }
-
-
-# Make attribute using info in yaml file
-def make_attribute(row, name, data_info):
-    return {"parameter": name, "value": str(row[data_info[0]])}
-
-
 class TRaILhelium(BaseImporter):
     def __init__(self, app, data_dir, **kwargs):
         super().__init__(app)
@@ -157,24 +137,6 @@ class TRaILhelium(BaseImporter):
         # Upload session -- this has the sample info attached, so the sample will be updated as well
         self.db.load_data("session", session_dict)
 
-    # Get dimensionsal mass for a given sample based on session pulled above
-    def query_shard(self, session_obj):
-        # This will need to be done for both corrected and uncorrected values of dimensional mass
-        Session = self.db.model.session
-        Analysis = self.db.model.analysis
-        Datum = self.db.model.datum
-        DatumType = self.db.model.datum_type
-        res = (
-            self.db.session.query(Datum)
-            .join(Analysis)
-            .join(Session)
-            .join(DatumType)
-            .filter(Session.id == session_obj.id)
-            .filter(DatumType.parameter == "Dimensional mass (±2σ)")
-            .first()
-        )
-        return res
-
     # TODO add method to add ng/mol He to the derived data session if not a shard
     def add_nmol_g(self, derived_session_obj, session_dict):
         # This value isn't actually nano-ccs
@@ -182,7 +144,7 @@ class TRaILhelium(BaseImporter):
         ncc_he = session_dict["analysis"][0]["datum"][0]["value"]
         ncc_he_s = session_dict["analysis"][0]["datum"][0]["error"]
         nmol_he = ncc_he / 22413.6
-        ug_mass = self.query_shard(derived_session_obj)
+        ug_mass = get_dimensional_mass(self.db, derived_session_obj)
         nmol_g = (nmol_he * 1e6) / float(ug_mass.value)
         # Upload None to database if NaN in uncertainty column
         try:
@@ -212,3 +174,42 @@ class TRaILhelium(BaseImporter):
             "analysis": analysis_obj,
         }
         self.db.load_data("datum", datum_dict)
+
+
+def get_dimensional_mass(db, session_obj):
+    """
+    Get dimensionsal mass for a given sample based on session pulled above
+    """
+    Session = db.model.session
+    Analysis = db.model.analysis
+    Datum = db.model.datum
+    DatumType = db.model.datum_type
+    return (
+        db.session.query(Datum)
+        .join(Analysis)
+        .join(Session)
+        .join(DatumType)
+        .filter(Session.id == session_obj.id)
+        .filter(DatumType.parameter == "Dimensional mass (±2σ)")
+        .first()
+    )
+
+
+# Make datum using info in yaml file
+def make_datum(row, name, data_info):
+    if data_info[1] == None:
+        error = None
+    elif pd.isna(row[data_info[1]]):
+        error = None
+    else:
+        error = row[data_info[1]]
+    return {
+        "value": row[data_info[0]],
+        "error": error,
+        "type": {"parameter": name, "unit": data_info[2]},
+    }
+
+
+# Make attribute using info in yaml file
+def make_attribute(row, name, data_info):
+    return {"parameter": name, "value": str(row[data_info[0]])}

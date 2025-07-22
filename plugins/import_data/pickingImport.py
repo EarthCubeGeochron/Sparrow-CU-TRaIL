@@ -342,9 +342,7 @@ class TRaILpicking(BaseImporter):
 
     def import_datafile(self, fn, rec, **kwargs):
         _create_lab_id = lambda date: make_labID(db, date)
-        sample_schemas = read_picking_data(
-            fn, self.picking_specs, _create_lab_id
-        )
+        sample_schemas = read_picking_data(fn, self.picking_specs, _create_lab_id)
         for sample in sample_schemas:
             self.db.load_data("sample", sample, strict=True)
 
