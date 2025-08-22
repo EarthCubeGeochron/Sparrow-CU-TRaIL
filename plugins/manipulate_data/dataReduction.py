@@ -101,6 +101,10 @@ class TRaILdatecalc(BaseImporter):
         sample_obj = self.db.session.query(self.db.model.sample).filter_by(id=d).first()
         print("Reducing sample", sample_obj.name)
 
+        # For now, we only implement date calculation for data with the new geometric correction
+        # Note: this only needs to be applied to the Fts
+        suffix = ", new geometric correction"
+
         try:
             # Get 4He from database
             He4_datum = self.query_ID(
@@ -176,16 +180,16 @@ class TRaILdatecalc(BaseImporter):
         # something else, then we need to note that we aren't using corrected values. The values we calculated earlier though are 1s.
         if len(Ft_session) > 0:
             get_corrected = True
-            Ft238_datum = self.query_ID(sample_obj.lab_id, "238U Ft (±2σ)")
+            Ft238_datum = self.query_ID(sample_obj.lab_id, "238U Ft (±2σ)" + suffix)
             Ft238 = float(Ft238_datum.value)
             Ft238_s = float(Ft238_datum.error) / 2
-            Ft235_datum = self.query_ID(sample_obj.lab_id, "235U Ft (±2σ)")
+            Ft235_datum = self.query_ID(sample_obj.lab_id, "235U Ft (±2σ)" + suffix)
             Ft235 = float(Ft235_datum.value)
             Ft235_s = float(Ft235_datum.error) / 2
-            Ft232_datum = self.query_ID(sample_obj.lab_id, "232Th Ft (±2σ)")
+            Ft232_datum = self.query_ID(sample_obj.lab_id, "232Th Ft (±2σ)" + suffix)
             Ft232 = float(Ft232_datum.value)
             Ft232_s = float(Ft232_datum.error) / 2
-            Ft147_datum = self.query_ID(sample_obj.lab_id, "147Sm Ft (±2σ)")
+            Ft147_datum = self.query_ID(sample_obj.lab_id, "147Sm Ft (±2σ)" + suffix)
             Ft147 = float(Ft147_datum.value)
             Ft147_s = float(Ft147_datum.error) / 2
         # If no Fts in database, sample is a fragment and only raw dates should be calculated
@@ -258,6 +262,29 @@ class TRaILdatecalc(BaseImporter):
             get_corrected,
         )
 
+        raw_dict = {
+            "analysis_type": "Raw date",
+            "datum": [
+                make_datum(
+                    "Raw date",
+                    "MC average 95% CI, raw",
+                    reduced_data,
+                    "Ma",
+                    " (±2σ)",
+                ),
+                make_datum(
+                    "Number of Monte Carlo simulations", None, reduced_data, "", ""
+                ),
+            ],
+            "attribute": [
+                make_CI_attribute(
+                    reduced_data["MC +95% CI, raw"][0],
+                    reduced_data["MC -95% CI, raw"][0],
+                    "",
+                )
+            ],
+        }
+
         if get_corrected:
             assert reduced_data_TAU is not None
 
@@ -266,40 +293,20 @@ class TRaILdatecalc(BaseImporter):
                 .filter_by(sample_id=d, technique="Dates and other derived data")
                 .first()
             )
-            raw_dict = {
-                "analysis_type": "Raw date",
-                "datum": [
-                    make_datum(
-                        "Raw date",
-                        "MC average 95% CI, raw",
-                        reduced_data,
-                        "Ma",
-                        " (±2σ)",
-                    ),
-                    make_datum(
-                        "Number of Monte Carlo simulations", None, reduced_data, "", ""
-                    ),
-                ],
-                "attribute": [
-                    make_CI_attribute(
-                        reduced_data["MC +95% CI, raw"][0],
-                        reduced_data["MC -95% CI, raw"][0],
-                        "",
-                    )
-                ],
-            }
+
+            # Corrected for alpha ejection
             corr_dict = {
                 "analysis_type": "Corrected date",
                 "datum": [
                     make_datum(
-                        "Corrected date",
+                        "Corrected date, new geometric correction",
                         "MC average 95% CI, corrected",
                         reduced_data_TAU,
                         "Ma",
                         " (±2σ, TAU)",
                     ),
                     make_datum(
-                        "Corrected date",
+                        "Corrected date, new geometric correction",
                         "MC average 95% CI, corrected",
                         reduced_data,
                         "Ma",
@@ -331,32 +338,7 @@ class TRaILdatecalc(BaseImporter):
                 "technique": {"id": "Dates and other derived data"},
                 "date": "1900-01-01 00:00:00+00",  # always pass an 'unknown date' value for calculation
                 "analysis": [
-                    {
-                        "analysis_type": "Raw date",
-                        "datum": [
-                            make_datum(
-                                "Raw date",
-                                "MC average 95% CI, raw",
-                                reduced_data,
-                                "Ma",
-                                " (±2σ)",
-                            ),
-                            make_datum(
-                                "Number of Monte Carlo simulations",
-                                None,
-                                reduced_data,
-                                "",
-                                "",
-                            ),
-                        ],
-                        "attribute": [
-                            make_CI_attribute(
-                                reduced_data["MC +95% CI, raw"][0],
-                                reduced_data["MC -95% CI, raw"][0],
-                                "",
-                            )
-                        ],
-                    }
+                   raw_dict
                 ],
             }
             session_dict["sample"] = sample_obj

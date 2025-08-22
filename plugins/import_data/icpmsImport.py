@@ -20,9 +20,13 @@ def make_datum(row, isotope):
     }
 
 
-def make_ppm(data, dim_mass_val, dim_mass_err):
+def make_ppm(data, dim_mass_val, dim_mass_err, corrected=False):
     ppm = (data["value"] / dim_mass_val) * 1000
     # Get ppm uncertainty from combination of mass and nuclide amount uncertainty
+    parameter_name = data["type"]["parameter"]
+    if corrected:
+        parameter_name += ", new geometric correction"
+
     try:
         ppm_s = ppm * (
             ((data["error"] / 2) / data["value"]) ** 2
@@ -33,7 +37,7 @@ def make_ppm(data, dim_mass_val, dim_mass_err):
     return {
         "value": ppm,
         "error": ppm_s * 2,
-        "type": {"parameter": data["type"]["parameter"], "unit": "ppm"},
+        "type": {"parameter": parameter_name, "unit": "ppm"},
     }
 
 
@@ -173,43 +177,52 @@ class TRaILicpms(BaseImporter):
 
             # TODO: This entire calculation will be re-done for corrected and uncorrected values
             # look for whether a dimensional mass is recorded in Sparrow to permit ppm conversion
-            ppm_analysis = self.query_analysis(
-                sample_id, "Rs, mass, concentrations"
-            )
-            dim_mass = self.query_datum(
-                sample_id, "Dimensional mass (±2σ), new geometric correction"
-            )
-            ft_analysis = self.query_analysis(
-                sample_id, "Alpha ejection correction values"
-            )
-            Fts = {
-                "238U Ft (±2σ)": None,
-                "235U Ft (±2σ)": None,
-                "232Th Ft (±2σ)": None,
-                "147Sm Ft (±2σ)": None,
-            }
-            for Ft in Fts:
-                # Load the Ft values from the database, using only those with the new geometric correction applied
-                Fts[Ft] = self.query_datum(sample_id, Ft + ", new geometric correction")
-            if dim_mass:
-                ppm_full = self.add_ppm(raw_data, dim_mass, ppm_analysis)
-                if ppm_full:
-                    # Store the combined Ft value in the database
-                    data = self.calc_Ft_comb(Fts)
-                    self.add_Ft_comb(ft_analysis, data)
+            for corrected in [False, True]:
+                ppm_analysis = self.query_analysis(
+                    sample_id, "Rs, mass, concentrations"
+                )
 
-                    # Get material and shape from sample
-                    material = str(sample_obj.material)
-                    shape = self.query_attribute(sample_id, "Crystal geometry")
+                suffix = ""
+                if corrected:
+                    suffix = ", new geometric correction"
 
-                    # Note: should separate calculation and addition to Sparrow
-                    self.add_ESR_Ft(ft_analysis, data, material, shape)
-                print("")
-            else:
-                print("")
+
+                dim_mass = self.query_datum(
+                    sample_id, "Dimensional mass (±2σ)" + suffix
+                )
+                ft_analysis = self.query_analysis(
+                    sample_id, "Alpha ejection correction values"
+                )
+                Fts = {
+                    "238U Ft (±2σ)": None,
+                    "235U Ft (±2σ)": None,
+                    "232Th Ft (±2σ)": None,
+                    "147Sm Ft (±2σ)": None,
+                }
+
+                for Ft in Fts:
+                    # Load the Ft values from the database, using only those with the new geometric correction applied
+                    Fts[Ft] = self.query_datum(sample_id, Ft + suffix)
+                if dim_mass:
+                    ppm_full = self.add_ppm(raw_data, dim_mass, ppm_analysis, corrected=corrected)
+                    if ppm_full:
+                        # Store the combined Ft value in the database
+                        data = self.calc_Ft_comb(Fts)
+                        self.add_Ft_comb(ft_analysis, data, corrected=corrected)
+
+                        # Get material and shape from sample
+                        material = str(sample_obj.material)
+                        shape = self.query_attribute(sample_id, "Crystal geometry")
+
+                        # Note: should separate calculation and addition to Sparrow
+                        if corrected:
+                            self.add_ESR_Ft(ft_analysis, data, material, shape)
+                    print("")
+                else:
+                    print("")
 
     # Generate ppm values and add to existing derived data session
-    def add_ppm(self, raw_data, dim_mass, analysis_obj):
+    def add_ppm(self, raw_data, dim_mass, analysis_obj, corrected=False):
         # analysis_obj = Rs, mass, concentrations
         dim_mass_val = float(dim_mass.value)
         dim_mass_err = float(dim_mass.error)
@@ -226,31 +239,35 @@ class TRaILicpms(BaseImporter):
             # Do calculation for both corrected and uncorrected values
             for r in radionuclides:
                 if "U" in r["type"]["parameter"]:
-                    ppm_dict = make_ppm(r, dim_mass_val, dim_mass_err)
+                    ppm_dict = make_ppm(r, dim_mass_val, dim_mass_err, corrected=corrected)
                     ppm_dict["analysis"] = analysis_obj
                     self.ppms[r["type"]["parameter"]] = ppm_dict
                     self.db.load_data("datum", ppm_dict)
                     eU += ppm_dict["value"]
                     eU_err.append((ppm_dict["error"] / 2) ** 2)
                 elif "Th" in r["type"]["parameter"]:
-                    ppm_dict = make_ppm(r, dim_mass_val, dim_mass_err)
+                    ppm_dict = make_ppm(r, dim_mass_val, dim_mass_err, corrected=corrected)
                     ppm_dict["analysis"] = analysis_obj
                     self.ppms[r["type"]["parameter"]] = ppm_dict
                     self.db.load_data("datum", ppm_dict)
                     eU += 0.238 * ppm_dict["value"]
                     eU_err.append((0.238 * (ppm_dict["error"] / 2)) ** 2)
                 elif "Sm" in r["type"]["parameter"]:
-                    ppm_dict = make_ppm(r, dim_mass_val, dim_mass_err)
+                    ppm_dict = make_ppm(r, dim_mass_val, dim_mass_err, corrected=corrected)
                     ppm_dict["analysis"] = analysis_obj
                     self.db.load_data("datum", ppm_dict)
                     eU += 0.0012 * ppm_dict["value"]
                     eU_err.append((0.0012 * (ppm_dict["error"] / 2)) ** 2)
+
+            eu_param_name = "eU (±2σ)"
+            if corrected:
+                eu_param_name += ", new geometric correction"
             eU_dict = {
                 "value": eU,
                 # "error": eU * 0.15,
                 "error": sum(eU_err) ** (1 / 2),
                 "type": {
-                    "parameter": "eU (±2σ)",
+                    "parameter": eu_param_name,
                     "unit": "ppm",
                 },  # (±2σ)', 'unit': 'ppm'},
                 "analysis": analysis_obj,
@@ -291,15 +308,19 @@ class TRaILicpms(BaseImporter):
             Ft_comb=Ft_comb,
         )
 
-    def add_Ft_comb(self, analysis_obj, data: FTCombResult):
+    def add_Ft_comb(self, analysis_obj, data: FTCombResult, corrected=False):
         # Add the combined Ft value to the database
         # Store  Ft_comb in the database
         # and then use the values to calculate ESR_Ft
         # TODO: do this for both corrected and uncorrected. We can do this by adding a suffix...
+        parameter_name = "Combined Ft"
+        if corrected:
+            parameter_name += ", new geometric correction"
+
         Ft_comb_dict = {
             "value": data.Ft_comb,
             "error": None,
-            "type": {"parameter": "Combined Ft, new geometric correction", "unit": ""},
+            "type": {"parameter": parameter_name, "unit": ""},
             "analysis": analysis_obj,
         }
 
