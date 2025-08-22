@@ -174,14 +174,12 @@ class TRaILicpms(BaseImporter):
             }
             session_dict["sample"] = sample_obj
             self.db.load_data("session", session_dict)
+            ppm_analysis = self.query_analysis(sample_id, "Rs, mass, concentrations")
+            ft_analysis = self.query_analysis(sample_id, "Alpha ejection correction values")
 
             # TODO: This entire calculation will be re-done for corrected and uncorrected values
             # look for whether a dimensional mass is recorded in Sparrow to permit ppm conversion
             for corrected in [False, True]:
-                ppm_analysis = self.query_analysis(
-                    sample_id, "Rs, mass, concentrations"
-                )
-
                 suffix = ""
                 if corrected:
                     suffix = ", new geometric correction"
@@ -190,9 +188,7 @@ class TRaILicpms(BaseImporter):
                 dim_mass = self.query_datum(
                     sample_id, "Dimensional mass (±2σ)" + suffix
                 )
-                ft_analysis = self.query_analysis(
-                    sample_id, "Alpha ejection correction values"
-                )
+
                 Fts = {
                     "238U Ft (±2σ)": None,
                     "235U Ft (±2σ)": None,
@@ -215,8 +211,8 @@ class TRaILicpms(BaseImporter):
                         shape = self.query_attribute(sample_id, "Crystal geometry")
 
                         # Note: should separate calculation and addition to Sparrow
-                        if corrected:
-                            self.add_ESR_Ft(ft_analysis, data, material, shape)
+                        #if corrected:
+                        #    self.add_ESR_Ft(ft_analysis, data, material, shape)
                     print("")
                 else:
                     print("")
@@ -333,7 +329,7 @@ class TRaILicpms(BaseImporter):
         # which are material (mineral) and isotope specific. I'll refer to these as S_238, etc, but they will need to vary depending on the mineral.
 
         # This should only be added for the new geometric correction
-        print(material, shape)
+        print(data, material, shape)
 
         Sbar = (
             data.a_238 * data.S_238

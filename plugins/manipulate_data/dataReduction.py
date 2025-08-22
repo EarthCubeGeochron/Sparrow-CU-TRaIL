@@ -6,11 +6,11 @@ from rich import print
 from sparrow.core.import_helpers import BaseImporter
 
 
-def make_datum(val, err, data_dict, unit, TAU):
+def make_datum(val, err, data_dict, unit, suffix=""):
     return {
         "value": data_dict[val][0],
         "error": data_dict[err][0] if err else None,
-        "type": {"parameter": val + TAU, "unit": unit},
+        "type": {"parameter": val + suffix, "unit": unit},
     }
 
 
@@ -270,10 +270,10 @@ class TRaILdatecalc(BaseImporter):
                     "MC average 95% CI, raw",
                     reduced_data,
                     "Ma",
-                    " (±2σ)",
+                    suffix=" (±2σ)",
                 ),
                 make_datum(
-                    "Number of Monte Carlo simulations", None, reduced_data, "", ""
+                    "Number of Monte Carlo simulations", None, reduced_data, ""
                 ),
             ],
             "attribute": [
@@ -299,18 +299,18 @@ class TRaILdatecalc(BaseImporter):
                 "analysis_type": "Corrected date",
                 "datum": [
                     make_datum(
-                        "Corrected date, new geometric correction",
+                        "Corrected date",
                         "MC average 95% CI, corrected",
                         reduced_data_TAU,
                         "Ma",
-                        " (±2σ, TAU)",
+                        suffix=" (±2σ, TAU), new geometric correction"
                     ),
                     make_datum(
-                        "Corrected date, new geometric correction",
+                        "Corrected date",
                         "MC average 95% CI, corrected",
                         reduced_data,
                         "Ma",
-                        " (±2σ, TAU+Ft)",
+                        suffix=" (±2σ, TAU+Ft), new geometric correction"
                     ),
                     make_datum(
                         "Number of Monte Carlo simulations", None, reduced_data, "", ""
