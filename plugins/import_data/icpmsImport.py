@@ -334,7 +334,7 @@ class TRaILicpms(BaseImporter):
         Sbar = (
             data.a_238 * data.S_238
             + data.a_232 * data.S_232
-            + (1 - data.a_238 - data.a_235) * data.S_235
+            + (1 - data.a_238 - data.a_232) * data.S_235
         )
         S_R = (
             1.681
