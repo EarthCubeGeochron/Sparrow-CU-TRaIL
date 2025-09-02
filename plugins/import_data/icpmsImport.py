@@ -148,7 +148,7 @@ class TRaILicpms(BaseImporter):
             # Genearate correct date format
             date = parser.parse(row["Date"])
             # Get list of columns to make datum with. Identify which columns are isotopes based on presence
-            # of prentheses, which indicate that there is a unit to pull out
+            # of parentheses, which indicate that there is a unit to pull out
             isotopes = [i for i in row.index if "(" in i and "lank" not in i]
             blanks = [i for i in row.index if "(" in i and "lank" in i]
             raw_data = [make_datum(row, isotope) for isotope in isotopes]
@@ -211,8 +211,8 @@ class TRaILicpms(BaseImporter):
                         shape = self.query_attribute(sample_id, "Crystal geometry")
 
                         # Note: should separate calculation and addition to Sparrow
-                        #if corrected:
-                        #    self.add_ESR_Ft(ft_analysis, data, material, shape)
+                        if corrected:
+                            self.add_ESR_Ft(ft_analysis, data, material, shape)
                     print("")
                 else:
                     print("")
