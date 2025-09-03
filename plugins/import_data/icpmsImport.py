@@ -43,9 +43,9 @@ def make_ppm(data, dim_mass_val, dim_mass_err, corrected=False):
 
 @dataclass
 class FTCombResult:
-    S_238: float
-    S_235: float
-    S_232: float
+    ppm_238U: float
+    ppm_235U: float
+    ppm_232Th: float
     a_238: float
     a_235: float
     a_232: float
@@ -276,13 +276,13 @@ class TRaILicpms(BaseImporter):
 
     def calc_Ft_comb(self, Fts) -> FTCombResult:
         """Calculate the combined Ft value for the sample."""
-        S_238 = self.ppms["238U (±2σ)"]["value"]
-        S_232 = self.ppms["232Th (±2σ)"]["value"]
+        ppm_238U = self.ppms["238U (±2σ)"]["value"]
+        ppm_232Th = self.ppms["232Th (±2σ)"]["value"]
+        ppm_235U = self.ppms["235U (±2σ)"]["value"]
 
-        S_235 = self.ppms["235U (±2σ)"]["value"]
 
-        a_238 = (1.04 + 0.247 * (S_232 / S_238)) ** -1
-        a_232 = (1.0 + 4.21 * (S_238 / S_232)) ** -1
+        a_238 = (1.04 + 0.247 * (ppm_232Th / (ppm_238U + ppm_235U))) ** -1
+        a_232 = (1.0 + 4.21 * (ppm_232Th / (ppm_238U + ppm_235U))) ** -1
 
         # Not sure if this is correct
         a_235 = 1 - a_238 - a_232
@@ -295,9 +295,9 @@ class TRaILicpms(BaseImporter):
             + a_235 * float(Fts["235U Ft (±2σ)"].value)
         )
         return FTCombResult(
-            S_238=S_238,
-            S_235=S_235,
-            S_232=S_232,
+            ppm_238U=ppm_238U,
+            ppm_235U=ppm_235U,
+            ppm_232Th=ppm_232Th,
             a_238=a_238,
             a_235=a_235,
             a_232=a_232,
@@ -331,10 +331,24 @@ class TRaILicpms(BaseImporter):
         # This should only be added for the new geometric correction
         print(data, material, shape)
 
+        materials = {
+            "apatite": "Apatite",
+            "titanite": "Titanite",
+            "zircon": "Zircon"
+        }
+
+        material_key = materials.get(material.lower(), "Miscellaneous")
+
+        # Get standard stopping distances for material and isotope
+        picking_specs = get_picking_specs()
+        S_232 = picking_specs["Ft_constants"][material_key]["232Th"]
+        S_238 = picking_specs["Ft_constants"][material_key]["238U"]
+        S_235 = picking_specs["Ft_constants"][material_key]["235U"]
+
         Sbar = (
-            data.a_238 * data.S_238
-            + data.a_232 * data.S_232
-            + (1 - data.a_238 - data.a_232) * data.S_235
+            data.a_238 * S_238
+            + data.a_232 * S_232
+            + (1 - data.a_238 - data.a_232) * S_235
         )
         S_R = (
             1.681
