@@ -8,6 +8,7 @@ from sqlalchemy import exc
 import pandas as pd
 import re
 from dateutil import parser
+from .pickingImport import get_picking_specs
 
 
 # Make datum using info in yaml file
@@ -98,11 +99,12 @@ class TRaILicpms(BaseImporter):
         Attribute = self.db.model.attribute
         res = (
             self.db.session.query(Attribute)
-            .join(Analysis)
+            .join(Analysis.attribute_collection)
             .join(Session)
             .join(Sample)
             .filter(Sample.lab_id == lab_id)
             .filter(Attribute.parameter == attribute_name)
+            .first()
         )
 
         return res
@@ -145,7 +147,7 @@ class TRaILicpms(BaseImporter):
                     "not found. Double-check that the IDs match.\n",
                 )
                 return
-            # Genearate correct date format
+            # Generate correct date format
             date = parser.parse(row["Date"])
             # Get list of columns to make datum with. Identify which columns are isotopes based on presence
             # of parentheses, which indicate that there is a unit to pull out
@@ -209,9 +211,12 @@ class TRaILicpms(BaseImporter):
                         # Get material and shape from sample
                         material = str(sample_obj.material)
                         shape = self.query_attribute(sample_id, "Crystal geometry")
+                        if shape is not None:
+                            shape = shape.value
 
                         # Note: should separate calculation and addition to Sparrow
                         if corrected:
+                            # This goes into the "Alpha ejection correction values" analysis
                             self.add_ESR_Ft(ft_analysis, data, material, shape)
                     print("")
                 else:
@@ -331,19 +336,19 @@ class TRaILicpms(BaseImporter):
         # This should only be added for the new geometric correction
         print(data, material, shape)
 
-        materials = {
-            "apatite": "Apatite",
-            "titanite": "Titanite",
-            "zircon": "Zircon"
-        }
-
-        material_key = materials.get(material.lower(), "Miscellaneous")
+        # materials = {
+        #     "apatite": "Apatite",
+        #     "titanite": "Titanite",
+        #     "zircon": "Zircon"
+        # }
+        #
+        # material_key = materials.get(material.lower(), "Miscellaneous")
 
         # Get standard stopping distances for material and isotope
         picking_specs = get_picking_specs()
-        S_232 = picking_specs["Ft_constants"][material_key]["232Th"]
-        S_238 = picking_specs["Ft_constants"][material_key]["238U"]
-        S_235 = picking_specs["Ft_constants"][material_key]["235U"]
+        S_232 = picking_specs["Ft_constants"][material]["232Th"]
+        S_238 = picking_specs["Ft_constants"][material]["238U"]
+        S_235 = picking_specs["Ft_constants"][material]["235U"]
 
         Sbar = (
             data.a_238 * S_238
@@ -359,15 +364,16 @@ class TRaILicpms(BaseImporter):
         ESR_Ft = Sbar / S_R
         ESR_Ft_Corr = float("nan")
         ESR_Ft_Corr_err = float("nan")
-        if material == "apatite":
+        if material == "Apatite":
             if shape == "Hexagonal":
                 ESR_Ft_Corr = 0.93 * ESR_Ft
                 ESR_Ft_Corr_err = 0.06 * ESR_Ft_Corr
             elif shape == "Ellipsoid":
                 ESR_Ft_Corr = 0.85 * ESR_Ft
                 ESR_Ft_Corr_err = 0.10 * ESR_Ft_Corr
-        elif material == "zircon":
-            if shape == "Tetragonal":
+        elif material == "Zircon":
+            # NOTE TO JIM: this said Tetragonal but I changed it to Orthorhombic
+            if shape == "Orthorhombic":
                 ESR_Ft_Corr = 0.92 * ESR_Ft
                 ESR_Ft_Corr_err = 0.08 * ESR_Ft_Corr
             elif shape == "Ellipsoid":
@@ -387,5 +393,7 @@ class TRaILicpms(BaseImporter):
             },
             "analysis": analysis_obj,
         }
+
+        print(ESR_Ft_dict)
 
         self.db.load_data("datum", ESR_Ft_dict)
