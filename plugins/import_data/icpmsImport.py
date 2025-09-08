@@ -287,7 +287,7 @@ class TRaILicpms(BaseImporter):
 
 
         a_238 = (1.04 + 0.247 * (ppm_232Th / (ppm_238U + ppm_235U))) ** -1
-        a_232 = (1.0 + 4.21 * (ppm_232Th / (ppm_238U + ppm_235U))) ** -1
+        a_232 = (1.0 + 4.21 / (ppm_232Th / (ppm_238U + ppm_235U))) ** -1
 
         # Not sure if this is correct
         a_235 = 1 - a_238 - a_232
