@@ -176,6 +176,10 @@ class TRaILdatecalc(BaseImporter):
             .filter_by(sample_id=d, technique="Dates and other derived data")
             .all()
         )
+
+        # If these Fts do not exist in the database, we may need to calculate them.
+        # Run calculate_fts from pickingImport
+
         # The Ft values and uncertainties below should reference Ft_Corr and Ft_corr_err for each isotope now if the mineral is apatite or zircon. If the mineral is
         # something else, then we need to note that we aren't using corrected values. The values we calculated earlier though are 1s.
         if len(Ft_session) > 0:
@@ -194,6 +198,7 @@ class TRaILdatecalc(BaseImporter):
             Ft147_s = float(Ft147_datum.error) / 2
         # If no Fts in database, sample is a fragment and only raw dates should be calculated
         else:
+            print("No Ft data found; calculating raw date only")
             get_corrected = False
             Ft238, Ft235, Ft232, Ft147 = [1, 1, 1, 1]
             Ft238_s, Ft235_s, Ft232_s, Ft147_s = [0, 0, 0, 0]
@@ -272,9 +277,7 @@ class TRaILdatecalc(BaseImporter):
                     "Ma",
                     suffix=" (±2σ)",
                 ),
-                make_datum(
-                    "Number of Monte Carlo simulations", None, reduced_data, ""
-                ),
+                make_datum("Number of Monte Carlo simulations", None, reduced_data, ""),
             ],
             "attribute": [
                 make_CI_attribute(
@@ -303,14 +306,14 @@ class TRaILdatecalc(BaseImporter):
                         "MC average 95% CI, corrected",
                         reduced_data_TAU,
                         "Ma",
-                        suffix=" (±2σ, TAU), new geometric correction"
+                        suffix=" (±2σ, TAU), new geometric correction",
                     ),
                     make_datum(
                         "Corrected date",
                         "MC average 95% CI, corrected",
                         reduced_data,
                         "Ma",
-                        suffix=" (±2σ, TAU+Ft), new geometric correction"
+                        suffix=" (±2σ, TAU+Ft), new geometric correction",
                     ),
                     make_datum(
                         "Number of Monte Carlo simulations", None, reduced_data, "", ""
@@ -337,9 +340,7 @@ class TRaILdatecalc(BaseImporter):
             session_dict = {
                 "technique": {"id": "Dates and other derived data"},
                 "date": "1900-01-01 00:00:00+00",  # always pass an 'unknown date' value for calculation
-                "analysis": [
-                   raw_dict
-                ],
+                "analysis": [raw_dict],
             }
             session_dict["sample"] = sample_obj
             self.db.load_data("session", session_dict)
