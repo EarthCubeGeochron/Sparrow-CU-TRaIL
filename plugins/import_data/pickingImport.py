@@ -472,6 +472,7 @@ def read_picking_data(fn, picking_specs, create_lab_id):
                     if "Idealness" in i:
                         xtalform = l[0]
                         # THIS IS WHERE DECISION TREES WOULD BE REFERENCED
+                        # TODO: all values for Dim_mass_key are currently Zero
                         dim_mass_err = picking_specs["Dim_mass_key"][xtalform]
                         Rs_err = picking_specs["Rs_err_key"][xtalform]
                         # Right now, Ft_err is a proportion, 1sigma. i.e. 0.2 = 20%
@@ -510,6 +511,8 @@ def read_picking_data(fn, picking_specs, create_lab_id):
 
         # TODO: duplicate this so that both corrected and uncorrected data are saved in the database.
         # Change errors to 1sigma...
+
+        assert dim_mass_err is not None
 
         # Only incude derived data if not a shard
         if not is_shard:
@@ -633,6 +636,7 @@ def create_ft_analyses(
     )
     # Dimensional mass error should be the v_corr_err * density
     # We need to find a way to get v_err into this calculation....
+    # V_err is from the get_ft_values_internal function
 
     suffix = ""
     if corrected:
