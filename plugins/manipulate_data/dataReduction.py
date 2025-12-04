@@ -5,6 +5,9 @@ from hecalc.main import _sample_loop
 from rich import print
 from sparrow.core.import_helpers import BaseImporter
 
+from ..import_data.utils import find_datum
+from ..import_data.pickingImport import calculate_fts_standalone
+
 
 def make_datum(val, err, data_dict, unit, suffix=""):
     return {
@@ -65,36 +68,7 @@ class TRaILdatecalc(BaseImporter):
             self.get_input_data(d)
 
     def query_ID(self, lab_id, datum_param, datum_unit=None):
-        Session = self.db.model.session
-        Sample = self.db.model.sample
-        Analysis = self.db.model.analysis
-        Datum = self.db.model.datum
-        DatumType = self.db.model.datum_type
-        if datum_unit:
-            res = (
-                self.db.session.query(Datum)
-                .join(Analysis)
-                .join(Session)
-                .join(Sample)
-                .join(DatumType)
-                .filter(Sample.lab_id == lab_id)
-                .filter(DatumType.parameter == datum_param)
-                .filter(DatumType.unit == datum_unit)
-                .first()
-            )
-            return res
-        else:
-            res = (
-                self.db.session.query(Datum)
-                .join(Analysis)
-                .join(Session)
-                .join(Sample)
-                .join(DatumType)
-                .filter(Sample.lab_id == lab_id)
-                .filter(DatumType.parameter == datum_param)
-                .first()
-            )
-            return res
+        return find_datum(self.db, lab_id, datum_param, datum_unit)
 
     def get_input_data(self, d):
         # Get He data first
@@ -177,23 +151,45 @@ class TRaILdatecalc(BaseImporter):
             .all()
         )
 
+        has_Ft_session = len(Ft_session) > 0
+
+        Ft238_datum = self.query_ID(sample_obj.lab_id, "238U Ft (±2σ)" + suffix)
+        Ft235_datum = self.query_ID(sample_obj.lab_id, "235U Ft (±2σ)" + suffix)
+        Ft232_datum = self.query_ID(sample_obj.lab_id, "232Th Ft (±2σ)" + suffix)
+        Ft147_datum = self.query_ID(sample_obj.lab_id, "147Sm Ft (±2σ)" + suffix)
+
+        has_Ft_values = (
+            Ft238_datum is not None
+            and Ft235_datum is not None
+            and Ft232_datum is not None
+            and Ft147_datum is not None
+        )
+
+        has_Fts = has_Ft_session and has_Ft_values
+
+        if not has_Fts:
+            # Calculate the FTs from grain dimensions if possible
+            calculate_fts_standalone(self.db, sample_obj.lab_id)
+
+            # Try to re-fetch Fts
+            Ft238_datum = self.query_ID(sample_obj.lab_id, "238U Ft (±2σ)" + suffix)
+            Ft235_datum = self.query_ID(sample_obj.lab_id, "235U Ft (±2σ)" + suffix)
+            Ft232_datum = self.query_ID(sample_obj.lab_id, "232Th Ft (±2σ)" + suffix)
+            Ft147_datum = self.query_ID(sample_obj.lab_id, "147Sm Ft (±2σ)" + suffix)
+
         # If these Fts do not exist in the database, we may need to calculate them.
         # Run calculate_fts from pickingImport
 
         # The Ft values and uncertainties below should reference Ft_Corr and Ft_corr_err for each isotope now if the mineral is apatite or zircon. If the mineral is
         # something else, then we need to note that we aren't using corrected values. The values we calculated earlier though are 1s.
-        if len(Ft_session) > 0:
+        if has_Ft_session:
             get_corrected = True
-            Ft238_datum = self.query_ID(sample_obj.lab_id, "238U Ft (±2σ)" + suffix)
             Ft238 = float(Ft238_datum.value)
             Ft238_s = float(Ft238_datum.error) / 2
-            Ft235_datum = self.query_ID(sample_obj.lab_id, "235U Ft (±2σ)" + suffix)
             Ft235 = float(Ft235_datum.value)
             Ft235_s = float(Ft235_datum.error) / 2
-            Ft232_datum = self.query_ID(sample_obj.lab_id, "232Th Ft (±2σ)" + suffix)
             Ft232 = float(Ft232_datum.value)
             Ft232_s = float(Ft232_datum.error) / 2
-            Ft147_datum = self.query_ID(sample_obj.lab_id, "147Sm Ft (±2σ)" + suffix)
             Ft147 = float(Ft147_datum.value)
             Ft147_s = float(Ft147_datum.error) / 2
         # If no Fts in database, sample is a fragment and only raw dates should be calculated

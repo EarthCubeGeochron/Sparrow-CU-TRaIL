@@ -37,3 +37,47 @@ def get_existing_lab_ids(db):
         for el in tup
         if el is not None
     ]
+
+
+def find_datum(db, lab_id, datum_param, datum_unit=None):
+    Session = db.model.session
+    Sample = db.model.sample
+    Analysis = db.model.analysis
+    Datum = db.model.datum
+    DatumType = db.model.datum_type
+
+    query = (
+        db.session.query(Datum)
+        .join(Analysis)
+        .join(Session)
+        .join(Sample)
+        .join(DatumType)
+        .filter(Sample.lab_id == lab_id)
+        .filter(DatumType.parameter == datum_param)
+    )
+
+    if datum_unit:
+        return query.filter(DatumType.unit == datum_unit).first()
+    else:
+        return query.first()
+
+
+def find_attribute(db, lab_id, attr_name, analysis_type=None):
+    Sample = db.model.sample
+    Session = db.model.session
+    Analysis = db.model.analysis
+    Attribute = db.model.attribute
+
+    query = (
+        db.session.query(Attribute)
+        .join(Analysis)
+        .join(Session)
+        .join(Sample)
+        .filter(Sample.lab_id == lab_id)
+        .filter(Attribute.parameter == attr_name)
+    )
+
+    if analysis_type is not None:
+        return query.filter(Analysis.analysis_type == analysis_type).first()
+    else:
+        return query.first()

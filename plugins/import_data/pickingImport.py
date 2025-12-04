@@ -8,6 +8,7 @@ Created on Fri Oct  8 15:01:18 2021
 import glob
 import numpy as np
 import pandas as pd
+from plugins.import_data.utils import find_attribute
 from rich import print
 from math import sqrt
 from sparrow.core.import_helpers import BaseImporter
@@ -19,7 +20,7 @@ from yaml import load, SafeLoader
 from enum import Enum
 import numpy as N
 
-from .utils import make_labID
+from .utils import make_labID, find_datum
 
 
 @dataclass
@@ -535,6 +536,50 @@ def read_picking_data(fn, picking_specs, create_lab_id):
             sample_schema["session"].append(ft_session)
 
         yield sample_schema
+
+
+def calculate_fts_standalone(db, lab_id):
+    """Function to calculate Fts for all samples missing them in the database"""
+    specs = get_picking_specs()
+
+    sample_id = db.query(db.model.sample).filter_by(lab_id=lab_id).first().id
+
+    # Get shape data and attributes
+    # TODO: we don't specify the units yet, but they should be microns (µm).
+    # We have avoided this because I am not 100% sure how the µ unicode character will be resolved – test this later.
+    length1 = find_datum(db, lab_id, "Length 1").value
+    width1 = find_datum(db, lab_id, "Width 1").value
+    length2 = find_datum(db, lab_id, "Length 2").value
+    width2 = find_datum(db, lab_id, "Width 2").value
+
+    material = db.query(db.model.sample).filter_by(lab_id=lab_id).first().material
+    geometry = find_attribute(db, lab_id, "Crystal geometry").value
+    terminations = find_attribute(db, lab_id, "Crystal terminations").value
+
+    xtalform = find_attribute(db, lab_id, "Idealness of Crystal (A-C)").value
+
+    dim_mass_err = specs["Dim_mass_key"][xtalform]
+    Rs_err = specs["Rs_err_key"][xtalform]
+    # Right now, Ft_err is a proportion, 1sigma. i.e. 0.2 = 20%
+    Ft_err = specs["Ft_err_key"][xtalform]
+
+    # Get the picking data from the sample
+    ft_session = create_ft_session(
+        length1,
+        width1,
+        length2,
+        width2,
+        material,
+        Rs_err,
+        Ft_err,
+        dim_mass_err,
+        specs,
+        geometry,
+        int(terminations),
+    )
+    ft_session["sample_id"] = sample_id
+    db.load_data("session", ft_session, strict=True)
+    db.session.commit()
 
 
 def create_ft_session(
