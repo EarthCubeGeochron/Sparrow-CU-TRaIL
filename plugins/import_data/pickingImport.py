@@ -8,7 +8,6 @@ Created on Fri Oct  8 15:01:18 2021
 import glob
 import numpy as np
 import pandas as pd
-from plugins.import_data.utils import find_attribute
 from rich import print
 from math import sqrt
 from sparrow.core.import_helpers import BaseImporter
@@ -20,7 +19,7 @@ from yaml import load, SafeLoader
 from enum import Enum
 import numpy as N
 
-from .utils import make_labID, find_datum
+from .utils import make_labID, find_datum, find_attribute
 
 
 @dataclass
@@ -538,11 +537,19 @@ def read_picking_data(fn, picking_specs, create_lab_id):
         yield sample_schema
 
 
-def calculate_fts_standalone(db, lab_id):
+def calculate_fts_for_existing_sample(db, sample_obj):
     """Function to calculate Fts for all samples missing them in the database"""
     specs = get_picking_specs()
 
-    sample_id = db.query(db.model.sample).filter_by(lab_id=lab_id).first().id
+    sample_id = sample_obj.id
+    lab_id = sample_obj.lab_id
+
+    shape_notes = find_attribute(db, lab_id, "Shape notes")
+    is_shard = shape_notes is not None and shape_notes.value == "Crystal shard"
+
+    if is_shard:
+        # No need to calculate Fts for crystal shards
+        return
 
     # Get shape data and attributes
     # TODO: we don't specify the units yet, but they should be microns (µm).
@@ -552,9 +559,12 @@ def calculate_fts_standalone(db, lab_id):
     length2 = find_datum(db, lab_id, "Length 2").value
     width2 = find_datum(db, lab_id, "Width 2").value
 
-    material = db.query(db.model.sample).filter_by(lab_id=lab_id).first().material
-    geometry = find_attribute(db, lab_id, "Crystal geometry").value
-    terminations = find_attribute(db, lab_id, "Crystal terminations").value
+    material = db.session.query(db.model.sample).filter_by(lab_id=lab_id).first().material
+    geometry_val = find_attribute(db, lab_id, "Crystal geometry").value
+    geometry = get_key(specs["geometry_key"], geometry_val)
+
+    terminations_val = find_attribute(db, lab_id, "Crystal terminations").value
+    terminations = get_key(specs["terminations_key"], terminations_val)
 
     xtalform = find_attribute(db, lab_id, "Idealness of Crystal (A-C)").value
 
@@ -565,21 +575,27 @@ def calculate_fts_standalone(db, lab_id):
 
     # Get the picking data from the sample
     ft_session = create_ft_session(
-        length1,
-        width1,
-        length2,
-        width2,
+        float(length1),
+        float(width1),
+        float(length2),
+        float(width2),
         material,
         Rs_err,
         Ft_err,
         dim_mass_err,
         specs,
         geometry,
-        int(terminations),
+        terminations,
     )
-    ft_session["sample_id"] = sample_id
+    ft_session["sample"] = sample_obj
     db.load_data("session", ft_session, strict=True)
     db.session.commit()
+
+def get_key(value_map, value):
+    for k, v in value_map.items():
+        if v == value:
+            return k
+    return None
 
 
 def create_ft_session(
@@ -676,24 +692,19 @@ def create_ft_analyses(
         corrected=corrected,
     )
 
-    dimensional_mass = (
-        picking_specs["Ft_constants"][material]["density"] * Fts["V"] / 1e6
-    )
+    density = picking_specs["Ft_constants"][material]["density"]
+
+    dimensional_mass = density * Fts["V"] / 1e6
     # Dimensional mass error should be the v_corr_err * density
     # We need to find a way to get v_err into this calculation....
     # V_err is from the get_ft_values_internal function
-    dim_mass_err = (
-        Fts["V_err"] * picking_specs["Ft_constants"][material]["density"] / 1e6
-    )
+    # v_err is not present for uncorrected Fts...we just set to zero in this case.
+    v_err = Fts.get("V_err", 0)
+    dim_mass_err = density * v_err / 1e6
 
     suffix = ""
     if corrected:
         suffix = ", new geometric correction"
-
-    Ft238U = Fts["238U"]
-    Ft235U = Fts["235U"]
-    Ft232Th = Fts["232Th"]
-    Ft147Sm = Fts["147Sm"]
 
     if not corrected:
         Fts["238U_err"] = Fts["238U"] * Ft_err

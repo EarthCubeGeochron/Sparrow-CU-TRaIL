@@ -70,7 +70,7 @@ def find_attribute(db, lab_id, attr_name, analysis_type=None):
 
     query = (
         db.session.query(Attribute)
-        .join(Analysis)
+        .join(Analysis, Attribute.analysis_collection)
         .join(Session)
         .join(Sample)
         .filter(Sample.lab_id == lab_id)
