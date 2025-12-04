@@ -10,6 +10,8 @@ import numpy as np
 import glob
 import os
 
+from .utils import construct_lab_id
+
 
 def split_unit(name):
     """Split units (in parentheses) from the rest of the data."""
@@ -46,6 +48,7 @@ datum_type_fields = [
     "description",
 ]
 attribute_fields = ["parameter", "value"]
+
 
 # Make dict with Datum1 schema. Requires value, uncertainty, and 'type' which gives
 # parameter measured as str, unit as str, and other type fields listed above if included
@@ -279,11 +282,11 @@ class TRaILarchive(BaseImporter):
 
     def make_labID(self, date):
         init_digits = date[2:4]
-        max_num = 1
+        max_num = 0
         for i in self.lab_IDs:
             if i[:2] == init_digits:
                 max_num += 1
-        lab_id = str(init_digits + "-" + f"{max_num:05d}")
+        lab_id = construct_lab_id(init_digits, max_num)
         self.lab_IDs.append(lab_id)
         return lab_id
 

@@ -2,12 +2,11 @@
 
 export SPARROW_BACKUP_DIR="$SPARROW_CONFIG_DIR/backups"
 export SPARROW_LAB_NAME="TRaIL"
+export COMPOSE_PROJECT_NAME="trail"
 export SPARROW_VERSION=">=3.0.0"
 
 #export SPARROW_SITE_CONTENT="$PROJECT_DIR/site-content"
 
-# Keep volumes for this project separate from those for different labs
-export COMPOSE_PROJECT_NAME="${SPARROW_LAB_NAME}"
 export SPARROW_DATA_DIR="$SPARROW_CONFIG_DIR/TRaIL-Data"
 export SPARROW_INIT_SQL="$SPARROW_CONFIG_DIR/sql"
 
@@ -30,5 +29,7 @@ export SPARROW_BACKEND_IMAGE="sparrow_trail_backend:latest"
 # 10/15/21 apparently reserved port 54321. Details on finding
 # reserved ports here:
 # https://stackoverflow.com/questions/15619921/an-attempt-was-made-to-access-a-socket-in-a-way-forbidden-by-its-access-permissi
-export SPARROW_DB_PORT="5433"
+export SPARROW_DB_PORT="5438"
 export SPARROW_TEST_DATABASE_PORT="5434"
+
+export SPARROW_LOCAL_FRONTEND=0

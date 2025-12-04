@@ -36,7 +36,7 @@
     error: True
     error_round: 3 # How many decimals to round the uncertainty to
     error_footnote: "[h]" # What to append to the ± in the column header
-    width: 8 
+    width: 8
     error_width: 8 # width of uncertainty column to save in excel
 - 238U (±2σ):
     column: U (ng) [i]
@@ -65,11 +65,27 @@
     error_footnote: "[h]"
     width: 8
     error_width: 8
+
 - Equivalent spherical radius (±2σ):
     column: Rs (µm) [l]
     round: 0
     error: False
     width: 8
+
+# ESR Ft should only be present if the new method is used for calculations
+- Equivalent spherical radius (±2σ):
+    column: ESR Ft (µm) [l]
+    round: 1
+    error: False
+    width: 8
+
+# Could also have a Y/N column to say whether the correction was applied
+
+# Value will change because volume changes
+# Need to note that this changes with a corrected value
+
+# Need a column
+
 - Dimensional mass (±2σ):
     column: Mass (µg) [m]
     round: 1
@@ -111,6 +127,8 @@
     error_footnote: "[o]"
     width: 8
     error_width: 8
+# Error on the eU will reference the new value instead of being
+# set to 15% of the eU value
 - eU:
     column: eU [p]
     round: 1
@@ -127,6 +145,7 @@
     error_name: TAU ± (Ma) 2s [s]
     width: 8
     error_width: 15
+# This needs to be changed
 - Combined Ft:
     column: Comb Ft [t]
     round: 2
@@ -186,22 +205,22 @@
     column: Notes
     width: 8
     error: False
-    internal: true   
+    internal: true
 - Mineral inclusions:
     column: Mineral inclusions
     width: 8
     error: False
-    internal: true  
+    internal: true
 - Fluid inclusions:
     column: Fluid inclusions
     width: 8
     error: False
-    internal: true  
+    internal: true
 - Color:
     column: Color
     width: 8
     error: False
-    internal: true  
+    internal: true
 - "Surface color/staining":
     column: "Surface color/staining"
     width: 8
