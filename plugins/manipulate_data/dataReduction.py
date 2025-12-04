@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
+import typing
+
 import hecalc
 import copy
 from hecalc.main import _sample_loop
 from rich import print
 from sparrow.core.import_helpers import BaseImporter
+from dataclasses import dataclass
+from typing import Any
+
+from ..import_data.utils import find_datum
+from ..import_data.pickingImport import calculate_fts_for_existing_sample
 
 
 def make_datum(val, err, data_dict, unit, suffix=""):
@@ -65,36 +72,7 @@ class TRaILdatecalc(BaseImporter):
             self.get_input_data(d)
 
     def query_ID(self, lab_id, datum_param, datum_unit=None):
-        Session = self.db.model.session
-        Sample = self.db.model.sample
-        Analysis = self.db.model.analysis
-        Datum = self.db.model.datum
-        DatumType = self.db.model.datum_type
-        if datum_unit:
-            res = (
-                self.db.session.query(Datum)
-                .join(Analysis)
-                .join(Session)
-                .join(Sample)
-                .join(DatumType)
-                .filter(Sample.lab_id == lab_id)
-                .filter(DatumType.parameter == datum_param)
-                .filter(DatumType.unit == datum_unit)
-                .first()
-            )
-            return res
-        else:
-            res = (
-                self.db.session.query(Datum)
-                .join(Analysis)
-                .join(Session)
-                .join(Sample)
-                .join(DatumType)
-                .filter(Sample.lab_id == lab_id)
-                .filter(DatumType.parameter == datum_param)
-                .first()
-            )
-            return res
+        return find_datum(self.db, lab_id, datum_param, datum_unit)
 
     def get_input_data(self, d):
         # Get He data first
@@ -171,29 +149,37 @@ class TRaILdatecalc(BaseImporter):
                 return
 
         # Finally, try getting Ft
-        Ft_session = (
-            self.db.session.query(self.db.model.session)
-            .filter_by(sample_id=d, technique="Dates and other derived data")
-            .all()
-        )
+        Ft_vals = get_ft_values(self.db, sample_obj, suffix=suffix)
+
+        if not Ft_vals.has_data():
+            # Calculate the FTs from grain dimensions if possible
+            calculate_fts_for_existing_sample(self.db, sample_obj)
+
+            Ft_vals = get_ft_values(self.db, sample_obj, suffix=suffix)
+
+        Ft238_datum = Ft_vals.Ft238
+        Ft235_datum = Ft_vals.Ft235
+        Ft232_datum = Ft_vals.Ft232
+        Ft147_datum = Ft_vals.Ft147
+
+        # If these Fts do not exist in the database, we may need to calculate them.
+        # Run calculate_fts from pickingImport
+
         # The Ft values and uncertainties below should reference Ft_Corr and Ft_corr_err for each isotope now if the mineral is apatite or zircon. If the mineral is
         # something else, then we need to note that we aren't using corrected values. The values we calculated earlier though are 1s.
-        if len(Ft_session) > 0:
+        if Ft_vals.has_data():
             get_corrected = True
-            Ft238_datum = self.query_ID(sample_obj.lab_id, "238U Ft (±2σ)" + suffix)
             Ft238 = float(Ft238_datum.value)
             Ft238_s = float(Ft238_datum.error) / 2
-            Ft235_datum = self.query_ID(sample_obj.lab_id, "235U Ft (±2σ)" + suffix)
             Ft235 = float(Ft235_datum.value)
             Ft235_s = float(Ft235_datum.error) / 2
-            Ft232_datum = self.query_ID(sample_obj.lab_id, "232Th Ft (±2σ)" + suffix)
             Ft232 = float(Ft232_datum.value)
             Ft232_s = float(Ft232_datum.error) / 2
-            Ft147_datum = self.query_ID(sample_obj.lab_id, "147Sm Ft (±2σ)" + suffix)
             Ft147 = float(Ft147_datum.value)
             Ft147_s = float(Ft147_datum.error) / 2
         # If no Fts in database, sample is a fragment and only raw dates should be calculated
         else:
+            print("No Ft data found; calculating raw date only")
             get_corrected = False
             Ft238, Ft235, Ft232, Ft147 = [1, 1, 1, 1]
             Ft238_s, Ft235_s, Ft232_s, Ft147_s = [0, 0, 0, 0]
@@ -272,9 +258,7 @@ class TRaILdatecalc(BaseImporter):
                     "Ma",
                     suffix=" (±2σ)",
                 ),
-                make_datum(
-                    "Number of Monte Carlo simulations", None, reduced_data, ""
-                ),
+                make_datum("Number of Monte Carlo simulations", None, reduced_data, ""),
             ],
             "attribute": [
                 make_CI_attribute(
@@ -303,14 +287,14 @@ class TRaILdatecalc(BaseImporter):
                         "MC average 95% CI, corrected",
                         reduced_data_TAU,
                         "Ma",
-                        suffix=" (±2σ, TAU), new geometric correction"
+                        suffix=" (±2σ, TAU), new geometric correction",
                     ),
                     make_datum(
                         "Corrected date",
                         "MC average 95% CI, corrected",
                         reduced_data,
                         "Ma",
-                        suffix=" (±2σ, TAU+Ft), new geometric correction"
+                        suffix=" (±2σ, TAU+Ft), new geometric correction",
                     ),
                     make_datum(
                         "Number of Monte Carlo simulations", None, reduced_data, "", ""
@@ -337,12 +321,52 @@ class TRaILdatecalc(BaseImporter):
             session_dict = {
                 "technique": {"id": "Dates and other derived data"},
                 "date": "1900-01-01 00:00:00+00",  # always pass an 'unknown date' value for calculation
-                "analysis": [
-                   raw_dict
-                ],
+                "analysis": [raw_dict],
             }
             session_dict["sample"] = sample_obj
             self.db.load_data("session", session_dict)
+
+@dataclass
+class FtOutput:
+    session: Any
+    Ft238: Any
+    Ft235: Any
+    Ft232: Any
+    Ft147: Any
+    suffix: str
+
+    def has_data(self):
+        has_ft_session = len(self.session) > 0
+        has_ft_values = (
+                self.Ft238 is not None
+                and self.Ft235 is not None
+                and self.Ft232 is not None
+                and self.Ft147 is not None
+        )
+        return has_ft_session and has_ft_values
+
+
+
+
+def get_ft_values(db, sample_obj, suffix):
+    # Finally, try getting Ft
+    Ft_session = (
+        db.session.query(db.model.session)
+        .filter_by(sample_id=sample_obj.id, technique="Dates and other derived data")
+        .all()
+    )
+
+    return FtOutput(
+        session=Ft_session,
+        Ft238=find_datum(db, sample_obj.lab_id, "238U Ft (±2σ)" + suffix),
+        Ft235=find_datum(db, sample_obj.lab_id, "235U Ft (±2σ)" + suffix),
+        Ft232=find_datum(db, sample_obj.lab_id, "232Th Ft (±2σ)" + suffix),
+        Ft147=find_datum(db, sample_obj.lab_id, "147Sm Ft (±2σ)" + suffix),
+        suffix=suffix
+    )
+
+
+
 
 
 def calculate_date(

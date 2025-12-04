@@ -19,7 +19,8 @@ from yaml import load, SafeLoader
 from enum import Enum
 import numpy as N
 
-from .utils import make_labID
+from .utils import make_labID, find_datum, find_attribute
+
 
 @dataclass
 class Sample:
@@ -446,7 +447,6 @@ def read_picking_data(fn, picking_specs, create_lab_id):
             }
         # If a shard, simply add that as a note and don't calculate Ft values
 
-
         # create datum and attributes for characteristics analysis
         # Characteristics will always be recorded, even for shards
         chars_attributes = []
@@ -472,6 +472,7 @@ def read_picking_data(fn, picking_specs, create_lab_id):
                     if "Idealness" in i:
                         xtalform = l[0]
                         # THIS IS WHERE DECISION TREES WOULD BE REFERENCED
+                        # TODO: all values for Dim_mass_key are currently Zero
                         dim_mass_err = picking_specs["Dim_mass_key"][xtalform]
                         Rs_err = picking_specs["Rs_err_key"][xtalform]
                         # Right now, Ft_err is a proportion, 1sigma. i.e. 0.2 = 20%
@@ -482,7 +483,6 @@ def read_picking_data(fn, picking_specs, create_lab_id):
                 "attribute": [make_attribute(*a) for a in chars_attributes],
             }
             analyses.append(chars_dict)
-
 
         # Create a new sample in the database using the picking sheet metadata
         sample_schema = {
@@ -512,12 +512,14 @@ def read_picking_data(fn, picking_specs, create_lab_id):
         # TODO: duplicate this so that both corrected and uncorrected data are saved in the database.
         # Change errors to 1sigma...
 
+        assert dim_mass_err is not None
+
         # Only incude derived data if not a shard
         if not is_shard:
             # Generate Ft and dimensional mass
             # This can either be uncorrected or corrected
 
-            uncorr_analyses = create_ft_analyses(
+            ft_session = create_ft_session(
                 length1,
                 width1,
                 length2,
@@ -529,52 +531,152 @@ def read_picking_data(fn, picking_specs, create_lab_id):
                 picking_specs,
                 geometry,
                 int(terminations),
-                Ft_constants=None,
-                corrected=False,
             )
-
-            corr_analyses = create_ft_analyses(
-                length1,
-                width1,
-                length2,
-                width2,
-                material,
-                Rs_err,
-                Ft_err,
-                dim_mass_err,
-                picking_specs,
-                geometry,
-                int(terminations),
-                Ft_constants=None,
-                corrected=True,
-            )
-
-            # Merge the two datasets into one
-            analyses = [
-                {
-                    "analysis_type": "Alpha ejection correction values",
-                    "datum": uncorr_analyses[0]["datum"] + corr_analyses[0]["datum"],
-                },
-                {
-                    "analysis_type": "Rs, mass, concentrations",
-                    "datum": uncorr_analyses[1]["datum"] + corr_analyses[1]["datum"],
-                }
-            ]
-
-
-            ft_session =  {
-                "technique": {"id": "Dates and other derived data" },
-                "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                #'date': '1900-01-01 00:00:00+00', # always pass an 'unknown date' value for calculation
-                "analysis": analyses
-            }
-
             sample_schema["session"].append(ft_session)
 
         yield sample_schema
 
+
+def calculate_fts_for_existing_sample(db, sample_obj):
+    """Function to calculate Fts for all samples missing them in the database"""
+    specs = get_picking_specs()
+
+    sample_id = sample_obj.id
+    lab_id = sample_obj.lab_id
+
+    shape_notes = find_attribute(db, lab_id, "Shape notes")
+    is_shard = shape_notes is not None and shape_notes.value == "Crystal shard"
+
+    if is_shard:
+        # No need to calculate Fts for crystal shards
+        return
+
+    # Get shape data and attributes
+    # TODO: we don't specify the units yet, but they should be microns (µm).
+    # We have avoided this because I am not 100% sure how the µ unicode character will be resolved – test this later.
+    length1 = find_datum(db, lab_id, "Length 1").value
+    width1 = find_datum(db, lab_id, "Width 1").value
+    length2 = find_datum(db, lab_id, "Length 2").value
+    width2 = find_datum(db, lab_id, "Width 2").value
+
+    material = db.session.query(db.model.sample).filter_by(lab_id=lab_id).first().material
+    geometry_val = find_attribute(db, lab_id, "Crystal geometry").value
+    geometry = get_key(specs["geometry_key"], geometry_val)
+
+    terminations_val = find_attribute(db, lab_id, "Crystal terminations").value
+    terminations = get_key(specs["terminations_key"], terminations_val)
+
+    xtalform = find_attribute(db, lab_id, "Idealness of Crystal (A-C)").value
+
+    dim_mass_err = specs["Dim_mass_key"][xtalform]
+    Rs_err = specs["Rs_err_key"][xtalform]
+    # Right now, Ft_err is a proportion, 1sigma. i.e. 0.2 = 20%
+    Ft_err = specs["Ft_err_key"][xtalform]
+
+    # Get the picking data from the sample
+    ft_session = create_ft_session(
+        float(length1),
+        float(width1),
+        float(length2),
+        float(width2),
+        material,
+        Rs_err,
+        Ft_err,
+        dim_mass_err,
+        specs,
+        geometry,
+        terminations,
+    )
+    ft_session["sample"] = sample_obj
+    db.load_data("session", ft_session, strict=True)
+    db.session.commit()
+
+def get_key(value_map, value):
+    for k, v in value_map.items():
+        if v == value:
+            return k
+    return None
+
+
+def create_ft_session(
+    length1,
+    width1,
+    length2,
+    width2,
+    material,
+    Rs_err,
+    Ft_err,
+    dim_mass_err,
+    picking_specs,
+    geometry,
+    terminations: int,
+):
+    uncorr_analyses = create_ft_analyses(
+        length1,
+        width1,
+        length2,
+        width2,
+        material,
+        Rs_err,
+        Ft_err,
+        dim_mass_err,
+        picking_specs,
+        geometry,
+        int(terminations),
+        corrected=False,
+    )
+
+    corr_analyses = create_ft_analyses(
+        length1,
+        width1,
+        length2,
+        width2,
+        material,
+        Rs_err,
+        Ft_err,
+        dim_mass_err,
+        picking_specs,
+        geometry,
+        int(terminations),
+        corrected=True,
+    )
+
+    # Merge the two analyses into one
+    # TODO: change the approach to nesting to not require this calculation
+    analyses = [
+        {
+            "analysis_type": "Alpha ejection correction values",
+            "datum": uncorr_analyses[0]["datum"] + corr_analyses[0]["datum"],
+        },
+        {
+            "analysis_type": "Rs, mass, concentrations",
+            "datum": uncorr_analyses[1]["datum"] + corr_analyses[1]["datum"],
+        },
+    ]
+
+    ft_session = {
+        "technique": {"id": "Dates and other derived data"},
+        "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        #'date': '1900-01-01 00:00:00+00', # always pass an 'unknown date' value for calculation
+        "analysis": analyses,
+    }
+
+    return ft_session
+
+
 def create_ft_analyses(
-        length1, width1, length2, width2, material, Rs_err, Ft_err, dim_mass_err, picking_specs, geometry, terminations, Ft_constants=None, corrected=False
+    length1,
+    width1,
+    length2,
+    width2,
+    material,
+    Rs_err,
+    Ft_err,
+    dim_mass_err,
+    picking_specs,
+    geometry,
+    terminations,
+    corrected=False,
 ):
     # Generate Ft and dimensional mass
     # This can either be uncorrected or corrected
@@ -590,25 +692,25 @@ def create_ft_analyses(
         corrected=corrected,
     )
 
-    dimensional_mass = (
-            picking_specs["Ft_constants"][material]["density"] * Fts["V"] / 1e6
-    )
+    density = picking_specs["Ft_constants"][material]["density"]
+
+    dimensional_mass = density * Fts["V"] / 1e6
+    # Dimensional mass error should be the v_corr_err * density
+    # We need to find a way to get v_err into this calculation....
+    # V_err is from the get_ft_values_internal function
+    # v_err is not present for uncorrected Fts...we just set to zero in this case.
+    v_err = Fts.get("V_err", 0)
+    dim_mass_err = density * v_err / 1e6
 
     suffix = ""
     if corrected:
         suffix = ", new geometric correction"
-
-    Ft238U = Fts["238U"]
-    Ft235U = Fts["235U"]
-    Ft232Th = Fts["232Th"]
-    Ft147Sm = Fts["147Sm"]
 
     if not corrected:
         Fts["238U_err"] = Fts["238U"] * Ft_err
         Fts["235U_err"] = Fts["238U"] * Ft_err
         Fts["232Th_err"] = Fts["232Th"] * Ft_err
         Fts["147Sm_err"] = Fts["147Sm"] * Ft_err
-
 
     # Compile Ft data for date calculation session
     # This is where Ft_errors are calculated
@@ -644,7 +746,7 @@ def create_ft_analyses(
             dimensional_mass * dim_mass_err * 2,
             "Dimensional mass (±2σ)" + suffix,
             "μg",
-            ],
+        ],
         # Rs should only be included in the uncorrected output,
         # as it is superseded by the ESR_Ft, which requires ICP_Ms
         [
@@ -660,16 +762,17 @@ def create_ft_analyses(
     # Print whether values are corrected or not
     print(corr_txt, Fts)
 
-    return  [
-            {
-                "analysis_type": "Alpha ejection correction values",
-                "datum": [make_datum(*d) for d in Ft_data],
-            },
-            {
-                "analysis_type": "Rs, mass, concentrations",
-                "datum": [make_datum(*d) for d in Rs_mass],
-            },
-        ]
+    return [
+        {
+            "analysis_type": "Alpha ejection correction values",
+            "datum": [make_datum(*d) for d in Ft_data],
+        },
+        {
+            "analysis_type": "Rs, mass, concentrations",
+            "datum": [make_datum(*d) for d in Rs_mass],
+        },
+    ]
+
 
 def get_picking_dataframe(fn, picking_specs):
     data = pd.read_excel(

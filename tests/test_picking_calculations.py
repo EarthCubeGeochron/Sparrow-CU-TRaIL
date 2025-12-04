@@ -81,6 +81,7 @@ def random_lab_id(date) -> str:
     return uuid4().hex[:6]
 
 
+# TODO: Not sure why this is skipped; there may be an issue with picking data tests.
 @pytest.mark.skip()
 def test_picking_data():
     """Basic test of reading picking data"""
