@@ -682,6 +682,9 @@ def create_ft_analyses(
     # Dimensional mass error should be the v_corr_err * density
     # We need to find a way to get v_err into this calculation....
     # V_err is from the get_ft_values_internal function
+    dim_mass_err = (
+        Fts["V_err"] * picking_specs["Ft_constants"][material]["density"] / 1e6
+    )
 
     suffix = ""
     if corrected:
