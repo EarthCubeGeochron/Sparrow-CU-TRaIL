@@ -541,7 +541,6 @@ def calculate_fts_for_existing_sample(db, sample_obj):
     """Function to calculate Fts for all samples missing them in the database"""
     specs = get_picking_specs()
 
-    sample_id = sample_obj.id
     lab_id = sample_obj.lab_id
 
     shape_notes = find_attribute(db, lab_id, "Shape notes")
@@ -554,24 +553,33 @@ def calculate_fts_for_existing_sample(db, sample_obj):
     # Get shape data and attributes
     # TODO: we don't specify the units yet, but they should be microns (µm).
     # We have avoided this because I am not 100% sure how the µ unicode character will be resolved – test this later.
-    length1 = find_datum(db, lab_id, "Length 1").value
-    width1 = find_datum(db, lab_id, "Width 1").value
-    length2 = find_datum(db, lab_id, "Length 2").value
-    width2 = find_datum(db, lab_id, "Width 2").value
 
-    material = db.session.query(db.model.sample).filter_by(lab_id=lab_id).first().material
-    geometry_val = find_attribute(db, lab_id, "Crystal geometry").value
-    geometry = get_key(specs["geometry_key"], geometry_val)
+    try:
+        length1 = find_datum_value(db, lab_id, "Length 1")
+        width1 = find_datum_value(db, lab_id, "Width 1")
+        length2 = find_datum_value(db, lab_id, "Length 2")
+        width2 = find_datum_value(db, lab_id, "Width 2")
 
-    terminations_val = find_attribute(db, lab_id, "Crystal terminations").value
-    terminations = get_key(specs["terminations_key"], terminations_val)
+        material = db.session.query(db.model.sample).filter_by(lab_id=lab_id).first().material
+        if material is None:
+            raise AttributeError(f"No material is set for sample with lab ID {lab_id}")
 
-    xtalform = find_attribute(db, lab_id, "Idealness of Crystal (A-C)").value
+        geometry_val = find_attribute_value(db, lab_id, "Crystal geometry")
+        geometry = get_key(specs["geometry_key"], geometry_val)
 
-    dim_mass_err = specs["Dim_mass_key"][xtalform]
-    Rs_err = specs["Rs_err_key"][xtalform]
-    # Right now, Ft_err is a proportion, 1sigma. i.e. 0.2 = 20%
-    Ft_err = specs["Ft_err_key"][xtalform]
+        terminations_val = find_attribute_value(db, lab_id, "Crystal terminations")
+        terminations = get_key(specs["terminations_key"], terminations_val)
+
+        xtalform = find_attribute_value(db, lab_id, "Idealness of Crystal (A-C)")
+
+        dim_mass_err = specs["Dim_mass_key"][xtalform]
+        Rs_err = specs["Rs_err_key"][xtalform]
+        # Right now, Ft_err is a proportion, 1sigma. i.e. 0.2 = 20%
+        Ft_err = specs["Ft_err_key"][xtalform]
+    except AttributeError as err:
+        print(f"Skipping Ft calculation for sample {sample_obj.name} (#{sample_obj.id}, lab ID {sample_obj.lab_id}) because some grain information is not available")
+        print(err)
+        return
 
     # Get the picking data from the sample
     ft_session = create_ft_session(
@@ -596,6 +604,18 @@ def get_key(value_map, value):
         if v == value:
             return k
     return None
+
+def find_datum_value(db, lab_id, name):
+    try:
+        return find_datum(db, lab_id, name).value
+    except AttributeError:
+        raise AttributeError(f"Could not find datum {name} for lab ID {lab_id}")
+
+def find_attribute_value(db, lab_id, name):
+    try:
+        return find_attribute(db, lab_id, name).value
+    except AttributeError:
+        raise AttributeError(f"Could not find attribute {name} for lab ID {lab_id}")
 
 
 def create_ft_session(
