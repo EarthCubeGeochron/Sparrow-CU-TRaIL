@@ -459,7 +459,6 @@ def read_picking_data(fn, picking_specs, create_lab_id):
 
         Ft_err = None
         Rs_err = None
-        dim_mass_err = None
 
         # make analysis dictionary, exclude missing data if shards
         if not is_shard:
@@ -473,7 +472,9 @@ def read_picking_data(fn, picking_specs, create_lab_id):
                         xtalform = l[0]
                         # THIS IS WHERE DECISION TREES WOULD BE REFERENCED
                         # TODO: all values for Dim_mass_key are currently Zero
-                        dim_mass_err = picking_specs["Dim_mass_key"][xtalform]
+                        # This is the old version of dimensional mass error, we no longer reference
+                        # the picking specs.
+                        # dim_mass_err = picking_specs["Dim_mass_key"][xtalform]
                         Rs_err = picking_specs["Rs_err_key"][xtalform]
                         # Right now, Ft_err is a proportion, 1sigma. i.e. 0.2 = 20%
                         Ft_err = picking_specs["Ft_err_key"][xtalform]
@@ -512,8 +513,6 @@ def read_picking_data(fn, picking_specs, create_lab_id):
         # TODO: duplicate this so that both corrected and uncorrected data are saved in the database.
         # Change errors to 1sigma...
 
-        assert dim_mass_err is not None
-
         # Only incude derived data if not a shard
         if not is_shard:
             # Generate Ft and dimensional mass
@@ -527,7 +526,6 @@ def read_picking_data(fn, picking_specs, create_lab_id):
                 material,
                 Rs_err,
                 Ft_err,
-                dim_mass_err,
                 picking_specs,
                 geometry,
                 int(terminations),
@@ -572,7 +570,6 @@ def calculate_fts_for_existing_sample(db, sample_obj):
 
         xtalform = find_attribute_value(db, lab_id, "Idealness of Crystal (A-C)")
 
-        dim_mass_err = specs["Dim_mass_key"][xtalform]
         Rs_err = specs["Rs_err_key"][xtalform]
         # Right now, Ft_err is a proportion, 1sigma. i.e. 0.2 = 20%
         Ft_err = specs["Ft_err_key"][xtalform]
@@ -590,7 +587,6 @@ def calculate_fts_for_existing_sample(db, sample_obj):
         material,
         Rs_err,
         Ft_err,
-        dim_mass_err,
         specs,
         geometry,
         terminations,
@@ -626,7 +622,6 @@ def create_ft_session(
     material,
     Rs_err,
     Ft_err,
-    dim_mass_err,
     picking_specs,
     geometry,
     terminations: int,
@@ -639,7 +634,6 @@ def create_ft_session(
         material,
         Rs_err,
         Ft_err,
-        dim_mass_err,
         picking_specs,
         geometry,
         int(terminations),
@@ -654,7 +648,6 @@ def create_ft_session(
         material,
         Rs_err,
         Ft_err,
-        dim_mass_err,
         picking_specs,
         geometry,
         int(terminations),
@@ -692,7 +685,6 @@ def create_ft_analyses(
     material,
     Rs_err,
     Ft_err,
-    dim_mass_err,
     picking_specs,
     geometry,
     terminations,
