@@ -518,6 +518,9 @@ def read_picking_data(fn, picking_specs, create_lab_id):
             # Generate Ft and dimensional mass
             # This can either be uncorrected or corrected
 
+            specs = get_picking_specs()
+            shape = specs["geometry_key"][geometry]
+
             ft_session = create_ft_session(
                 length1,
                 width1,
@@ -526,7 +529,7 @@ def read_picking_data(fn, picking_specs, create_lab_id):
                 material,
                 Rs_err,
                 Ft_err,
-                geometry,
+                shape,
                 int(terminations),
             )
             sample_schema["session"].append(ft_session)
@@ -561,8 +564,9 @@ def calculate_fts_for_existing_sample(db, sample_obj):
         if material is None:
             raise AttributeError(f"No material is set for sample with lab ID {lab_id}")
 
-        geometry_val = find_attribute_value(db, lab_id, "Crystal geometry")
-        geometry = get_key(specs["geometry_key"], geometry_val)
+        shape = find_attribute_value(db, lab_id, "Crystal geometry")
+        # Old way of getting shapes
+        #geometry = get_key(specs["geometry_key"], geometry_val)
 
         terminations_val = find_attribute_value(db, lab_id, "Crystal terminations")
         terminations = get_key(specs["terminations_key"], terminations_val)
@@ -586,7 +590,7 @@ def calculate_fts_for_existing_sample(db, sample_obj):
         material,
         Rs_err,
         Ft_err,
-        geometry,
+        shape,
         terminations,
     )
     ft_session["sample"] = sample_obj
@@ -611,7 +615,6 @@ def find_attribute_value(db, lab_id, name):
     except AttributeError:
         raise AttributeError(f"Could not find attribute {name} for lab ID {lab_id}")
 
-
 def create_ft_session(
     length1,
     width1,
@@ -620,7 +623,7 @@ def create_ft_session(
     material,
     Rs_err,
     Ft_err,
-    geometry,
+    shape,
     terminations: int,
 ):
     uncorr_analyses = create_ft_analyses(
@@ -631,7 +634,7 @@ def create_ft_session(
         material,
         Rs_err,
         Ft_err,
-        geometry,
+        shape,
         int(terminations),
         corrected=False,
     )
@@ -644,7 +647,7 @@ def create_ft_session(
         material,
         Rs_err,
         Ft_err,
-        geometry,
+        shape,
         int(terminations),
         corrected=True,
     )
@@ -680,11 +683,10 @@ def create_ft_analyses(
     material,
     Rs_err,
     Ft_err,
-    geometry,
+    shape,
     terminations,
     corrected=False,
 ):
-    picking_specs = get_picking_specs()
     # Generate Ft and dimensional mass
     # This can either be uncorrected or corrected
     Fts = get_Ft_values_internal(
@@ -693,13 +695,14 @@ def create_ft_analyses(
         length2,
         width2,
         material,
-        picking_specs["geometry_key"][geometry],
+        shape,
         int(terminations),
         Ft_constants=None,
         corrected=corrected,
     )
 
-    density = picking_specs["Ft_constants"][material]["density"]
+    specs = get_picking_specs()
+    density = specs["Ft_constants"][material]["density"]
 
     dimensional_mass = density * Fts["V"] / 1e6
     # Dimensional mass error should be the v_corr_err * density
