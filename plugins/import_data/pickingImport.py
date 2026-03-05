@@ -526,7 +526,6 @@ def read_picking_data(fn, picking_specs, create_lab_id):
                 material,
                 Rs_err,
                 Ft_err,
-                picking_specs,
                 geometry,
                 int(terminations),
             )
@@ -587,7 +586,6 @@ def calculate_fts_for_existing_sample(db, sample_obj):
         material,
         Rs_err,
         Ft_err,
-        specs,
         geometry,
         terminations,
     )
@@ -622,7 +620,6 @@ def create_ft_session(
     material,
     Rs_err,
     Ft_err,
-    picking_specs,
     geometry,
     terminations: int,
 ):
@@ -634,7 +631,6 @@ def create_ft_session(
         material,
         Rs_err,
         Ft_err,
-        picking_specs,
         geometry,
         int(terminations),
         corrected=False,
@@ -648,7 +644,6 @@ def create_ft_session(
         material,
         Rs_err,
         Ft_err,
-        picking_specs,
         geometry,
         int(terminations),
         corrected=True,
@@ -685,11 +680,11 @@ def create_ft_analyses(
     material,
     Rs_err,
     Ft_err,
-    picking_specs,
     geometry,
     terminations,
     corrected=False,
 ):
+    picking_specs = get_picking_specs()
     # Generate Ft and dimensional mass
     # This can either be uncorrected or corrected
     Fts = get_Ft_values_internal(
