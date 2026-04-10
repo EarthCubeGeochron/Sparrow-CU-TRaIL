@@ -459,7 +459,6 @@ def read_picking_data(fn, picking_specs, create_lab_id):
 
         Ft_err = None
         Rs_err = None
-        dim_mass_err = None
 
         # make analysis dictionary, exclude missing data if shards
         if not is_shard:
@@ -473,7 +472,9 @@ def read_picking_data(fn, picking_specs, create_lab_id):
                         xtalform = l[0]
                         # THIS IS WHERE DECISION TREES WOULD BE REFERENCED
                         # TODO: all values for Dim_mass_key are currently Zero
-                        dim_mass_err = picking_specs["Dim_mass_key"][xtalform]
+                        # This is the old version of dimensional mass error, we no longer reference
+                        # the picking specs.
+                        # dim_mass_err = picking_specs["Dim_mass_key"][xtalform]
                         Rs_err = picking_specs["Rs_err_key"][xtalform]
                         # Right now, Ft_err is a proportion, 1sigma. i.e. 0.2 = 20%
                         Ft_err = picking_specs["Ft_err_key"][xtalform]
@@ -512,12 +513,13 @@ def read_picking_data(fn, picking_specs, create_lab_id):
         # TODO: duplicate this so that both corrected and uncorrected data are saved in the database.
         # Change errors to 1sigma...
 
-        assert dim_mass_err is not None
-
         # Only incude derived data if not a shard
         if not is_shard:
             # Generate Ft and dimensional mass
             # This can either be uncorrected or corrected
+
+            specs = get_picking_specs()
+            shape = specs["geometry_key"][geometry]
 
             ft_session = create_ft_session(
                 length1,
@@ -527,9 +529,7 @@ def read_picking_data(fn, picking_specs, create_lab_id):
                 material,
                 Rs_err,
                 Ft_err,
-                dim_mass_err,
-                picking_specs,
-                geometry,
+                shape,
                 int(terminations),
             )
             sample_schema["session"].append(ft_session)
@@ -541,7 +541,6 @@ def calculate_fts_for_existing_sample(db, sample_obj):
     """Function to calculate Fts for all samples missing them in the database"""
     specs = get_picking_specs()
 
-    sample_id = sample_obj.id
     lab_id = sample_obj.lab_id
 
     shape_notes = find_attribute(db, lab_id, "Shape notes")
@@ -554,24 +553,33 @@ def calculate_fts_for_existing_sample(db, sample_obj):
     # Get shape data and attributes
     # TODO: we don't specify the units yet, but they should be microns (µm).
     # We have avoided this because I am not 100% sure how the µ unicode character will be resolved – test this later.
-    length1 = find_datum(db, lab_id, "Length 1").value
-    width1 = find_datum(db, lab_id, "Width 1").value
-    length2 = find_datum(db, lab_id, "Length 2").value
-    width2 = find_datum(db, lab_id, "Width 2").value
 
-    material = db.session.query(db.model.sample).filter_by(lab_id=lab_id).first().material
-    geometry_val = find_attribute(db, lab_id, "Crystal geometry").value
-    geometry = get_key(specs["geometry_key"], geometry_val)
+    try:
+        length1 = find_datum_value(db, lab_id, "Length 1")
+        width1 = find_datum_value(db, lab_id, "Width 1")
+        length2 = find_datum_value(db, lab_id, "Length 2")
+        width2 = find_datum_value(db, lab_id, "Width 2")
 
-    terminations_val = find_attribute(db, lab_id, "Crystal terminations").value
-    terminations = get_key(specs["terminations_key"], terminations_val)
+        material = db.session.query(db.model.sample).filter_by(lab_id=lab_id).first().material
+        if material is None:
+            raise AttributeError(f"No material is set for sample with lab ID {lab_id}")
 
-    xtalform = find_attribute(db, lab_id, "Idealness of Crystal (A-C)").value
+        shape = find_attribute_value(db, lab_id, "Crystal geometry")
+        # Old way of getting shapes
+        #geometry = get_key(specs["geometry_key"], geometry_val)
 
-    dim_mass_err = specs["Dim_mass_key"][xtalform]
-    Rs_err = specs["Rs_err_key"][xtalform]
-    # Right now, Ft_err is a proportion, 1sigma. i.e. 0.2 = 20%
-    Ft_err = specs["Ft_err_key"][xtalform]
+        terminations_val = find_attribute_value(db, lab_id, "Crystal terminations")
+        terminations = get_key(specs["terminations_key"], terminations_val)
+
+        xtalform = find_attribute_value(db, lab_id, "Idealness of Crystal (A-C)")
+
+        Rs_err = specs["Rs_err_key"][xtalform]
+        # Right now, Ft_err is a proportion, 1sigma. i.e. 0.2 = 20%
+        Ft_err = specs["Ft_err_key"][xtalform]
+    except AttributeError as err:
+        print(f"Skipping Ft calculation for sample {sample_obj.name} (#{sample_obj.id}, lab ID {sample_obj.lab_id}) because some grain information is not available")
+        print(err)
+        return
 
     # Get the picking data from the sample
     ft_session = create_ft_session(
@@ -582,9 +590,7 @@ def calculate_fts_for_existing_sample(db, sample_obj):
         material,
         Rs_err,
         Ft_err,
-        dim_mass_err,
-        specs,
-        geometry,
+        shape,
         terminations,
     )
     ft_session["sample"] = sample_obj
@@ -597,6 +603,17 @@ def get_key(value_map, value):
             return k
     return None
 
+def find_datum_value(db, lab_id, name):
+    try:
+        return find_datum(db, lab_id, name).value
+    except AttributeError:
+        raise AttributeError(f"Could not find datum {name} for lab ID {lab_id}")
+
+def find_attribute_value(db, lab_id, name):
+    try:
+        return find_attribute(db, lab_id, name).value
+    except AttributeError:
+        raise AttributeError(f"Could not find attribute {name} for lab ID {lab_id}")
 
 def create_ft_session(
     length1,
@@ -606,9 +623,7 @@ def create_ft_session(
     material,
     Rs_err,
     Ft_err,
-    dim_mass_err,
-    picking_specs,
-    geometry,
+    shape,
     terminations: int,
 ):
     uncorr_analyses = create_ft_analyses(
@@ -619,9 +634,7 @@ def create_ft_session(
         material,
         Rs_err,
         Ft_err,
-        dim_mass_err,
-        picking_specs,
-        geometry,
+        shape,
         int(terminations),
         corrected=False,
     )
@@ -634,9 +647,7 @@ def create_ft_session(
         material,
         Rs_err,
         Ft_err,
-        dim_mass_err,
-        picking_specs,
-        geometry,
+        shape,
         int(terminations),
         corrected=True,
     )
@@ -672,9 +683,7 @@ def create_ft_analyses(
     material,
     Rs_err,
     Ft_err,
-    dim_mass_err,
-    picking_specs,
-    geometry,
+    shape,
     terminations,
     corrected=False,
 ):
@@ -686,13 +695,14 @@ def create_ft_analyses(
         length2,
         width2,
         material,
-        picking_specs["geometry_key"][geometry],
+        shape,
         int(terminations),
         Ft_constants=None,
         corrected=corrected,
     )
 
-    density = picking_specs["Ft_constants"][material]["density"]
+    specs = get_picking_specs()
+    density = specs["Ft_constants"][material]["density"]
 
     dimensional_mass = density * Fts["V"] / 1e6
     # Dimensional mass error should be the v_corr_err * density

@@ -228,7 +228,10 @@ class TRaILicpms(BaseImporter):
         dim_mass_val = float(dim_mass.value)
         dim_mass_err = float(dim_mass.error)
 
+        print("Dimensional mass value:", dim_mass_val, "±", dim_mass_err)
+
         radionuclides = [d for d in raw_data if d["type"]["unit"] == "ng"]
+        print("Calculating ppm values for", [r["type"]["parameter"] for r in radionuclides])
 
         # Generate ppm values
         eU = 0
