@@ -66,18 +66,22 @@
     width: 8
     error_width: 8
 
-- Equivalent spherical radius (±2σ):
+- Rs (±2σ):
     column: Rs (µm) [l]
-    round: 0
+    round: 1
     error: False
     width: 8
 
 # ESR Ft should only be present if the new method is used for calculations
-- Equivalent spherical radius (±2σ):
-    column: ESR Ft (µm) [l]
+- ESR Ft (±2σ), new geometric correction:
+    column: ESR Ft (µm) geocorr [l]
     round: 1
-    error: False
+    error: True
     width: 8
+    error_round: 1
+    error_footnote: "[h]"
+    width: 8
+    error_width: 8
 
 # Could also have a Y/N column to say whether the correction was applied
 
@@ -85,7 +89,6 @@
 # Need to note that this changes with a corrected value
 
 # Need a column
-
 - Dimensional mass (±2σ):
     column: Mass (µg) [m]
     round: 1
@@ -127,9 +130,53 @@
     error_footnote: "[o]"
     width: 8
     error_width: 8
+- Dimensional mass (±2σ), new geometric correction:
+    column: Mass (µg) [m]
+    round: 1
+    error: True
+    width: 8
+    error_round: 1
+    error_width: 8
+    error_footnote: [o]
+- 4He (±2σ), new geometric correction:
+    column: 4He (nmol/g) geocorr [n]
+    unit: nmol/g
+    round: 2
+    error: True
+    error_round: 2
+    error_footnote: "[o]"
+    width: 8
+    error_width: 8
+- 238U (±2σ), new geometric correction:
+    column: U (ppm) geocorr [n]
+    unit: ppm
+    round: 1
+    error: True
+    error_round: 1
+    error_footnote: "[o]"
+    width: 8
+    error_width: 8
+- 232Th (±2σ), new geometric correction:
+    column: Th (ppm) geocorr [n]
+    unit: ppm
+    round: 1
+    error: True
+    error_round: 1
+    error_footnote: "[o]"
+    width: 8
+    error_width: 8
+- 147Sm (±2σ), new geometric correction:
+    column: Sm (ppm) geocorr [n]
+    unit: ppm
+    round: 1
+    error: True
+    error_round: 1
+    error_footnote: "[o]"
+    width: 8
+    error_width: 8
 # Error on the eU will reference the new value instead of being
 # set to 15% of the eU value
-- eU:
+- eU (±2σ), new geometric correction:
     column: eU [p]
     round: 1
     error: True
@@ -151,11 +198,16 @@
     round: 2
     error: False
     width: 8
-- Corrected date (±2σ, TAU):
-    column: Corrected Date (Ma) [u]
-    round: 1
+- Combined Ft, new geometric correction:
+    column: Comb Ft geocorr [t]
+    round: 2
+    error: False
+    width: 8
+- Corrected date (±2σ, TAU), new geometric correction:
+    column: Corrected Date (Ma) geocorr [u]
+    round: 2
     error: True
-    error_round: 1
+    error_round: 2
     error_name: ± TAU (Ma) 2σ [v] # If uncertianty column should just be called ±, what to label the column
     width: 8
     error_width: 15
@@ -163,7 +215,6 @@
     secondary_error_name: ± TAU+Ft (Ma) 2σ [v] # What to call the secondary uncertainty column. There is no default for this, must be present if two uncertainties are needed
     secondary_error_round: 1 # How many decimals to round the secondary uncertainty column to. There is no default for this, must be present if two uncertainties are needed
     secondary_error_width: 15 # Width of secondary uncertainty column to save. There is no default for this, must be present if two uncertainties are needed
-# Blank column should appear here
 - Blank used  (±2σ):
     column: He blank (fmol)
     round: 4
@@ -226,6 +277,62 @@
     width: 8
     error: False
     internal: true
+- 238U Ft (±2σ):
+    column: 238U Ft [t]
+    round: 2
+    error: False
+    width: 8
+- 238U Ft (±2σ), new geometric correction:
+    column: 238U Ft geocorr [t]
+    round: 2
+    error: True
+    width: 8
+    error_round: 4
+    error_footnote: "[i]"
+    width: 8
+    error_width: 8
+- 235U Ft (±2σ):
+    column: 235U Ft [t]
+    round: 2
+    error: False
+    width: 8
+- 235U Ft (±2σ), new geometric correction:
+    column: 238U Ft geocorr [t]
+    round: 2
+    error: True
+    width: 8
+    error_round: 4
+    error_footnote: "[i]"
+    width: 8
+    error_width: 8
+- 232Th Ft (±2σ):
+    column: 232Th Ft [t]
+    round: 2
+    error: False
+    width: 8
+- 232Th Ft (±2σ), new geometric correction:
+    column: 232Th Ft geocorr [t]
+    round: 2
+    error: True
+    width: 8
+    error_round: 4
+    error_footnote: "[i]"
+    width: 8
+    error_width: 8
+- 147Sm Ft (±2σ):
+    column: 147Sm Ft [t]
+    round: 2
+    error: False
+    width: 8
+- 147Sm Ft (±2σ), new geometric correction:
+    column: 147Sm Ft geocorr [t]
+    round: 2
+    error: True
+    width: 8
+    error_round: 4
+    error_footnote: "[i]"
+    width: 8
+    error_width: 8
 
 - Footnotes:
   - 'a - This table follows the recommendations and approach in Flowers et al. (2022).'
