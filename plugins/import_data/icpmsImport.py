@@ -37,7 +37,7 @@ def make_ppm(data, dim_mass_val, dim_mass_err, corrected=False):
         ppm_s = 0
     return {
         "value": ppm,
-        "error": ppm_s * 2,
+        "error": ppm_s,
         "type": {"parameter": parameter_name, "unit": "ppm"},
     }
 
@@ -263,7 +263,7 @@ class TRaILicpms(BaseImporter):
                     eU += 0.0012 * ppm_dict["value"]
                     eU_err.append((0.0012 * (ppm_dict["error"] / 2)) ** 2)
 
-            eu_param_name = "eU (±2σ)"
+            eu_param_name = "eU (±1σ)"
             if corrected:
                 eu_param_name += ", new geometric correction"
             eU_dict = {
